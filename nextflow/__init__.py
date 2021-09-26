@@ -52,4 +52,13 @@ class Execution:
                     text = f.read()
                     if f"[{self.id}]" in text: return text
 
-        
+
+
+class Script:
+
+    def __init__(self, path):
+        self.path = path
+    
+
+    def __repr__(self):
+        return f"<Script ({self.path})>"
