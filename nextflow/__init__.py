@@ -1,10 +1,14 @@
-
+import os
 
 class Execution:
 
     def __init__(self, location, id):
         self.location = location
         self.id = id
+    
+
+    def __repr__(self):
+        return f"<Execution [{self.id}]>"
     
 
     @property
@@ -38,4 +42,14 @@ class Execution:
     def command(self):
         data = self.history_data
         if data: return data[6]
+    
+
+    @property
+    def log(self):
+        for filename in os.listdir(self.location):
+            if ".nextflow.log" in filename:
+                with open(f"{self.location}/{filename}") as f:
+                    text = f.read()
+                    if f"[{self.id}]" in text: return text
+
         
