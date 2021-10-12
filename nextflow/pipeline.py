@@ -1,4 +1,4 @@
-class Script:
+class Pipeline:
     """A .nf file somewhere on the local filesystem."""
 
     def __init__(self, path):
@@ -6,4 +6,4 @@ class Script:
     
 
     def __repr__(self):
-        return f"<Script ({self.path})>"
+        return f"<Pipeline ({self.path})>"
