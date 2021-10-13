@@ -24,25 +24,58 @@ class Tests(TestCase):
         self.assertEqual(pipeline.path, self.get_path("pipeline.nf"))
         self.assertIsNone(pipeline.config)
         self.assertEqual(pipeline.schema, self.get_path("schema.json"))
-        self.assertEqual(pipeline.input_schema, [{
-            "type": "string", "format": "file-path", "mimetype": "text/csv", "pattern": "^\\S+\\.csv$",
-            "schema": "assets/schema_input.json",
-            "description": "Path to comma-separated file.",
-            "help_text": "You will need to create a design file.",
-            "fa_icon": "fas fa-file-csv"
-        }, {
-            "type": "string", "description": "Path to the output directory where the results will be saved.",
-            "default": "./results", "fa_icon": "fas fa-folder-open"
-        }, {
-            "type": "boolean", "fa_icon": "fas fa-barcode", "description": "Enable UMI-based read deduplication."
-        }, {
-            "type": "string", "default": "string", "fa_icon": "fas fa-barcode",
-            "description": "UMI pattern to use. Can be either 'string' (default) or 'regex'.",
-            "help_text": "More details can be found in the UMI-tools documentation."
-        }, {
-            "type": "boolean", "fa_icon": "fas fa-save",
-            "description": "If this option is specified, all is good."
-        }])
+        self.assertEqual(pipeline.input_schema, {
+            "ultraplex_options": {
+                "title": "Input/output options",
+                "type": "object",
+                "fa_icon": "fas fa-terminal",
+                "description": "Ultraplex options.",
+                "properties": {
+                    "input": {
+                        "type": "string",
+                        "format": "file-path",
+                        "mimetype": "text/csv",
+                        "pattern": "^\\S+\\.csv$",
+                        "schema": "assets/schema_input.json",
+                        "description": "Path to comma-separated file.",
+                        "help_text": "You will need to create a design file.",
+                        "fa_icon": "fas fa-file-csv"
+                    },
+                    "outdir": {
+                        "type": "string",
+                        "description": "Path to the output directory where the results will be saved.",
+                        "default": "./results",
+                        "fa_icon": "fas fa-folder-open"
+                    }
+                }
+            },
+            "spreadsheet_options": {
+                "title": "UMI options",
+                "type": "object",
+                "description": "Options for processing reads with unique molecular identifiers",
+                "default": "",
+                "properties": {
+                    "with_umi": {
+                        "type": "boolean",
+                        "fa_icon": "fas fa-barcode",
+                        "description": "Enable UMI-based read deduplication."
+                    },
+                    "umitools_extract_method": {
+                        "type": "string",
+                        "default": "string",
+                        "fa_icon": "fas fa-barcode",
+                        "description": "UMI pattern to use. Can be either 'string' (default) or 'regex'.",
+                        "help_text": "More details can be found in the UMI-tools documentation."
+                    },
+                    "save_umi_intermeds": {
+                        "type": "boolean",
+                        "fa_icon": "fas fa-save",
+                        "description": "If this option is specified, all is good."
+                    }
+                },
+                "fa_icon": "fas fa-barcode"
+            }
+        })
     
 
     def test_config(self):

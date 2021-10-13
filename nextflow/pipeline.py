@@ -18,6 +18,7 @@ class Pipeline:
         if not self.schema: return None
         with open(self.schema) as f:
             schema = json.load(f)
+        return schema["definitions"]
         inputs = []
         for category in schema["definitions"].values():
             for property in category["properties"].values():
