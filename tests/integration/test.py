@@ -87,11 +87,11 @@ class PipelineIntrospectionTests(PipelineTest):
     def test_config(self):
         pipeline = nextflow.Pipeline(
             self.get_path("pipeline.nf"),
-            config=self.get_path("nextflow.config")
+            config=self.get_path("custom.config")
         )
         self.assertEqual(pipeline.path, self.get_path("pipeline.nf"))
         self.assertIsNone(pipeline.schema)
-        self.assertEqual(pipeline.config, self.get_path("nextflow.config"))
+        self.assertEqual(pipeline.config, self.get_path("custom.config"))
 
 
 
@@ -142,4 +142,19 @@ class PipelineRunningTests(PipelineTest):
         self.assertEqual(
             execution.command,
             f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))} --param1=xxx --param2=/path/to/file\n"
+        )
+    
+
+    def test_pipeline_running_with_custom_config(self):
+        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"), config=self.get_path("custom.config"))
+        execution = pipeline.run(location=self.get_path("rundirectory"))
+        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
+        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
+
+        # Examine resultant execution
+        self.assertIn("_", execution.id)
+        self.assertEqual(execution.status, "OK")
+        self.assertEqual(
+            execution.command,
+            f"nextflow -C {os.path.abspath(self.get_path('custom.config'))} run {os.path.abspath(self.get_path('pipeline.nf'))}\n"
         )
