@@ -7,7 +7,7 @@ class PipelineTest(TestCase):
 
     def get_path(self, name):
         return os.path.join(
-            "tests", "integration", "pipelines", name.replace("/", os.path.sep)
+            ".", "tests", "integration", "pipelines", name.replace("/", os.path.sep)
         )
 
         
