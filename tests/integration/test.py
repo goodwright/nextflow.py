@@ -1,12 +1,18 @@
 import os
+import shutil
 from unittest import TestCase
 import nextflow
 
-class Tests(TestCase):
+class PipelineTest(TestCase):
 
     def get_path(self, name):
-        return os.path.join("tests", "integration", "pipelines", name.replace("/", os.path.sep))
+        return os.path.join(
+            "tests", "integration", "pipelines", name.replace("/", os.path.sep)
+        )
 
+        
+
+class PipelineIntrospectionTests(PipelineTest):
 
     def test_basic_pipeline(self):
         pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
@@ -86,3 +92,23 @@ class Tests(TestCase):
         self.assertEqual(pipeline.path, self.get_path("pipeline.nf"))
         self.assertIsNone(pipeline.schema)
         self.assertEqual(pipeline.config, self.get_path("nextflow.config"))
+
+
+
+class PipelineRunningTests(PipelineTest):
+
+    def setUp(self):
+        self.rundirectory = self.get_path("rundirectory")
+        if os.path.exists(self.rundirectory): shutil.rmtree(self.rundirectory)
+        os.mkdir(self.rundirectory)
+    
+
+    def tearDown(self):
+        shutil.rmtree(self.rundirectory)
+        if os.path.exists(".nextflow"): shutil.rmtree(".nextflow")
+
+
+    def test_pipeline_running(self):
+        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
+        pipeline.run(location=self.get_path("rundirectory"))
+        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))

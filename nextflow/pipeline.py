@@ -1,4 +1,5 @@
 import json
+import subprocess
 
 class Pipeline:
     """A .nf file somewhere on the local filesystem."""
@@ -19,8 +20,11 @@ class Pipeline:
         with open(self.schema) as f:
             schema = json.load(f)
         return schema["definitions"]
-        inputs = []
-        for category in schema["definitions"].values():
-            for property in category["properties"].values():
-                inputs.append(property)
-        return inputs
+    
+
+    def run(self, location="."):
+        process = subprocess.run(
+            f"nextflow run {self.path}",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd=location
+        )
