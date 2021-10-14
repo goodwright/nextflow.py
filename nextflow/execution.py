@@ -3,9 +3,10 @@ import os
 class Execution:
     """The record of the running of a Nextflow script."""
 
-    def __init__(self, location, id):
+    def __init__(self, location, id, process=None):
         self.location = location
         self.id = id
+        self.process = process
     
 
     def __repr__(self):

@@ -109,7 +109,19 @@ class PipelineRunningTests(PipelineTest):
 
 
     def test_pipeline_running(self):
+        # Run pipeline that doesn't need any inputs
         pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
-        pipeline.run(location=self.get_path("rundirectory"))
+        execution = pipeline.run(location=self.get_path("rundirectory"))
         self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
         self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
+
+        # Examine resultant execution
+        self.assertIn("_", execution.id)
+        self.assertEqual(execution.status, "OK")
+        self.assertEqual(execution.command, f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))}\n")
+
+        # Examine original process
+        self.assertEqual(execution.process.returncode, 0)
+        self.assertEqual(execution.process.stderr, "")
+        self.assertTrue(execution.process.stdout.startswith("N E X T F L O W"))
+        self.assertIn(f"[{execution.id}]", execution.process.stdout)

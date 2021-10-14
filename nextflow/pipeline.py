@@ -40,4 +40,4 @@ class Pipeline:
         with open(os.path.join(full_run_location, ".nextflow.log")) as f:
             log_text = f.read()
         run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
-        return Execution(full_run_location, run_id)
+        return Execution(full_run_location, run_id, process=process)
