@@ -25,14 +25,17 @@ class Pipeline:
         return schema["definitions"]
     
 
-    def run(self, location="."):
+    def run(self, location=".", params=None):
         full_run_location = os.path.abspath(location)
         full_pipeline_location = os.path.abspath(self.path)
         original_location = os.getcwd()
+        param_string = " ".join([
+            f"--{param[0]}={param[1]}" for param in params.items()
+        ]) if params else ""
         try:
             os.chdir(full_run_location)
             process = subprocess.run(
-                f"nextflow run {full_pipeline_location}",
+                f"nextflow run {full_pipeline_location} {param_string}",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 universal_newlines=True, shell=True, cwd=full_run_location
             )

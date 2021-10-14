@@ -125,3 +125,21 @@ class PipelineRunningTests(PipelineTest):
         self.assertEqual(execution.process.stderr, "")
         self.assertTrue(execution.process.stdout.startswith("N E X T F L O W"))
         self.assertIn(f"[{execution.id}]", execution.process.stdout)
+    
+
+    def test_pipeline_running_with_inputs(self):
+        # Run command with inputs
+        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
+        execution = pipeline.run(location=self.get_path("rundirectory"), params={
+            "param1": "xxx", "param2": "/path/to/file"
+        })
+        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
+        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
+
+        # Examine resultant execution
+        self.assertIn("_", execution.id)
+        self.assertEqual(execution.status, "OK")
+        self.assertEqual(
+            execution.command,
+            f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))} --param1=xxx --param2=/path/to/file\n"
+        )
