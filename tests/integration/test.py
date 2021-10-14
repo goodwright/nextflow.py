@@ -111,4 +111,5 @@ class PipelineRunningTests(PipelineTest):
     def test_pipeline_running(self):
         pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
         pipeline.run(location=self.get_path("rundirectory"))
+        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
         self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))

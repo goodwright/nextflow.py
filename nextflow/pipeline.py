@@ -1,5 +1,8 @@
 import json
+import os
+import re
 import subprocess
+from .execution import Execution
 
 class Pipeline:
     """A .nf file somewhere on the local filesystem."""
@@ -23,8 +26,18 @@ class Pipeline:
     
 
     def run(self, location="."):
-        process = subprocess.run(
-            f"nextflow run {self.path}",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd=location
-        )
+        full_run_location = os.path.abspath(location)
+        full_pipeline_location = os.path.abspath(self.path)
+        original_location = os.getcwd()
+        try:
+            os.chdir(full_run_location)
+            process = subprocess.run(
+                f"nextflow run {full_pipeline_location}",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True, shell=True, cwd=full_run_location
+            )
+        finally: os.chdir(original_location)
+        with open(os.path.join(full_run_location, ".nextflow.log")) as f:
+            log_text = f.read()
+        run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
+        return Execution(full_run_location, run_id)
