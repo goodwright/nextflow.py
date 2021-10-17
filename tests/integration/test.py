@@ -5,6 +5,17 @@ import nextflow
 
 class PipelineTest(TestCase):
 
+    def setUp(self):
+        self.rundirectory = self.get_path("rundirectory")
+        if os.path.exists(self.rundirectory): shutil.rmtree(self.rundirectory)
+        os.mkdir(self.rundirectory)
+    
+
+    def tearDown(self):
+        shutil.rmtree(self.rundirectory)
+        if os.path.exists(".nextflow"): shutil.rmtree(".nextflow")
+
+
     def get_path(self, name):
         return os.path.join(
             ".", "tests", "integration", "pipelines", name.replace("/", os.path.sep)
@@ -97,17 +108,6 @@ class PipelineIntrospectionTests(PipelineTest):
 
 class PipelineRunningTests(PipelineTest):
 
-    def setUp(self):
-        self.rundirectory = self.get_path("rundirectory")
-        if os.path.exists(self.rundirectory): shutil.rmtree(self.rundirectory)
-        os.mkdir(self.rundirectory)
-    
-
-    def tearDown(self):
-        shutil.rmtree(self.rundirectory)
-        if os.path.exists(".nextflow"): shutil.rmtree(".nextflow")
-
-
     def test_pipeline_running(self):
         # Run pipeline that doesn't need any inputs
         pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
@@ -158,3 +158,16 @@ class PipelineRunningTests(PipelineTest):
             execution.command,
             f"nextflow -C {os.path.abspath(self.get_path('custom.config'))} run {os.path.abspath(self.get_path('pipeline.nf'))}\n"
         )
+
+
+
+class PipelineProcessTests(PipelineTest):
+
+    def test_can_get_process_info(self):
+        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
+        execution = pipeline.run(location=self.get_path("rundirectory"))
+        
+        processes = sorted(execution.nextflow_processes, key=str)
+        self.assertEqual(len(processes), 4)
+        self.assertEqual(processes[0].name, "sayHello (1)")
+        self.assertIs(processes[0].execution, execution)

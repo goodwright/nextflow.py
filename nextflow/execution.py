@@ -1,5 +1,5 @@
 import os
-
+import subprocess
 class Execution:
     """The record of the running of a Nextflow script."""
 
@@ -7,6 +7,7 @@ class Execution:
         self.location = location
         self.id = id
         self.process = process
+        self.update_nextflow_processes()
     
 
     def __repr__(self):
@@ -53,3 +54,27 @@ class Execution:
                 with open(f"{self.location}/{filename}") as f:
                     text = f.read()
                     if f"[{self.id}]" in text: return text
+    
+
+    def update_nextflow_processes(self):
+        process = subprocess.run(
+            f"nextflow log {self.id} -f name",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd=self.location
+        )
+        lines = process.stdout.splitlines()
+        self.nextflow_processes = [NextflowProcess(
+            name=line.strip(), execution=self
+        ) for line in lines]
+
+
+
+class NextflowProcess:
+
+    def __init__(self, name, execution):
+        self.name = name
+        self.execution = execution
+    
+
+    def __repr__(self):
+        return f"<NextflowProcess from {self.execution.id}: {self.name}>"
