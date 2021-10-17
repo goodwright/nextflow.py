@@ -158,6 +158,18 @@ class PipelineRunningTests(PipelineTest):
             execution.command,
             f"nextflow -C {os.path.abspath(self.get_path('custom.config'))} run {os.path.abspath(self.get_path('pipeline.nf'))}\n"
         )
+    
+
+    def test_running_with_profile(self):
+        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
+        execution = pipeline.run(location=self.get_path("rundirectory"), profile=["profile1,profile2"])
+        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
+        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
+
+        # Examine resultant execution
+        self.assertIn("_", execution.id)
+        self.assertEqual(execution.status, "OK")
+        self.assertEqual(execution.command, f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))} -profile profile1,profile2\n")
 
 
 
