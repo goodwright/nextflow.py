@@ -56,24 +56,56 @@ class Execution:
                     if f"[{self.id}]" in text: return text
     
 
-    def update_nextflow_processes(self):
+    def get_available_fields(self):
         process = subprocess.run(
-            f"nextflow log {self.id} -f name",
+            f"nextflow log {self.id} -l",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd=self.location
         )
-        lines = process.stdout.splitlines()
-        self.nextflow_processes = [NextflowProcess(
-            name=line.strip(), execution=self
-        ) for line in lines]
+        return [field.strip() for field in
+            process.stdout.splitlines() if field.strip()]
+    
+
+    def get_process_paths(self):
+        return subprocess.run(
+            f"nextflow log {self.id}",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd=self.location
+        ).stdout.splitlines()
+
+
+    def update_nextflow_processes(self):
+        field_names = self.get_available_fields()
+        field_names = [f"\\${f}" for f in field_names]
+        self.nextflow_processes = []
+        for path in self.get_process_paths():
+            fields = {}
+            keys = [f[2:] for f in field_names]
+            template = ' XXXXXXXXX '.join(field_names)
+            values = subprocess.run(
+                f"nextflow log {self.id} -t \"{template}\" -F \"workdir == '{path}'\"",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True, shell=True, cwd=self.location
+            ).stdout.strip().split(" XXXXXXXXX ")
+            fields = dict(zip(keys, values))
+            self.nextflow_processes.append(NextflowProcess(
+                fields=fields, execution=self
+            ))
 
 
 
 class NextflowProcess:
 
-    def __init__(self, name, execution):
-        self.name = name
+    def __init__(self, fields, execution):
+        self.fields = fields
         self.execution = execution
+    
+
+    def __getattr__(self, key):
+        try:
+            return self.fields[key]
+        except KeyError:
+            raise AttributeError(f"NextflowProcess has no attribute '{key}'")
     
 
     def __repr__(self):

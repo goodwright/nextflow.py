@@ -169,5 +169,7 @@ class PipelineProcessTests(PipelineTest):
         
         processes = sorted(execution.nextflow_processes, key=str)
         self.assertEqual(len(processes), 4)
+        self.assertEqual(processes[0].process, "sayHello")
         self.assertEqual(processes[0].name, "sayHello (1)")
         self.assertIs(processes[0].execution, execution)
+        self.assertTrue(processes[0].stdout.endswith(" world!\n"))
