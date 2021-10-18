@@ -88,7 +88,7 @@ You can get all of the descriptive data at once with the `fields` attribute.
 
 ### 0.1
 
-*19th October, 2021*
+*18th October, 2021*
 
 - Basic Pipeline object.
 
