@@ -1,5 +1,6 @@
 import os
 import subprocess
+
 class Execution:
     """The record of the running of a Nextflow script."""
 
