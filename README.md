@@ -86,6 +86,14 @@ You can get all of the descriptive data at once with the `fields` attribute.
 
 ## Changelog
 
+### 0.1.1
+
+*29th October, 2021*
+
+- Renamed `nextflow_processes` to `process_executions`.
+
+- Added quotes around paths to handle spaces in paths.
+
 ### 0.1
 
 *18th October, 2021*
