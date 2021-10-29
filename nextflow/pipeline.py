@@ -28,7 +28,7 @@ class Pipeline:
     @property
     def config_string(self):
         full_config_path = os.path.abspath(self.config) if self.config else ""
-        return f" -C {full_config_path}" if self.config else ""
+        return f" -C \"{full_config_path}\"" if self.config else ""
     
 
     def run(self, location=".", params=None, profile=None):
@@ -36,14 +36,14 @@ class Pipeline:
         full_pipeline_location = os.path.abspath(self.path)
         original_location = os.getcwd()
         param_string = " ".join([
-            f"--{param[0]}={param[1]}" for param in params.items()
+            f"--{param[0]}='{param[1]}'" for param in params.items()
         ]) if params else ""
         profile_string = (" -profile " + ",".join(profile)) if profile else ""
         try:
             config_string = self.config_string
             os.chdir(full_run_location)
             process = subprocess.run(
-                f"nextflow{config_string} run {full_pipeline_location} {param_string}{profile_string}",
+                f"nextflow{config_string} run \"{full_pipeline_location}\" {param_string}{profile_string}",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 universal_newlines=True, shell=True, cwd=full_run_location
             )
