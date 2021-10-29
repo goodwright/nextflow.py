@@ -1,5 +1,8 @@
 # nextflow.py
 
+[![](https://img.shields.io/pypi/pyversions/nextflow.svg?color=3776AB&logo=python&logoColor=white)](https://www.python.org/)
+[![](https://img.shields.io/pypi/l/nextflow.svg?color=blue)](https://github.com/goodwright/nextflow.py/blob/master/LICENSE)
+
 nextflow.py is a Python wrapper around the Nextflow pipeline framework. It lets
 you run Nextflow pipelines from Python code.
 
