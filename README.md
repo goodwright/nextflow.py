@@ -67,7 +67,7 @@ execution that just ran, and you can interrogate various properties from it:
 
 - `log` - the full text of the log file produced.
 
-- `nextflow_processes` - the associated `NextflowProcess` objects.
+- `process_executions` - the associated `NextflowProcess` objects.
 
 A `NextflowProcess` is the record of the execution of a specific process within
 the overall Pipeline execution. The precise attributes are generated

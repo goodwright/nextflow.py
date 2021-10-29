@@ -8,7 +8,7 @@ class Execution:
         self.location = location
         self.id = id
         self.process = process
-        self.update_nextflow_processes()
+        self.update_process_executions()
     
 
     def __repr__(self):
@@ -75,10 +75,10 @@ class Execution:
         ).stdout.splitlines()
 
 
-    def update_nextflow_processes(self):
+    def update_process_executions(self):
         field_names = self.get_available_fields()
         field_names = [f"\\${f}" for f in field_names]
-        self.nextflow_processes = []
+        self.process_executions = []
         for path in self.get_process_paths():
             fields = {}
             keys = [f[2:] for f in field_names]
@@ -89,7 +89,7 @@ class Execution:
                 universal_newlines=True, shell=True, cwd=self.location
             ).stdout.strip().split(" XXXXXXXXX ")
             fields = dict(zip(keys, values))
-            self.nextflow_processes.append(NextflowProcess(
+            self.process_executions.append(NextflowProcess(
                 fields=fields, execution=self
             ))
 

@@ -179,7 +179,7 @@ class PipelineProcessTests(PipelineTest):
         pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
         execution = pipeline.run(location=self.get_path("rundirectory"))
         
-        processes = sorted(execution.nextflow_processes, key=str)
+        processes = sorted(execution.process_executions, key=str)
         self.assertEqual(len(processes), 4)
         self.assertEqual(processes[0].process, "sayHello")
         self.assertEqual(processes[0].name, "sayHello (1)")
