@@ -1,5 +1,6 @@
 # nextflow.py
 
+![](https://github.com/goodwright/nextflow.py/actions/workflows/main.yml/badge.svg)
 [![](https://img.shields.io/pypi/pyversions/nextflow.svg?color=3776AB&logo=python&logoColor=white)](https://www.python.org/)
 [![](https://img.shields.io/pypi/l/nextflow.svg?color=blue)](https://github.com/goodwright/nextflow.py/blob/master/LICENSE)
 
@@ -22,7 +23,7 @@ nextflow.py is available through PyPI:
 pip install nextflow
 ```
 
-You must install Nextflow itself separately: see the
+You must install the Nextflow executable itself separately: see the
 [Nextflow Documentation](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 for help with this.
 
@@ -88,6 +89,12 @@ ones are:
 You can get all of the descriptive data at once with the `fields` attribute.
 
 ## Changelog
+
+### 0.1.2
+
+*3rd November, 2021*
+
+- Better handling of missing Nextflow executable.
 
 ### 0.1.1
 
