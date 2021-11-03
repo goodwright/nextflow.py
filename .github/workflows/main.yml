@@ -11,6 +11,7 @@ jobs:
         python-version:
           - "3.8"
           - "3.9"
+          - "3,10"
 
     steps:
       - uses: actions/checkout@v2
@@ -24,9 +25,13 @@ jobs:
           java-version: '11'
       - name: Install Nextflow
         run: |
+          mkdir install
+          cd install
           curl -s https://get.nextflow.io | bash
           chmod +x nextflow
           mv nextflow /usr/local/bin
+          cd ..
+          rm -r install
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -34,4 +39,4 @@ jobs:
           pip install coverage==4.5.4
       - name: Test
         run: |
-          python -m unittest test
+          python -m unittest discover tests
