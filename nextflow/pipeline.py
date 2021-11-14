@@ -19,6 +19,8 @@ class Pipeline:
 
     @property
     def input_schema(self):
+        """The input JSON from the associated schema file."""
+
         if not self.schema: return None
         with open(self.schema) as f:
             schema = json.load(f)
@@ -27,11 +29,17 @@ class Pipeline:
 
     @property
     def config_string(self):
-        full_config_path = os.path.abspath(self.config) if self.config else ""
-        return f" -C \"{full_config_path}\"" if self.config else ""
+        """Gets the full location of the config file as a command line
+        argument."""
+        
+        if not self.config: return ""
+        full_config_path = os.path.abspath(self.config)
+        return f" -C \"{full_config_path}\""
     
 
     def run(self, location=".", params=None, profile=None):
+        """Runs the pipeline."""
+        
         full_run_location = os.path.abspath(location)
         full_pipeline_location = os.path.abspath(self.path)
         original_location = os.getcwd()
