@@ -96,7 +96,7 @@ class Execution:
     def update_process_executions(self):
         """Creates process execution objects for the execution by interrogating
         the log and work directories."""
-        
+
         field_names = self.get_available_fields()
         field_names = [f"\\${f}" for f in field_names]
         self.process_executions = []
@@ -110,13 +110,13 @@ class Execution:
                 universal_newlines=True, shell=True, cwd=self.location
             ).stdout.strip().split(" XXXXXXXXX ")
             fields = dict(zip(keys, values))
-            self.process_executions.append(NextflowProcess(
+            self.process_executions.append(ProcessExecution(
                 fields=fields, execution=self
             ))
 
 
 
-class NextflowProcess:
+class ProcessExecution:
 
     def __init__(self, fields, execution):
         self.fields = fields
@@ -127,8 +127,8 @@ class NextflowProcess:
         try:
             return self.fields[key]
         except KeyError:
-            raise AttributeError(f"NextflowProcess has no attribute '{key}'")
+            raise AttributeError(f"ProcessExecution has no attribute '{key}'")
     
 
     def __repr__(self):
-        return f"<NextflowProcess from {self.execution.id}: {self.name}>"
+        return f"<ProcessExecution from {self.execution.id}: {self.name}>"

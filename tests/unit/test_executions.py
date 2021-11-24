@@ -195,7 +195,7 @@ class ProcessExecutionUpdatingTests(TestCase):
     @patch("nextflow.execution.Execution.get_available_fields")
     @patch("nextflow.execution.Execution.get_process_paths")
     @patch("subprocess.run")
-    @patch("nextflow.execution.NextflowProcess")
+    @patch("nextflow.execution.ProcessExecution")
     def test_can_get_process_executions(self, mock_procex, mock_run, mock_paths, mock_fields):
         mock_fields.return_value = ["field1", "field2"]
         mock_paths.return_value = ["path1", "path2"]
