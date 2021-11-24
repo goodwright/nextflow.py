@@ -1,6 +1,6 @@
 from os import pipe
 from unittest import TestCase
-from unittest.mock import PropertyMock, patch, Mock, MagicMock
+from unittest.mock import PropertyMock, mock_open, patch, Mock, MagicMock
 from nextflow.pipeline import *
 
 class PipelineCreationTests(TestCase):
@@ -21,13 +21,8 @@ class PipelineCreationTests(TestCase):
 
 class PipelineInputSchemaTests(TestCase):
 
-    @patch("builtins.open")
+    @patch("builtins.open", new_callable=mock_open, read_data=json.dumps({"definitions": {"1": 2}}))
     def test_can_get_input_schema(self, mock_open):
-        open_return = MagicMock()
-        mock_file = Mock()
-        open_return.__enter__.return_value = mock_file
-        mock_file.read.return_value = json.dumps({"definitions": {"1": 2}})
-        mock_open.return_value = open_return
         pipeline = Pipeline("/path/run.nf", schema="schema.json")
         self.assertEqual(pipeline.input_schema, {"1": 2})
         mock_open.assert_called_with("schema.json")
