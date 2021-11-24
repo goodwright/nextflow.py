@@ -71,9 +71,9 @@ execution that just ran, and you can interrogate various properties from it:
 
 - `log` - the full text of the log file produced.
 
-- `process_executions` - the associated `NextflowProcess` objects.
+- `process_executions` - the associated `ProcessExecution` objects.
 
-A `NextflowProcess` is the record of the execution of a specific process within
+A `ProcessExecution` is the record of the execution of a specific process within
 the overall Pipeline execution. The precise attributes are generated
 automatically at runtime based on the output of `nextflow log`, but some useful
 ones are:
@@ -89,6 +89,13 @@ ones are:
 You can get all of the descriptive data at once with the `fields` attribute.
 
 ## Changelog
+
+### 0.1.3
+
+*24th November, 2021*
+
+- Fixed Windows file separator issues.
+- Renamed NextflowProcess -> ProcessExecution.
 
 ### 0.1.2
 
