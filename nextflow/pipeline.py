@@ -44,7 +44,8 @@ class Pipeline:
         full_pipeline_location = os.path.abspath(self.path)
         original_location = os.getcwd()
         param_string = " ".join([
-            f"--{param[0]}='{param[1]}'" for param in params.items()
+            f"--{param[0]}='{param[1]}'" if param[1][0] not in "'\""
+            else f"--{param[0]}={param[1]}" for param in params.items()
         ]) if params else ""
         profile_string = (" -profile " + ",".join(profile)) if profile else ""
         try:

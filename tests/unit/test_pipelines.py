@@ -108,14 +108,14 @@ class PipelineRunningTests(TestCase):
         self.mock_cwd.return_value = "current"
         self.mock_config_string.return_value = " -C conf"
         pipeline = Pipeline("/path/run.nf")
-        execution = pipeline.run(location="runloc", params={"1": "2", "3": "4"}, profile=["test", "test2"])
+        execution = pipeline.run(location="runloc", params={"1": "2", "3": "'4'", "5": '"6"'}, profile=["test", "test2"])
         self.mock_abspath.assert_any_call("runloc")
         self.mock_abspath.assert_any_call("/path/run.nf")
         self.mock_cwd.assert_called_with()
         self.mock_chdir.assert_any_call("abs1")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
-            f"nextflow -C conf run \"abs2\" --1='2' --3='4' -profile test,test2",
+            f"nextflow -C conf run \"abs2\" --1='2' --3='4' --5=\"6\" -profile test,test2",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="abs1"
         )
