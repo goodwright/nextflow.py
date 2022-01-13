@@ -90,6 +90,13 @@ You can get all of the descriptive data at once with the `fields` attribute.
 
 ## Changelog
 
+### 0.1.4
+
+*12th January, 2022*
+
+- Pipeline command generation no longer applies quotes if there are already quotes.
+
+
 ### 0.1.3
 
 *24th November, 2021*
