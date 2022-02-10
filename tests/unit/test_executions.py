@@ -40,6 +40,27 @@ class ExecutionCreationTests(ExecutionTest):
 
 
 
+class ExecutionFromLocationTests(TestCase):
+
+    @patch("builtins.open")
+    @patch("nextflow.execution.Execution")
+    def test_can_create_execution_from_location(self, mock_Ex, mock_open):
+        open_return = MagicMock()
+        mock_file = Mock()
+        open_return.__enter__.return_value = mock_file
+        mock_file.read.return_value = "abc [xx_yy] def"
+        mock_open.return_value = open_return
+        ex = Execution.create_from_location(
+            "/path/to/execution", "ok", "bad", 1
+        )
+        mock_open.assert_called_with("/path/to/execution/.nextflow.log")
+        mock_Ex.assert_called_with(
+            "/path/to/execution", "xx_yy", stdout="ok", stderr="bad", returncode=1
+        )
+        self.assertIs(ex, mock_Ex.return_value)
+
+
+
 class HistoryDataTests(ExecutionTest):
 
     @patch("builtins.open", new_callable=mock_open)

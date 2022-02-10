@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 
 class Execution:
@@ -11,6 +12,16 @@ class Execution:
         self.stderr = stderr
         self.returncode = returncode
         self.update_process_executions()
+    
+
+    @staticmethod
+    def create_from_location(location, stdout, stderr, returncode):
+        with open(os.path.join(location, ".nextflow.log")) as f:
+            log_text = f.read()
+        run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
+        return Execution(
+            location, run_id, stdout=stdout, stderr=stderr, returncode=returncode
+        )
     
 
     def __repr__(self):

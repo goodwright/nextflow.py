@@ -49,19 +49,49 @@ class ConfigStringTests(TestCase):
 
 
 
+class PipelineCommandStringTests(TestCase):
+
+    @patch("os.path.abspath")
+    def test_can_get_command_string(self, mock_abs):
+        pipeline = Pipeline("/path/run.nf")
+        mock_abs.return_value = "/full/path/run.nf"
+        string = pipeline.create_command_string(None, None)
+        mock_abs.assert_called_with("/path/run.nf")
+        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf"')
+    
+
+    @patch("os.path.abspath")
+    def test_can_get_command_string_with_params(self, mock_abs):
+        pipeline = Pipeline("/path/run.nf")
+        mock_abs.return_value = "/full/path/run.nf"
+        string = pipeline.create_command_string({"A": "B", "C": "D"}, None)
+        mock_abs.assert_called_with("/path/run.nf")
+        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
+    
+
+    @patch("os.path.abspath")
+    def test_can_get_command_string_with_profule(self, mock_abs):
+        pipeline = Pipeline("/path/run.nf")
+        mock_abs.return_value = "/full/path/run.nf"
+        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"])
+        mock_abs.assert_called_with("/path/run.nf")
+        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+
+
+    
 class PipelineRunningTests(TestCase):
 
     def setUp(self):
         self.patch1 = patch("os.path.abspath")
         self.patch2 = patch("os.getcwd")
-        self.patch3 = patch("nextflow.pipeline.Pipeline.config_string", new_callable=PropertyMock)
+        self.patch3 = patch("nextflow.pipeline.Pipeline.create_command_string")
         self.patch4 = patch("os.chdir")
         self.patch5 = patch("subprocess.run")
         self.patch6 = patch("builtins.open")
-        self.patch7 = patch("nextflow.pipeline.Execution")
+        self.patch7 = patch("nextflow.pipeline.Execution.create_from_location")
         self.mock_abspath = self.patch1.start()
         self.mock_cwd = self.patch2.start()
-        self.mock_config_string = self.patch3.start()
+        self.mock_command_string = self.patch3.start()
         self.mock_chdir = self.patch4.start()
         self.mock_run = self.patch5.start()
         self.mock_open = self.patch6.start()
@@ -86,24 +116,23 @@ class PipelineRunningTests(TestCase):
     def test_can_run_basic_pipeline(self):
         self.mock_abspath.side_effect = ["abs1", "abs2"]
         self.mock_cwd.return_value = "current"
-        self.mock_config_string.return_value = " -C conf"
+        self.mock_command_string.return_value = "run script.nf"
         pipeline = Pipeline("/path/run.nf")
         execution = pipeline.run()
         self.mock_abspath.assert_any_call(".")
-        self.mock_abspath.assert_any_call("/path/run.nf")
         self.mock_cwd.assert_called_with()
         self.mock_chdir.assert_any_call("abs1")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
-            f"nextflow -C conf run \"abs2\" ",
+            f"run script.nf",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="abs1"
         )
         self.mock_Execution.assert_called_with(
-            "abs1", "xx_yy",
-            stdout=self.mock_run.return_value.stdout,
-            stderr=self.mock_run.return_value.stderr,
-            returncode=self.mock_run.return_value.returncode,
+            "abs1",
+            self.mock_run.return_value.stdout,
+            self.mock_run.return_value.stderr,
+            self.mock_run.return_value.returncode,
         )
         self.assertIs(execution, self.mock_Execution.return_value)
     
@@ -111,23 +140,22 @@ class PipelineRunningTests(TestCase):
     def test_can_run_pipeline_with_arguments(self):
         self.mock_abspath.side_effect = ["abs1", "abs2"]
         self.mock_cwd.return_value = "current"
-        self.mock_config_string.return_value = " -C conf"
+        self.mock_command_string.return_value = "run script.nf"
         pipeline = Pipeline("/path/run.nf")
         execution = pipeline.run(location="runloc", params={"1": "2", "3": "'4'", "5": '"6"'}, profile=["test", "test2"])
         self.mock_abspath.assert_any_call("runloc")
-        self.mock_abspath.assert_any_call("/path/run.nf")
         self.mock_cwd.assert_called_with()
         self.mock_chdir.assert_any_call("abs1")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
-            f"nextflow -C conf run \"abs2\" --1='2' --3='4' --5=\"6\" -profile test,test2",
+            f"run script.nf",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="abs1"
         )
         self.mock_Execution.assert_called_with(
-            "abs1", "xx_yy",
-            stdout=self.mock_run.return_value.stdout,
-            stderr=self.mock_run.return_value.stderr,
-            returncode=self.mock_run.return_value.returncode,
+            "abs1",
+            self.mock_run.return_value.stdout,
+            self.mock_run.return_value.stderr,
+            self.mock_run.return_value.returncode,
         )
         self.assertIs(execution, self.mock_Execution.return_value)
