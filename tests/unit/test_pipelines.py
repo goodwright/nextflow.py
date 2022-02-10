@@ -99,7 +99,12 @@ class PipelineRunningTests(TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="abs1"
         )
-        self.mock_Execution.assert_called_with("abs1", "xx_yy", process=self.mock_run.return_value)
+        self.mock_Execution.assert_called_with(
+            "abs1", "xx_yy",
+            stdout=self.mock_run.return_value.stdout,
+            stderr=self.mock_run.return_value.stderr,
+            returncode=self.mock_run.return_value.returncode,
+        )
         self.assertIs(execution, self.mock_Execution.return_value)
     
 
@@ -119,5 +124,10 @@ class PipelineRunningTests(TestCase):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="abs1"
         )
-        self.mock_Execution.assert_called_with("abs1", "xx_yy", process=self.mock_run.return_value)
+        self.mock_Execution.assert_called_with(
+            "abs1", "xx_yy",
+            stdout=self.mock_run.return_value.stdout,
+            stderr=self.mock_run.return_value.stderr,
+            returncode=self.mock_run.return_value.returncode,
+        )
         self.assertIs(execution, self.mock_Execution.return_value)

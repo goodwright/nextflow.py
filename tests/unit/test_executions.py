@@ -21,16 +21,20 @@ class ExecutionCreationTests(ExecutionTest):
         execution = Execution("/location", "xxx_yyy")
         self.assertEqual(execution.location, "/location")
         self.assertEqual(execution.id, "xxx_yyy")
-        self.assertIsNone(execution.process)
+        self.assertIsNone(execution.stdout)
+        self.assertIsNone(execution.stderr)
+        self.assertIsNone(execution.returncode)
         self.assertEqual(str(execution), "<Execution [xxx_yyy]>")
         self.mock_update.assert_called_once_with()
     
 
     def test_can_create_execution_with_process(self):
-        execution = Execution("/location", "xxx_yyy", process="PROC")
+        execution = Execution("/location", "xxx_yyy", stdout="ok", stderr="bad", returncode=1)
         self.assertEqual(execution.location, "/location")
         self.assertEqual(execution.id, "xxx_yyy")
-        self.assertEqual(execution.process, "PROC")
+        self.assertEqual(execution.stdout, "ok")
+        self.assertEqual(execution.stderr, "bad")
+        self.assertEqual(execution.returncode, 1)
         self.assertEqual(str(execution), "<Execution [xxx_yyy]>")
         self.mock_update.assert_called_once_with()
 

@@ -121,10 +121,10 @@ class PipelineRunningTests(PipelineTest):
         self.assertEqual(execution.command, f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))}\n")
 
         # Examine original process
-        self.assertEqual(execution.process.returncode, 0)
-        self.assertEqual(execution.process.stderr, "")
-        self.assertTrue(execution.process.stdout.startswith("N E X T F L O W"))
-        self.assertIn(f"[{execution.id}]", execution.process.stdout)
+        self.assertEqual(execution.returncode, 0)
+        self.assertEqual(execution.stderr, "")
+        self.assertTrue(execution.stdout.startswith("N E X T F L O W"))
+        self.assertIn(f"[{execution.id}]", execution.stdout)
     
 
     def test_pipeline_running_with_inputs(self):

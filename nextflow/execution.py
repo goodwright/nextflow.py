@@ -4,10 +4,12 @@ import subprocess
 class Execution:
     """The record of the running of a Nextflow script."""
 
-    def __init__(self, location, id, process=None):
+    def __init__(self, location, id, stdout=None, stderr=None, returncode=None):
         self.location = location
         self.id = id
-        self.process = process
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = returncode
         self.update_process_executions()
     
 
