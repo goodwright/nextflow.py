@@ -218,26 +218,21 @@ class ProcessPathTests(ExecutionTest):
 class ProcessExecutionUpdatingTests(TestCase):
 
     @patch("nextflow.execution.Execution.get_available_fields")
-    @patch("nextflow.execution.Execution.get_process_paths")
     @patch("subprocess.run")
     @patch("nextflow.execution.ProcessExecution")
-    def test_can_get_process_executions(self, mock_procex, mock_run, mock_paths, mock_fields):
+    def test_can_get_process_executions(self, mock_procex, mock_run, mock_fields):
         mock_fields.return_value = ["field1", "field2"]
-        mock_paths.return_value = ["path1", "path2"]
-        mock_run.side_effect = [Mock(stdout="  1 XXXXXXXXX 2  "), Mock(stdout="  3 XXXXXXXXX 4  ")]
+        mock_run.return_value = Mock(stdout="  1 XXXXXXXXX 2\n3 XXXXXXXXX 4\n5 XXXXXXXXX 6  ")
         execution = Execution("/location", "ccc_ddd")
         mock_fields.assert_called_once_with()
-        mock_paths.assert_called_once_with()
         mock_run.assert_any_call(
-            "nextflow log ccc_ddd -t \"\\$field1 XXXXXXXXX \\$field2\" -F \"workdir == 'path1'\"",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="/location"
-        )
-        mock_run.assert_any_call(
-            "nextflow log ccc_ddd -t \"\\$field1 XXXXXXXXX \\$field2\" -F \"workdir == 'path2'\"",
+            "nextflow log ccc_ddd -t \"\\$field1 XXXXXXXXX \\$field2\"",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True, cwd="/location"
         )
         mock_procex.assert_any_call(fields={"field1": "1", "field2": "2"}, execution=execution)
         mock_procex.assert_any_call(fields={"field1": "3", "field2": "4"}, execution=execution)
-        self.assertEqual(execution.process_executions, [mock_procex.return_value, mock_procex.return_value])
+        mock_procex.assert_any_call(fields={"field1": "5", "field2": "6"}, execution=execution)
+        self.assertEqual(execution.process_executions, [
+            mock_procex.return_value, mock_procex.return_value, mock_procex.return_value
+        ])

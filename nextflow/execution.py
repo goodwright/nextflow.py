@@ -112,16 +112,25 @@ class Execution:
 
         field_names = self.get_available_fields()
         field_names = [f"\\${f}" for f in field_names]
+        template = ' XXXXXXXXX '.join(field_names)
+        all_values = subprocess.run(
+            f"nextflow log {self.id} -t \"{template}\"",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd=self.location
+        ).stdout.strip().split(" XXXXXXXXX ")
+        process_count = int(((len(all_values) - 1) / (len(field_names) - 1)))
+        process_values = []
+        for p in range(process_count):
+            values = all_values[p * len(field_names): (p + 1) * len(field_names)]
+            last_column_values = values[-1].split("\n")
+            if len(last_column_values) == 2:
+                real_last, actual_next_first = last_column_values
+                values[-1] = real_last
+                all_values.insert((p + 1) * len(field_names), actual_next_first)
+            process_values.append(values)
         self.process_executions = []
-        for path in self.get_process_paths():
-            fields = {}
+        for values in process_values:
             keys = [f[2:] for f in field_names]
-            template = ' XXXXXXXXX '.join(field_names)
-            values = subprocess.run(
-                f"nextflow log {self.id} -t \"{template}\" -F \"workdir == '{path}'\"",
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                universal_newlines=True, shell=True, cwd=self.location
-            ).stdout.strip().split(" XXXXXXXXX ")
             fields = dict(zip(keys, values))
             self.process_executions.append(ProcessExecution(
                 fields=fields, execution=self
