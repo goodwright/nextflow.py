@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import subprocess
 from .execution import Execution
 
@@ -68,3 +69,30 @@ class Pipeline:
         return Execution.create_from_location(
             full_run_location, process.stdout, process.stderr, process.returncode
         )
+    
+
+    def run_and_poll(self, location=".", params=None, profile=None, sleep=5):
+        """Runs the pipeline as creates executions at intervals, returning them
+        as a generator."""
+        
+        full_run_location = os.path.abspath(location)
+        original_location = os.getcwd()
+        command_string = self.create_command_string(params, profile)
+        try:
+            os.chdir(full_run_location)
+            process = subprocess.Popen(
+                command_string,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True, shell=True, cwd=full_run_location,
+                close_fds=True
+            )
+            while True:
+                time.sleep(sleep)
+                returncode = process.poll()
+                out, err = "", ""
+                if returncode is not None: out, err = process.communicate()
+                yield Execution.create_from_location(
+                    full_run_location, out, err, returncode
+                )
+                if returncode is not None: break
+        finally: os.chdir(original_location)
