@@ -133,29 +133,44 @@ class PipelineRunningTests(TestCase):
             self.mock_run.return_value.stdout,
             self.mock_run.return_value.stderr,
             self.mock_run.return_value.returncode,
+            True
         )
         self.assertIs(execution, self.mock_Execution.return_value)
     
 
-    def test_can_run_pipeline_with_arguments(self):
-        self.mock_abspath.side_effect = ["abs1", "abs2"]
-        self.mock_cwd.return_value = "current"
-        self.mock_command_string.return_value = "run script.nf"
+
+class PipelineRunPollTests(TestCase):
+
+    @patch("os.path.abspath")
+    @patch("os.getcwd")
+    @patch("nextflow.pipeline.Pipeline.create_command_string")
+    @patch("os.chdir")
+    @patch("subprocess.Popen")
+    @patch("time.sleep")
+    @patch("builtins.open")
+    @patch("nextflow.pipeline.Execution.create_from_location")
+    def test(self, mock_ex, mock_open, mock_sleep, mock_pop, mock_ch, mock_com, mock_cwd, mock_abs):
+        mock_abs.return_value = "/abs/loc"
+        mock_cwd.return_value = "current"
+        mock_com.return_value = "nextflow run"
+        mock_pop.return_value.poll.side_effect = [None, None, 0]
+        mock_pop.return_value.communicate.return_value = ["out", "err"]
         pipeline = Pipeline("/path/run.nf")
-        execution = pipeline.run(location="runloc", params={"1": "2", "3": "'4'", "5": '"6"'}, profile=["test", "test2"])
-        self.mock_abspath.assert_any_call("runloc")
-        self.mock_cwd.assert_called_with()
-        self.mock_chdir.assert_any_call("abs1")
-        self.mock_chdir.assert_any_call("current")
-        self.mock_run.assert_any_call(
-            f"run script.nf",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="abs1"
+        executions = list(pipeline.run_and_poll(
+            location="/loc", params="PARAMS", profile="PROFILE", sleep=2
+        ))
+        mock_abs.assert_called_with("/loc")
+        mock_cwd.assert_called_with()
+        mock_com.assert_called_with("PARAMS", "PROFILE")
+        mock_ch.assert_any_call("/abs/loc")
+        mock_ch.assert_any_call("current")
+        mock_pop.assert_called_with(
+            "nextflow run", stdout=-1, stderr=-1, universal_newlines=True,
+            shell=True, cwd="/abs/loc"
         )
-        self.mock_Execution.assert_called_with(
-            "abs1",
-            self.mock_run.return_value.stdout,
-            self.mock_run.return_value.stderr,
-            self.mock_run.return_value.returncode,
-        )
-        self.assertIs(execution, self.mock_Execution.return_value)
+        mock_sleep.assert_called_with(2)
+        self.assertEqual(mock_sleep.call_count, 3)
+        self.assertEqual(len(executions), 3)
+        mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
+        mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
+        mock_ex.assert_any_call("/abs/loc", "out", "err", 0, use_nextflow=True)

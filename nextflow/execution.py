@@ -1,26 +1,31 @@
 import os
 import re
 import subprocess
+from datetime import datetime
 
 class Execution:
     """The record of the running of a Nextflow script."""
 
-    def __init__(self, location, id, stdout=None, stderr=None, returncode=None):
+    def __init__(self, location, id, stdout=None, stderr=None, returncode=None, use_nextflow=True):
         self.location = location
         self.id = id
         self.stdout = stdout
         self.stderr = stderr
         self.returncode = returncode
-        self.update_process_executions()
+        if use_nextflow:
+            self.update_process_executions_with_nextflow()
+        else:
+            self.update_process_executions_without_nextflow()
     
 
     @staticmethod
-    def create_from_location(location, stdout, stderr, returncode):
+    def create_from_location(location, stdout, stderr, returncode, use_nextflow):
         with open(os.path.join(location, ".nextflow.log")) as f:
             log_text = f.read()
         run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
         return Execution(
-            location, run_id, stdout=stdout, stderr=stderr, returncode=returncode
+            location, run_id, stdout=stdout, stderr=stderr,
+            returncode=returncode, use_nextflow=use_nextflow
         )
     
 
@@ -106,7 +111,7 @@ class Execution:
         ).stdout.splitlines()
 
 
-    def update_process_executions(self):
+    def update_process_executions_with_nextflow(self):
         """Creates process execution objects for the execution by interrogating
         the log and work directories."""
 
@@ -132,6 +137,50 @@ class Execution:
         for values in process_values:
             keys = [f[2:] for f in field_names]
             fields = dict(zip(keys, values))
+            self.process_executions.append(ProcessExecution(
+                fields=fields, execution=self
+            ))
+    
+
+    def update_process_executions_without_nextflow(self):
+        """Creates process executions without calls the 'nextflow log' at the
+        command line. This is useful when the pipeline is still running, though
+        it relies of a particular formatting of the log file."""
+        
+        self.process_executions = []
+        log_text = self.log
+        for match in re.findall(
+            r"^(.+?) \[Task submitter\].+?\[(..\/......)\] Submitted process > (.+)",
+            log_text, flags=re.MULTILINE
+        ):
+            dir1, dir2 = match[1].split("/")
+            dir1 = os.path.join(self.location, "work", dir1)
+            dir2 = [d for d in os.listdir(dir1) if d.startswith(dir2)][0]
+            proc_dir = os.path.join(dir1, dir2)
+            fields = {"hash": match[1], "name": match[2]}
+            fields["process"] = match[2][:match[2].find("(") - 1]
+            start_dt = datetime.strptime(
+                f"{str(datetime.now().year)}-{match[0]}", "%Y-%b-%d %H:%M:%S.%f"
+            )
+            fields["start"] = start_dt.strftime("%Y-%m-%d %H:%M:%S")
+            completed_line = re.search(
+                r"^(.+?) \[.+?completed >.+?status: (.+?);.+?" + match[1],
+                log_text, flags=re.MULTILINE
+            )
+            end_dt = datetime.now()
+            if completed_line:
+                fields["status"] = completed_line[2]
+                end_dt = datetime.strptime(
+                    f"{str(datetime.now().year)}-{completed_line[1]}",
+                    "%Y-%b-%d %H:%M:%S.%f"
+                )
+            else:
+                fields["status"] = "-"
+            fields["duration"] = str((end_dt - start_dt).seconds) + "s"
+            with open(os.path.join(proc_dir, ".command.out")) as f:
+                fields["stdout"] = f.read() or "-"
+            with open(os.path.join(proc_dir, ".command.err")) as f:
+                fields["stderr"] = f.read() or "-"
             self.process_executions.append(ProcessExecution(
                 fields=fields, execution=self
             ))

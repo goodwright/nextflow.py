@@ -67,7 +67,7 @@ class Pipeline:
             )
         finally: os.chdir(original_location)
         return Execution.create_from_location(
-            full_run_location, process.stdout, process.stderr, process.returncode
+            full_run_location, process.stdout, process.stderr, process.returncode, True
         )
     
 
@@ -84,7 +84,6 @@ class Pipeline:
                 command_string,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 universal_newlines=True, shell=True, cwd=full_run_location,
-                close_fds=True
             )
             while True:
                 time.sleep(sleep)
@@ -92,7 +91,8 @@ class Pipeline:
                 out, err = "", ""
                 if returncode is not None: out, err = process.communicate()
                 yield Execution.create_from_location(
-                    full_run_location, out, err, returncode
+                    full_run_location, out, err, returncode,
+                    use_nextflow=not (returncode is None)
                 )
                 if returncode is not None: break
         finally: os.chdir(original_location)
