@@ -88,7 +88,18 @@ ones are:
 
 You can get all of the descriptive data at once with the `fields` attribute.
 
+Alternatively, the `run_and_poll` method will run a pipeline, and return an
+Execution object every few seconds as a generator, reflecting the state of the
+execution as the pipeline run proceeds.
+
 ## Changelog
+
+### 0.2
+
+*14th February, 2022*
+
+- Added method for running while continuously polling pipeline execution.
+- Optimised process execution object creation from file state.
 
 ### 0.1.4
 
