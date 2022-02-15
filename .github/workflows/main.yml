@@ -36,6 +36,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install python-coveralls
+          pip install freezegun
           pip install coverage==4.5.4
       - name: Test
         run: |

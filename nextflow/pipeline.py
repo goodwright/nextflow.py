@@ -85,14 +85,17 @@ class Pipeline:
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 universal_newlines=True, shell=True, cwd=full_run_location,
             )
+            print(command_string, flush=True)
+            print(process, flush=True)
             while True:
                 time.sleep(sleep)
                 returncode = process.poll()
                 out, err = "", ""
                 if returncode is not None: out, err = process.communicate()
-                yield Execution.create_from_location(
-                    full_run_location, out, err, returncode,
-                    use_nextflow=not (returncode is None)
-                )
+                if ".nextflow.log" in os.listdir(full_run_location):
+                    yield Execution.create_from_location(
+                        full_run_location, out, err, returncode,
+                        use_nextflow=not (returncode is None)
+                    )
                 if returncode is not None: break
         finally: os.chdir(original_location)
