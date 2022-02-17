@@ -90,9 +90,11 @@ class Pipeline:
                 returncode = process.poll()
                 out, err = "", ""
                 if returncode is not None: out, err = process.communicate()
-                yield Execution.create_from_location(
-                    full_run_location, out, err, returncode,
-                    use_nextflow=not (returncode is None)
-                )
+                if os.path.exists(os.path.join(full_run_location, ".nextflow.log")):
+                    if os.path.exists(os.path.join(full_run_location, ".nextflow", "history")):
+                        yield Execution.create_from_location(
+                            full_run_location, out, err, returncode,
+                            use_nextflow=not (returncode is None)
+                        )
                 if returncode is not None: break
         finally: os.chdir(original_location)

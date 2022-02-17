@@ -148,13 +148,15 @@ class PipelineRunPollTests(TestCase):
     @patch("subprocess.Popen")
     @patch("time.sleep")
     @patch("builtins.open")
+    @patch("os.path.exists")
     @patch("nextflow.pipeline.Execution.create_from_location")
-    def test(self, mock_ex, mock_open, mock_sleep, mock_pop, mock_ch, mock_com, mock_cwd, mock_abs):
+    def test(self, mock_ex, mock_exist, mock_open, mock_sleep, mock_pop, mock_ch, mock_com, mock_cwd, mock_abs):
         mock_abs.return_value = "/abs/loc"
         mock_cwd.return_value = "current"
         mock_com.return_value = "nextflow run"
-        mock_pop.return_value.poll.side_effect = [None, None, 0]
+        mock_pop.return_value.poll.side_effect = [None, None, None, 0]
         mock_pop.return_value.communicate.return_value = ["out", "err"]
+        mock_exist.side_effect = [False, True, True, True, True, True, True]
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll(
             location="/loc", params="PARAMS", profile="PROFILE", sleep=2
@@ -169,7 +171,7 @@ class PipelineRunPollTests(TestCase):
             shell=True, cwd="/abs/loc"
         )
         mock_sleep.assert_called_with(2)
-        self.assertEqual(mock_sleep.call_count, 3)
+        self.assertEqual(mock_sleep.call_count, 4)
         self.assertEqual(len(executions), 3)
         mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
         mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
