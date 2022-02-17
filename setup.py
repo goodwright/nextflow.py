@@ -7,7 +7,7 @@ with open("README.md") as f:
 
 setup(
     name="nextflow",
-    version="0.2.0",
+    version="0.2.1",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
     long_description_content_type="text/markdown",
