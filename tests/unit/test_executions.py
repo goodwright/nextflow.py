@@ -267,29 +267,37 @@ class ProcessExecutionUpdatingWithoutNextflowTests(TestCase):
         line1
         Feb-11 12:52:44.567 [Task submitter] - [57/05b758] Submitted process > PROC1 (10)
         Feb-11 12:53:44.567 [Task submitter] - [a4/abcdef] Submitted process > PROC2 (file2.txt)
+        Feb-11 12:53:44.567 [Task submitter] - [12/883345] Submitted process > PROC3 (file3.txt)
         line2
-        Feb-11 12:54:40.101 [Task monitor] - Task completed > TaskHandler[status: COMPLETED; workDir: work/57/05b758fe8af8b0f1fad77b63d5b1ad]
+        Feb-11 12:54:40.101 [Task monitor] - Task completed > TaskHandler[status: COMPLETED; exit: 1; workDir: work/57/05b758fe8af8b0f1fad77b63d5b1ad]
         line3
+        Feb-11 12:54:41.101 [Task monitor] - Task completed > TaskHandler[status: COMPLETED; exit: 0; workDir: work/12/883345fe8af8b0f1fad77b63d5b1ad]
         """.replace("        ", "")
-        mock_list.side_effect = [["05b758sadsadsa", "assadfdsf"], ["abcdefad"]]
+        mock_list.side_effect = [["05b758sadsadsa", "assadfdsf"], ["abcdefad"], ["883345fe8af8b0f"]]
         mock_open.return_value.__enter__().read.side_effect = [
-            "out1", "err1", "out2", "err2"
+            "out1", "err1", "out2", "err2", "out3", "err3"
         ]
         execution = Execution("/location", "ccc_ddd", use_nextflow=False)
         mock_list.assert_any_call(os.path.join("/location", "work", "57"))
         mock_list.assert_any_call(os.path.join("/location", "work", "a4"))
+        mock_list.assert_any_call(os.path.join("/location", "work", "12"))
         self.assertEqual(execution.process_executions, [
-            mock_procex.return_value, mock_procex.return_value
+            mock_procex.return_value, mock_procex.return_value, mock_procex.return_value
         ])
         mock_procex.assert_any_call(fields={
             "hash": "57/05b758", "name": "PROC1 (10)", "process": "PROC1",
             "start": "2022-02-11 12:52:44", "duration": "115s",
-            "stdout": "out1", "stderr": "err1", "status": "COMPLETED"
+            "stdout": "out1", "stderr": "err1", "status": "ERROR"
         }, execution=execution)
         mock_procex.assert_any_call(fields={
             "hash": "a4/abcdef", "name": "PROC2 (file2.txt)", "process": "PROC2",
             "start": "2022-02-11 12:53:44", "duration": "274s",
             "stdout": "out2", "stderr": "err2", "status": "-"
+        }, execution=execution)
+        mock_procex.assert_any_call(fields={
+            "hash": "12/883345", "name": "PROC3 (file3.txt)", "process": "PROC3",
+            "start": "2022-02-11 12:53:44", "duration": "56s",
+            "stdout": "out3", "stderr": "err3", "status": "COMPLETED"
         }, execution=execution)
         
         

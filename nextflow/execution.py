@@ -170,6 +170,8 @@ class Execution:
             end_dt = datetime.now()
             if completed_line:
                 fields["status"] = completed_line[2]
+                if fields["status"] == "COMPLETED" and "exit: 0" not in completed_line[0]:
+                    fields["status"] = "ERROR"
                 end_dt = datetime.strptime(
                     f"{str(datetime.now().year)}-{completed_line[1]}",
                     "%Y-%b-%d %H:%M:%S.%f"
