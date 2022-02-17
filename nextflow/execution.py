@@ -177,10 +177,14 @@ class Execution:
             else:
                 fields["status"] = "-"
             fields["duration"] = str((end_dt - start_dt).seconds) + "s"
-            with open(os.path.join(proc_dir, ".command.out")) as f:
-                fields["stdout"] = f.read() or "-"
-            with open(os.path.join(proc_dir, ".command.err")) as f:
-                fields["stderr"] = f.read() or "-"
+            try:
+                with open(os.path.join(proc_dir, ".command.out")) as f:
+                    fields["stdout"] = f.read() or "-"
+            except: fields["stdout"] = "-"
+            try:
+                with open(os.path.join(proc_dir, ".command.err")) as f:
+                    fields["stderr"] = f.read() or "-"
+            except: fields["stderr"] = "-"
             self.process_executions.append(ProcessExecution(
                 fields=fields, execution=self
             ))
