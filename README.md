@@ -94,6 +94,14 @@ execution as the pipeline run proceeds.
 
 ## Changelog
 
+### 0.2.1
+
+*19th February, 2022*
+
+- Execution polling now handles unready execution directory.
+- Better detection of failed process executions mid execution.
+
+
 ### 0.2
 
 *14th February, 2022*
