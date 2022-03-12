@@ -46,7 +46,7 @@ class Pipeline:
             else f"--{param[0]}={param[1]}" for param in params.items()
         ]) if params else ""
         profile_string = (" -profile " + ",".join(profile)) if profile else ""
-        command_string = f"nextflow{self.config_string} "
+        command_string = f"NXF_ANSI_LOG=false nextflow{self.config_string} "
         command_string += f"run \"{full_pipeline_location}\" "
         command_string += f"{param_string}{profile_string}"
         return command_string
