@@ -57,7 +57,7 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string(None, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf"')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf"')
     
 
     @patch("os.path.abspath")
@@ -66,16 +66,16 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
     
 
     @patch("os.path.abspath")
-    def test_can_get_command_string_with_profule(self, mock_abs):
+    def test_can_get_command_string_with_profile(self, mock_abs):
         pipeline = Pipeline("/path/run.nf")
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"])
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
 
 
     
