@@ -94,6 +94,12 @@ execution as the pipeline run proceeds.
 
 ## Changelog
 
+### 0.2.2
+
+*21st March, 2022*
+
+- Log outputs now have ANSI codes removed.
+
 ### 0.2.1
 
 *19th February, 2022*
