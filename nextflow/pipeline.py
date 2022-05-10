@@ -62,7 +62,7 @@ class Pipeline:
             os.chdir(full_run_location)
             process = subprocess.run(
                 command_string,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL, 
                 universal_newlines=True, shell=True, cwd=full_run_location
             )
         finally: os.chdir(original_location)
