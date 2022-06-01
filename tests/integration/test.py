@@ -30,6 +30,14 @@ class DirectRunningTests(PipelineTest):
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config")
         )
+    
+
+    def test_can_run_pipeline_directly_and_poll(self):
+        for execution in nextflow.run_and_poll(
+            pipeline=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config")
+        ):
+            pass
 
         
 
