@@ -4,6 +4,7 @@ import time
 import shutil
 from unittest import TestCase
 import nextflow
+from nextflow.utils import parse_duration
 
 class PipelineTest(TestCase):
 
@@ -19,22 +20,13 @@ class PipelineTest(TestCase):
 
 
     def get_path(self, name):
-        return os.path.abspath(os.path.join(
-            ".", "tests", "integration", "pipelines", name.replace("/", os.path.sep)
-        ))
-
-
-
-class DirectRunningTests(PipelineTest):
-
-    def test_can_run_pipeline_directly(self):
-        execution = nextflow.run(
-            pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config"),
-            params={"file": self.get_path("data.txt"), "count": "12"},
-            location=self.get_path("rundirectory")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        return os.path.join(
+            dir_path, "pipelines", name.replace("/", os.path.sep)
         )
+    
 
+    def check_execution(self, execution, long=False):
         # Execution is fine
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -43,8 +35,8 @@ class DirectRunningTests(PipelineTest):
         self.assertIn("N E X T F L O W", execution.stdout)
         self.assertFalse(execution.stderr)
         self.assertEqual(execution.returncode, 0)
-        self.assertLessEqual(time.time() - execution.datetime, 5)
-        self.assertLessEqual(execution.duration, 5)
+        self.assertLessEqual(time.time() - execution.timestamp, 30 if long else 5)
+        self.assertLessEqual(execution.duration, 30 if long else 5)
         self.assertEqual(execution.status, "OK")
         log = execution.log
         self.assertIn("Starting process", log)
@@ -77,14 +69,63 @@ class DirectRunningTests(PipelineTest):
         self.assertIn("combined.txt", os.listdir(self.get_path("rundirectory/results/combine_lines")))
         self.assertIn("duplicate_line", os.listdir(self.get_path("rundirectory/results")))
         self.assertIn("duplicated.txt", os.listdir(self.get_path("rundirectory/results/duplicate_line")))
+
+
+
+class DirectRunningTests(PipelineTest):
+
+    def test_can_run_pipeline_directly(self):
+        execution = nextflow.run(
+            pipeline=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+            params={"file": self.get_path("data.txt"), "count": "12"},
+            location=self.get_path("rundirectory")
+        )
+        self.check_execution(execution)
     
 
     def test_can_run_pipeline_directly_and_poll(self):
+        ids = []
+        returncodes = []
+        process_executions = []
         for execution in nextflow.run_and_poll(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config")
+            config=self.get_path("pipeline.config"),
+            sleep=3,
+            params={"file": self.get_path("data.txt"), "count": "12", "wait": "5"},
+            location=self.get_path("rundirectory")
         ):
-            pass
+            self.assertEqual(execution.location, self.get_path("rundirectory"))
+            returncodes.append(execution.returncode)
+            ids.append(execution.id)
+            process_executions.append(execution.process_executions)
+        self.assertEqual(len(set(ids)), 1)
+        for a, b in zip(ids[:-1], ids[1:]):
+            self.assertGreaterEqual(b, a)
+        for processes1, processes2 in zip(process_executions[:-1], process_executions[1:]):
+            names1 = [p.process for p in processes1]
+            names2 = [p.process for p in processes2]
+            for name in names1:
+                self.assertIn(name, names2)
+
+            hashes1 = [p.hash for p in processes1]
+            hashes2 = [p.hash for p in processes2]
+            for hash_ in hashes1:
+                self.assertIn(hash_, hashes2)
+
+            for process in processes1:
+                self.assertIn(process.status, ["-", "COMPLETED"])
+            for process in processes2:
+                self.assertIn(process.status, ["-", "COMPLETED"])
+
+            for process in processes1:
+                duration = parse_duration(process.duration)
+                for process2 in processes2:
+                    if process2.name == process.name:
+                        self.assertLessEqual(duration, parse_duration(process2.duration))
+        self.assertEqual(returncodes[-1], 0)
+        self.assertEqual(set(returncodes[:-1]), {None})
+        self.check_execution(execution, long=True)
     
 
     def test_can_run_pipeline_directly_with_specific_version(self):

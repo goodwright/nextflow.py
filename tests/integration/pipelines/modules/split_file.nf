@@ -11,6 +11,9 @@ process SPLIT_FILE {
     with open("$file") as f:
         lines = f.read().splitlines()
 
+    if "$params.wait".isnumeric():
+        import time
+        time.sleep(int("$params.wait"))
     splits = {}
     for line in lines:
         first = line.split()[0]

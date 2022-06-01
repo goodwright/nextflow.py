@@ -9,6 +9,9 @@ process DUPLICATE_LINE {
     script:
     """
     #!/usr/bin/env python
+    if "$params.wait".isnumeric():
+        import time
+        time.sleep(int("$params.wait"))
     with open("$file") as f:
         lines = [f.read().splitlines()[0]] * $count
     with open("duplicated.txt", "w") as f:

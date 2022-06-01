@@ -2,7 +2,6 @@ import os
 import re
 import subprocess
 from datetime import datetime
-
 from nextflow.utils import parse_datetime, parse_duration
 
 class Execution:
@@ -174,7 +173,9 @@ class Execution:
             dir2 = [d for d in os.listdir(dir1) if d.startswith(dir2)][0]
             proc_dir = os.path.join(dir1, dir2)
             fields = {"hash": match[1], "name": match[2]}
-            fields["process"] = match[2][:match[2].find("(") - 1]
+            fields["process"] = match[2]
+            if "(" in fields["process"]:
+                 fields["process"] = fields["process"][:fields["process"].find("(") - 1]
             start_dt = datetime.strptime(
                 f"{str(datetime.now().year)}-{match[0]}", "%Y-%b-%d %H:%M:%S.%f"
             )

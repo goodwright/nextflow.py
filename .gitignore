@@ -5,4 +5,6 @@ temp.py
 *nextflow*
 build/
 dist/
+results
+work
 *.egg-info/
