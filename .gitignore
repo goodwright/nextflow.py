@@ -2,7 +2,7 @@
 __pycache__
 *.pyc
 temp.py
-
+*nextflow*
 build/
 dist/
 *.egg-info/

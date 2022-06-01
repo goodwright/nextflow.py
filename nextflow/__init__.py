@@ -10,3 +10,8 @@ if not which("nextflow"):
     raise NextflowNotInstalledError(
         "Nextflow is either not installed, not in PATH, or is not executable."
     )
+
+
+def run(pipeline, config, *args, **kwargs):
+    pipeline = Pipeline(path=pipeline, config=config)
+    return pipeline.run(*args, **kwargs)

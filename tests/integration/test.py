@@ -21,6 +21,16 @@ class PipelineTest(TestCase):
             ".", "tests", "integration", "pipelines", name.replace("/", os.path.sep)
         )
 
+
+
+class DirectRunningTests(PipelineTest):
+
+    def test_can_run_pipeline_directly(self):
+        execution = nextflow.run(
+            pipeline=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config")
+        )
+
         
 
 class PipelineIntrospectionTests(PipelineTest):
