@@ -38,6 +38,14 @@ class DirectRunningTests(PipelineTest):
             config=self.get_path("pipeline.config")
         ):
             pass
+    
+
+    def test_can_run_pipeline_directly_with_specific_version(self):
+        execution = nextflow.run(
+            pipeline=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+            version="20.04.0"
+        )
 
         
 

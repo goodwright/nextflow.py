@@ -37,7 +37,7 @@ class Pipeline:
         return f" -C \"{full_config_path}\""
     
 
-    def create_command_string(self, params, profile):
+    def create_command_string(self, params, profile, version):
         """Creates the full command line string to run for this pipeline."""
         
         full_pipeline_location = os.path.abspath(self.path)
@@ -46,18 +46,20 @@ class Pipeline:
             else f"--{param[0]}={param[1]}" for param in params.items()
         ]) if params else ""
         profile_string = (" -profile " + ",".join(profile)) if profile else ""
-        command_string = f"NXF_ANSI_LOG=false nextflow{self.config_string} "
+        command_string = "NXF_ANSI_LOG=false "
+        if version: command_string += f"NXF_VER={version} "
+        command_string += f"nextflow{self.config_string} "
         command_string += f"run \"{full_pipeline_location}\" "
         command_string += f"{param_string}{profile_string}"
         return command_string
 
     
-    def run(self, location=".", params=None, profile=None):
+    def run(self, location=".", params=None, profile=None, version=None):
         """Runs the pipeline."""
         
         full_run_location = os.path.abspath(location)
         original_location = os.getcwd()
-        command_string = self.create_command_string(params, profile)
+        command_string = self.create_command_string(params, profile, version)
         try:
             os.chdir(full_run_location)
             process = subprocess.run(
@@ -71,13 +73,13 @@ class Pipeline:
         )
     
 
-    def run_and_poll(self, location=".", params=None, profile=None, sleep=5):
+    def run_and_poll(self, location=".", params=None, profile=None, sleep=5, version=None):
         """Runs the pipeline as creates executions at intervals, returning them
         as a generator."""
         
         full_run_location = os.path.abspath(location)
         original_location = os.getcwd()
-        command_string = self.create_command_string(params, profile)
+        command_string = self.create_command_string(params, profile, version)
         try:
             os.chdir(full_run_location)
             process = subprocess.Popen(

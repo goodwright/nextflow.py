@@ -55,7 +55,7 @@ class PipelineCommandStringTests(TestCase):
     def test_can_get_command_string(self, mock_abs):
         pipeline = Pipeline("/path/run.nf")
         mock_abs.return_value = "/full/path/run.nf"
-        string = pipeline.create_command_string(None, None)
+        string = pipeline.create_command_string(None, None, None)
         mock_abs.assert_called_with("/path/run.nf")
         self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf"')
     
@@ -64,7 +64,7 @@ class PipelineCommandStringTests(TestCase):
     def test_can_get_command_string_with_params(self, mock_abs):
         pipeline = Pipeline("/path/run.nf")
         mock_abs.return_value = "/full/path/run.nf"
-        string = pipeline.create_command_string({"A": "B", "C": "D"}, None)
+        string = pipeline.create_command_string({"A": "B", "C": "D"}, None, None)
         mock_abs.assert_called_with("/path/run.nf")
         self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
     
@@ -73,9 +73,18 @@ class PipelineCommandStringTests(TestCase):
     def test_can_get_command_string_with_profile(self, mock_abs):
         pipeline = Pipeline("/path/run.nf")
         mock_abs.return_value = "/full/path/run.nf"
-        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"])
+        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], None)
         mock_abs.assert_called_with("/path/run.nf")
         self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+    
+
+    @patch("os.path.abspath")
+    def test_can_get_command_string_with_nf_version(self, mock_abs):
+        pipeline = Pipeline("/path/run.nf")
+        mock_abs.return_value = "/full/path/run.nf"
+        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], "1.2.3")
+        mock_abs.assert_called_with("/path/run.nf")
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
 
 
     
@@ -121,6 +130,7 @@ class PipelineRunningTests(TestCase):
         execution = pipeline.run()
         self.mock_abspath.assert_any_call(".")
         self.mock_cwd.assert_called_with()
+        self.mock_command_string.assert_called_with(None, None, None)
         self.mock_chdir.assert_any_call("abs1")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
@@ -159,11 +169,11 @@ class PipelineRunPollTests(TestCase):
         mock_exist.side_effect = [False, True, True, True, True, True, True]
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll(
-            location="/loc", params="PARAMS", profile="PROFILE", sleep=2
+            location="/loc", params="PARAMS", profile="PROFILE", sleep=2, version="1.2"
         ))
         mock_abs.assert_called_with("/loc")
         mock_cwd.assert_called_with()
-        mock_com.assert_called_with("PARAMS", "PROFILE")
+        mock_com.assert_called_with("PARAMS", "PROFILE", "1.2")
         mock_ch.assert_any_call("/abs/loc")
         mock_ch.assert_any_call("current")
         mock_pop.assert_called_with(
