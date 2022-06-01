@@ -4,7 +4,7 @@ from .execution import Execution
 from .pipeline import Pipeline
 
 __author__ = "Sam Ireland"
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 if not which("nextflow"):
     raise NextflowNotInstalledError(
