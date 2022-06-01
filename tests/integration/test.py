@@ -1,5 +1,7 @@
 import os
+import re
 import shutil
+from datetime import datetime
 from unittest import TestCase
 import nextflow
 
@@ -17,9 +19,9 @@ class PipelineTest(TestCase):
 
 
     def get_path(self, name):
-        return os.path.join(
+        return os.path.abspath(os.path.join(
             ".", "tests", "integration", "pipelines", name.replace("/", os.path.sep)
-        )
+        ))
 
 
 
@@ -28,8 +30,58 @@ class DirectRunningTests(PipelineTest):
     def test_can_run_pipeline_directly(self):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config")
+            config=self.get_path("pipeline.config"),
+            params={"file": self.get_path("data.txt"), "count": "12"},
+            location=self.get_path("rundirectory")
         )
+
+        # Execution is fine
+        self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
+        self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
+        self.assertEqual(execution.location, self.get_path("rundirectory"))
+        self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.id))
+        self.assertIn("N E X T F L O W", execution.stdout)
+        self.assertFalse(execution.stderr)
+        self.assertEqual(execution.returncode, 0)
+        self.assertLessEqual((
+            datetime.now() - datetime.strptime(execution.datetime, "%Y-%m-%d %H:%M:%S")
+        ).seconds, 5)
+        if execution.duration.endswith("ms"):
+            self.assertLessEqual(float(execution.duration[:-2]), 1000)
+        else:
+            self.assertLessEqual(float(execution.duration[:-1]), 10)
+        self.assertEqual(execution.status, "OK")
+        log = execution.log
+        self.assertIn("Starting process", log)
+        self.assertIn("Execution complete -- Goodbye", log)
+
+        # Process executions are fine
+        self.assertEqual(len(execution.process_executions), 5)
+        for process in execution.process_executions:
+            self.assertEqual(process.attempt, "1")
+            self.assertEqual(process.status, "COMPLETED")
+            self.assertEqual(process.exit, "0")
+            self.assertIn(process.process, [
+                "SPLIT_FILE",
+                "PROCESS_DATA:COMBINE_LINES",
+                "PROCESS_DATA:DUPLICATE_LINE",
+            ])
+            self.assertIn(process.name, [
+                "SPLIT_FILE",
+                "PROCESS_DATA:COMBINE_LINES (1)",
+                "PROCESS_DATA:COMBINE_LINES (2)",
+                "PROCESS_DATA:DUPLICATE_LINE (1)",
+                "PROCESS_DATA:DUPLICATE_LINE (2)"
+            ])
+
+        # Config was used
+        self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))
+        self.assertIn("abc.dat", os.listdir(self.get_path("rundirectory/results/split_file")))
+        self.assertIn("xyz.dat", os.listdir(self.get_path("rundirectory/results/split_file")))
+        self.assertIn("combine_lines", os.listdir(self.get_path("rundirectory/results")))
+        self.assertIn("combined.txt", os.listdir(self.get_path("rundirectory/results/combine_lines")))
+        self.assertIn("duplicate_line", os.listdir(self.get_path("rundirectory/results")))
+        self.assertIn("duplicated.txt", os.listdir(self.get_path("rundirectory/results/duplicate_line")))
     
 
     def test_can_run_pipeline_directly_and_poll(self):
