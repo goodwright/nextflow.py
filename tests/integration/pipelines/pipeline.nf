@@ -1,13 +1,9 @@
-#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
 
-cheers = Channel.from 'Bonjour', 'Ciao', 'Hello', 'Hola'
+include { SPLIT_FILE } from "./modules/split_file";
+include { PROCESS_DATA } from "./processdata";
 
-process sayHello {
-  echo true
-  input: 
-    val x from cheers
-  script:
-    """
-    echo '$x world!'
-    """
+workflow {
+    SPLIT_FILE(params.file)
+    PROCESS_DATA(SPLIT_FILE.out.split_files.flatten())
 }
