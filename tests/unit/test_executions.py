@@ -106,41 +106,83 @@ class HistoryDataTests(ExecutionTest):
 
 
 
-class ExecutionDatetimeTests(ExecutionTest):
+class ExecutionDatetimeStringTests(ExecutionTest):
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
-    def test_can_get_datetime(self, mock_history):
+    def test_can_get_datetime_string(self, mock_history):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
         execution = Execution("/location", "ccc_ddd")
-        self.assertEqual(execution.datetime, "2021-10-09 19:54:49")
+        self.assertEqual(execution.datetime_string, "2021-10-09 19:54:49")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
     def test_can_get_no_datetime(self, mock_history):
         mock_history.return_value = None
         execution = Execution("/location", "ccc_ddd")
-        self.assertIsNone(execution.datetime)
+        self.assertIsNone(execution.datetime_string)
+
+
+
+class ExecutionTimestampTests(ExecutionTest):
+
+    @patch("nextflow.execution.Execution.datetime_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.parse_datetime")
+    def test_can_get_datetime(self, mock_parse_datetime, mock_datetime_string):
+        mock_datetime_string.return_value = "2022"
+        execution = Execution("/location", "ccc_ddd")
+        self.assertEqual(execution.timestamp, mock_parse_datetime.return_value)
+        mock_parse_datetime.assert_called_with("2022")
+    
+
+    @patch("nextflow.execution.Execution.datetime_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.parse_datetime")
+    def test_can_get_no_datetime(self, mock_parse_datetime, mock_datetime_string):
+        mock_datetime_string.return_value = None
+        execution = Execution("/location", "ccc_ddd")
+        self.assertEqual(execution.timestamp, None)
+        self.assertFalse(mock_parse_datetime.called)
+
+
+
+class ExecutionDurationStringTests(ExecutionTest):
+
+    @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
+    def test_can_get_duration_string(self, mock_history):
+        mock_history.return_value = [
+            "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
+        ]
+        execution = Execution("/location", "ccc_ddd")
+        self.assertEqual(execution.duration_string, "4s")
+    
+
+    @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
+    def test_can_get_no_duration_string(self, mock_history):
+        mock_history.return_value = None
+        execution = Execution("/location", "ccc_ddd")
+        self.assertIsNone(execution.duration_string)
 
 
 
 class ExecutionDurationTests(ExecutionTest):
 
-    @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
-    def test_can_get_duration(self, mock_history):
-        mock_history.return_value = [
-            "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
-        ]
+    @patch("nextflow.execution.Execution.duration_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.parse_duration")
+    def test_can_get_duration(self, mock_parse_duration, mock_duration_string):
+        mock_duration_string.return_value = "5s"
         execution = Execution("/location", "ccc_ddd")
-        self.assertEqual(execution.duration, "4s")
+        self.assertEqual(execution.duration, mock_parse_duration.return_value)
+        mock_parse_duration.assert_called_with("5s")
     
 
-    @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
-    def test_can_get_no_duration(self, mock_history):
-        mock_history.return_value = None
+    @patch("nextflow.execution.Execution.duration_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.parse_duration")
+    def test_can_get_no_duration(self, mock_parse_duration, mock_duration_string):
+        mock_duration_string.return_value = None
         execution = Execution("/location", "ccc_ddd")
-        self.assertIsNone(execution.duration)
+        self.assertEqual(execution.duration, None)
+        self.assertFalse(mock_parse_duration.called)
 
 
 

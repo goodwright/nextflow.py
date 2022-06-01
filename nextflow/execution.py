@@ -3,6 +3,8 @@ import re
 import subprocess
 from datetime import datetime
 
+from nextflow.utils import parse_datetime, parse_duration
+
 class Execution:
     """The record of the running of a Nextflow script."""
 
@@ -46,7 +48,7 @@ class Execution:
 
     
     @property
-    def datetime(self):
+    def datetime_string(self):
         """The datetime at which the execution started."""
 
         data = self.history_data
@@ -54,11 +56,25 @@ class Execution:
     
 
     @property
-    def duration(self):
+    def timestamp(self):
+        string = self.datetime_string
+        if not string: return None
+        return parse_datetime(self.datetime_string)
+    
+
+    @property
+    def duration_string(self):
         """How long the execution took to complete."""
 
         data = self.history_data
         if data: return data[1]
+    
+
+    @property
+    def duration(self):
+        string = self.duration_string
+        if not string: return None
+        return parse_duration(self.duration_string)
     
 
     @property

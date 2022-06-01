@@ -1,7 +1,7 @@
 import os
 import re
+import time
 import shutil
-from datetime import datetime
 from unittest import TestCase
 import nextflow
 
@@ -43,13 +43,8 @@ class DirectRunningTests(PipelineTest):
         self.assertIn("N E X T F L O W", execution.stdout)
         self.assertFalse(execution.stderr)
         self.assertEqual(execution.returncode, 0)
-        self.assertLessEqual((
-            datetime.now() - datetime.strptime(execution.datetime, "%Y-%m-%d %H:%M:%S")
-        ).seconds, 5)
-        if execution.duration.endswith("ms"):
-            self.assertLessEqual(float(execution.duration[:-2]), 1000)
-        else:
-            self.assertLessEqual(float(execution.duration[:-1]), 10)
+        self.assertLessEqual(time.time() - execution.datetime, 5)
+        self.assertLessEqual(execution.duration, 5)
         self.assertEqual(execution.status, "OK")
         log = execution.log
         self.assertIn("Starting process", log)
