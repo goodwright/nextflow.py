@@ -98,3 +98,14 @@ class Pipeline:
                         )
                 if returncode is not None: break
         finally: os.chdir(original_location)
+
+
+
+def run(pipeline, config, *args, **kwargs):
+    pipeline = Pipeline(path=pipeline, config=config)
+    return pipeline.run(*args, **kwargs)
+
+
+def run_and_poll(pipeline, config, *args, **kwargs):
+    pipeline = Pipeline(path=pipeline, config=config)
+    return pipeline.run_and_poll(*args, **kwargs)
