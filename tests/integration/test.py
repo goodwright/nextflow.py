@@ -5,7 +5,6 @@ import shutil
 from datetime import datetime
 from unittest import TestCase
 import nextflow
-from nextflow.utils import parse_duration
 
 class PipelineTest(TestCase):
 
@@ -103,6 +102,7 @@ class DirectRunningTests(PipelineTest):
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
             sleep=3,
+            profile=["special"],
             params={"file": self.get_path("data.txt"), "count": "12", "wait": "5"},
             location=self.get_path("rundirectory")
         ):
@@ -137,6 +137,7 @@ class DirectRunningTests(PipelineTest):
         self.assertEqual(returncodes[-1], 0)
         self.assertEqual(set(returncodes[:-1]), {None})
         self.check_execution(execution, long=True)
+        self.assertIn("Applying config profile: `special`", execution.log)
     
 
     def test_can_run_pipeline_directly_with_specific_version(self):
@@ -150,7 +151,44 @@ class DirectRunningTests(PipelineTest):
         self.check_execution(execution)
         self.assertIn("21.10.3", execution.log)
 
-        
+
+
+class PipelineRunningTests(PipelineTest):
+
+    def test_can_run_pipeline(self):
+        pipeline = nextflow.Pipeline(
+            path=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+        )
+        execution = pipeline.run(
+            params={"file": self.get_path("data.txt"), "count": "12"},
+            location=self.get_path("rundirectory")
+        )
+        self.check_execution(execution)
+    
+
+    def test_can_run_pipeline_and_poll(self):
+        pipeline = nextflow.Pipeline(
+            path=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+        )
+        ids = []
+        returncodes = []
+        process_executions = []
+        for execution in pipeline.run_and_poll(
+            sleep=3,
+            params={"file": self.get_path("data.txt"), "count": "12", "wait": "5"},
+            location=self.get_path("rundirectory")
+        ):
+            self.assertEqual(execution.location, self.get_path("rundirectory"))
+            returncodes.append(execution.returncode)
+            ids.append(execution.id)
+            process_executions.append(execution.process_executions)
+        self.assertEqual(len(set(ids)), 1)
+        for a, b in zip(ids[:-1], ids[1:]):
+            self.assertGreaterEqual(b, a)
+
+
 
 class PipelineIntrospectionTests(PipelineTest):
 
@@ -222,71 +260,11 @@ class PipelineIntrospectionTests(PipelineTest):
                 "fa_icon": "fas fa-barcode"
             }
         })
-    
 
-    def test_config(self):
-        pipeline = nextflow.Pipeline(
-            self.get_path("pipeline.nf"),
-            config=self.get_path("custom.config")
-        )
-        self.assertEqual(pipeline.path, self.get_path("pipeline.nf"))
-        self.assertIsNone(pipeline.schema)
-        self.assertEqual(pipeline.config, self.get_path("custom.config"))
+        
 
+'''
 
-
-class PipelineRunningTests(PipelineTest):
-
-    def test_pipeline_running(self):
-        # Run pipeline that doesn't need any inputs
-        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
-        execution = pipeline.run(location=self.get_path("rundirectory"))
-        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
-        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
-
-        # Examine resultant execution
-        self.assertIn("_", execution.id)
-        self.assertEqual(execution.status, "OK")
-        self.assertEqual(execution.command, f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))}\n")
-
-        # Examine original process
-        self.assertEqual(execution.returncode, 0)
-        self.assertEqual(execution.stderr, "")
-        self.assertTrue(execution.stdout.startswith("N E X T F L O W"))
-        self.assertIn(f"[{execution.id}]", execution.stdout)
-    
-
-    def test_pipeline_running_with_inputs(self):
-        # Run command with inputs
-        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
-        execution = pipeline.run(location=self.get_path("rundirectory"), params={
-            "param1": "xxx", "param2": "/path/to/file"
-        })
-        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
-        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
-
-        # Examine resultant execution
-        self.assertIn("_", execution.id)
-        self.assertEqual(execution.status, "OK")
-        self.assertEqual(
-            execution.command,
-            f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))} --param1=xxx --param2=/path/to/file\n"
-        )
-    
-
-    def test_pipeline_running_with_custom_config(self):
-        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"), config=self.get_path("custom.config"))
-        execution = pipeline.run(location=self.get_path("rundirectory"))
-        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
-        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
-
-        # Examine resultant execution
-        self.assertIn("_", execution.id)
-        self.assertEqual(execution.status, "OK")
-        self.assertEqual(
-            execution.command,
-            f"nextflow -C {os.path.abspath(self.get_path('custom.config'))} run {os.path.abspath(self.get_path('pipeline.nf'))}\n"
-        )
     
 
     def test_running_with_profile(self):
@@ -313,4 +291,4 @@ class PipelineProcessTests(PipelineTest):
         self.assertEqual(processes[0].process, "sayHello")
         self.assertEqual(processes[0].name, "sayHello (1)")
         self.assertIs(processes[0].execution, execution)
-        self.assertTrue(processes[0].stdout.endswith(" world!\n"))
+        self.assertTrue(processes[0].stdout.endswith(" world!\n"))'''
