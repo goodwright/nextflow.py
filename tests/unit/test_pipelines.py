@@ -96,20 +96,96 @@ class PipelineRunningTests(TestCase):
         self.patch3 = patch("nextflow.pipeline.Pipeline.create_command_string")
         self.patch4 = patch("os.chdir")
         self.patch5 = patch("subprocess.run")
-        self.patch6 = patch("builtins.open")
-        self.patch7 = patch("nextflow.pipeline.Execution.create_from_location")
+        self.patch6 = patch("nextflow.pipeline.Execution.create_from_location")
         self.mock_abspath = self.patch1.start()
         self.mock_cwd = self.patch2.start()
         self.mock_command_string = self.patch3.start()
         self.mock_chdir = self.patch4.start()
         self.mock_run = self.patch5.start()
-        self.mock_open = self.patch6.start()
-        self.mock_Execution = self.patch7.start()
-        open_return = MagicMock()
-        mock_file = Mock()
-        open_return.__enter__.return_value = mock_file
-        mock_file.read.return_value = "abc [xx_yy] def"
-        self.mock_open.return_value = open_return
+        self.mock_create = self.patch6.start()
+
+
+    def tearDown(self):
+        self.patch1.stop()
+        self.patch2.stop()
+        self.patch3.stop()
+        self.patch4.stop()
+        self.patch5.stop()
+        self.patch6.stop()
+
+
+    def test_can_run_basic_pipeline(self):
+        self.mock_abspath.return_value = "/abs/loc"
+        self.mock_cwd.return_value = "current"
+        self.mock_command_string.return_value = "run script.nf"
+        pipeline = Pipeline("/path/run.nf")
+        execution = pipeline.run()
+        self.mock_abspath.assert_any_call(".")
+        self.mock_cwd.assert_called_with()
+        self.mock_command_string.assert_called_with(None, None, None)
+        self.mock_chdir.assert_any_call("/abs/loc")
+        self.mock_chdir.assert_any_call("current")
+        self.mock_run.assert_any_call(
+            f"run script.nf",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd="/abs/loc"
+        )
+        self.mock_create.assert_called_with(
+            "/abs/loc",
+            self.mock_run.return_value.stdout,
+            self.mock_run.return_value.stderr,
+            self.mock_run.return_value.returncode,
+        )
+        self.assertIs(execution, self.mock_create.return_value)
+    
+
+    def test_can_run_pipeline_with_options(self):
+        self.mock_abspath.return_value = "/abs/loc"
+        self.mock_cwd.return_value = "current"
+        self.mock_command_string.return_value = "run script.nf"
+        pipeline = Pipeline("/path/run.nf")
+        execution = pipeline.run(
+            location="/path", params="params", profile="profiles", version="version"
+        )
+        self.mock_abspath.assert_any_call("/path")
+        self.mock_cwd.assert_called_with()
+        self.mock_command_string.assert_called_with("params", "profiles", "version")
+        self.mock_chdir.assert_any_call("/abs/loc")
+        self.mock_chdir.assert_any_call("current")
+        self.mock_run.assert_any_call(
+            f"run script.nf",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd="/abs/loc"
+        )
+        self.mock_create.assert_called_with(
+            "/abs/loc",
+            self.mock_run.return_value.stdout,
+            self.mock_run.return_value.stderr,
+            self.mock_run.return_value.returncode,
+        )
+        self.assertIs(execution, self.mock_create.return_value)
+    
+
+
+class PipelineRunPollTests(TestCase):
+
+    def setUp(self):
+        self.patch1 = patch("os.path.abspath")
+        self.patch2 = patch("os.getcwd")
+        self.patch3 = patch("nextflow.pipeline.Pipeline.create_command_string")
+        self.patch4 = patch("os.chdir")
+        self.patch5 = patch("subprocess.Popen")
+        self.patch6 = patch("time.sleep")
+        self.patch7 = patch("os.path.exists")
+        self.patch8 = patch("nextflow.pipeline.Execution.create_from_location")
+        self.mock_abspath = self.patch1.start()
+        self.mock_cwd = self.patch2.start()
+        self.mock_command_string = self.patch3.start()
+        self.mock_chdir = self.patch4.start()
+        self.mock_popen = self.patch5.start()
+        self.mock_sleep = self.patch6.start()
+        self.mock_exists = self.patch7.start()
+        self.mock_create = self.patch8.start()
 
 
     def tearDown(self):
@@ -120,69 +196,95 @@ class PipelineRunningTests(TestCase):
         self.patch5.stop()
         self.patch6.stop()
         self.patch7.stop()
+        self.patch8.stop()
 
 
-    def test_can_run_basic_pipeline(self):
-        self.mock_abspath.side_effect = ["abs1", "abs2"]
+    def test_can_poll_basic_pipeline(self):
+        self.mock_abspath.return_value = "/abs/loc"
         self.mock_cwd.return_value = "current"
         self.mock_command_string.return_value = "run script.nf"
+        process = Mock()
+        process.poll.side_effect = [None, None, None, "0"]
+        process.communicate.return_value = ["good", "bad"]
+        self.mock_popen.return_value = process
+        self.mock_exists.side_effect = [False, True, True, True, True, True, True]
         pipeline = Pipeline("/path/run.nf")
-        execution = pipeline.run()
+        executions = list(pipeline.run_and_poll())
+        self.assertEqual(len(executions), 3)
+        for execution in executions:
+            self.assertIs(execution, self.mock_create.return_value)
         self.mock_abspath.assert_any_call(".")
         self.mock_cwd.assert_called_with()
         self.mock_command_string.assert_called_with(None, None, None)
-        self.mock_chdir.assert_any_call("abs1")
+        self.mock_chdir.assert_any_call("/abs/loc")
         self.mock_chdir.assert_any_call("current")
-        self.mock_run.assert_any_call(
-            f"run script.nf",
+        self.mock_popen.assert_called_with(
+            "run script.nf",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="abs1"
+            universal_newlines=True, shell=True, cwd="/abs/loc"
         )
-        self.mock_Execution.assert_called_with(
-            "abs1",
-            self.mock_run.return_value.stdout,
-            self.mock_run.return_value.stderr,
-            self.mock_run.return_value.returncode,
-            True
-        )
-        self.assertIs(execution, self.mock_Execution.return_value)
+        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow.log"))
+        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow", "history"))
+        self.assertEqual(self.mock_exists.call_count, 7)
+        self.mock_sleep.assert_called_with(5)
+        self.assertEqual(self.mock_sleep.call_count, 4)
+        self.mock_create.assert_any_call("/abs/loc", "", "", None)
+        self.mock_create.assert_any_call("/abs/loc", "good", "bad", "0")
     
 
-
-class PipelineRunPollTests(TestCase):
-
-    @patch("os.path.abspath")
-    @patch("os.getcwd")
-    @patch("nextflow.pipeline.Pipeline.create_command_string")
-    @patch("os.chdir")
-    @patch("subprocess.Popen")
-    @patch("time.sleep")
-    @patch("builtins.open")
-    @patch("os.path.exists")
-    @patch("nextflow.pipeline.Execution.create_from_location")
-    def test(self, mock_ex, mock_exist, mock_open, mock_sleep, mock_pop, mock_ch, mock_com, mock_cwd, mock_abs):
-        mock_abs.return_value = "/abs/loc"
-        mock_cwd.return_value = "current"
-        mock_com.return_value = "nextflow run"
-        mock_pop.return_value.poll.side_effect = [None, None, None, 0]
-        mock_pop.return_value.communicate.return_value = ["out", "err"]
-        mock_exist.side_effect = [False, True, True, True, True, True, True]
+    def test_can_poll_pipeline_with_options(self):
+        self.mock_abspath.return_value = "/abs/loc"
+        self.mock_cwd.return_value = "current"
+        self.mock_command_string.return_value = "run script.nf"
+        process = Mock()
+        process.poll.side_effect = [None, None, None, "0"]
+        process.communicate.return_value = ["good", "bad"]
+        self.mock_popen.return_value = process
+        self.mock_exists.side_effect = [False, True, True, True, True, True, True]
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll(
-            location="/loc", params="PARAMS", profile="PROFILE", sleep=2, version="1.2"
+            location="otherloc", params="params", profile="profiles",
+            version="version", sleep=2
         ))
-        mock_abs.assert_called_with("/loc")
-        mock_cwd.assert_called_with()
-        mock_com.assert_called_with("PARAMS", "PROFILE", "1.2")
-        mock_ch.assert_any_call("/abs/loc")
-        mock_ch.assert_any_call("current")
-        mock_pop.assert_called_with(
-            "nextflow run", stdout=-1, stderr=-1, universal_newlines=True,
-            shell=True, cwd="/abs/loc"
-        )
-        mock_sleep.assert_called_with(2)
-        self.assertEqual(mock_sleep.call_count, 4)
         self.assertEqual(len(executions), 3)
-        mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
-        mock_ex.assert_any_call("/abs/loc", "", "", None, use_nextflow=False)
-        mock_ex.assert_any_call("/abs/loc", "out", "err", 0, use_nextflow=True)
+        for execution in executions:
+            self.assertIs(execution, self.mock_create.return_value)
+        self.mock_abspath.assert_any_call("otherloc")
+        self.mock_cwd.assert_called_with()
+        self.mock_command_string.assert_called_with("params", "profiles", "version")
+        self.mock_chdir.assert_any_call("/abs/loc")
+        self.mock_chdir.assert_any_call("current")
+        self.mock_popen.assert_called_with(
+            "run script.nf",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True, cwd="/abs/loc"
+        )
+        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow.log"))
+        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow", "history"))
+        self.assertEqual(self.mock_exists.call_count, 7)
+        self.mock_sleep.assert_called_with(2)
+        self.assertEqual(self.mock_sleep.call_count, 4)
+        self.mock_create.assert_any_call("/abs/loc", "", "", None)
+        self.mock_create.assert_any_call("/abs/loc", "good", "bad", "0")
+
+
+
+class DirectRunningTests(TestCase):
+
+    @patch("nextflow.pipeline.Pipeline")
+    def test_can_run_directly(self, mock_Pipeline):
+        execution = run("/path", "/config", 1, 2, a=3, b=4)
+        self.assertIs(execution, mock_Pipeline.return_value.run.return_value)
+        mock_Pipeline.assert_called_with(path="/path", config="/config")
+        mock_Pipeline.return_value.run.assert_called_with(1, 2, a=3, b=4)
+
+
+
+class DirectPollingTests(TestCase):
+
+    @patch("nextflow.pipeline.Pipeline")
+    def test_can_run_directly(self, mock_Pipeline):
+        execution = run_and_poll("/path", "/config", 1, 2, a=3, b=4)
+        self.assertIs(execution, mock_Pipeline.return_value.run_and_poll.return_value)
+        mock_Pipeline.assert_called_with(path="/path", config="/config")
+        mock_Pipeline.return_value.run_and_poll.assert_called_with(1, 2, a=3, b=4)

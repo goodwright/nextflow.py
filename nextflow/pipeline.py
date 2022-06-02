@@ -1,3 +1,5 @@
+"""Tools for representing Nextflow pipelines."""
+
 import json
 import os
 import time
@@ -5,7 +7,11 @@ import subprocess
 from .execution import Execution
 
 class Pipeline:
-    """A .nf file somewhere on the local filesystem."""
+    """A .nf file somewhere on the local filesystem.
+    
+    :param str path: the path to the .nf file.
+    :param str config: the path to the associated config file.
+    :param str schema: the path to the associated JSON schema file."""
 
     def __init__(self, path, config=None, schema=None):
         self.path = path
@@ -19,7 +25,9 @@ class Pipeline:
 
     @property
     def input_schema(self):
-        """The input JSON from the associated schema file."""
+        """The input JSON from the associated schema file.
+        
+        :rtype: ``dict``"""
 
         if not self.schema: return None
         with open(self.schema) as f:
@@ -30,7 +38,9 @@ class Pipeline:
     @property
     def config_string(self):
         """Gets the full location of the config file as a command line
-        argument."""
+        argument.
+        
+        :rtype: ``str``"""
         
         if not self.config: return ""
         full_config_path = os.path.abspath(self.config)
@@ -38,7 +48,12 @@ class Pipeline:
     
 
     def create_command_string(self, params, profile, version):
-        """Creates the full command line string to run for this pipeline."""
+        """Creates the full command line string to run for this pipeline.
+        
+        :param dict params: the parameters to pass at the command line.
+        :param list profile: the names of profiles to use when running.
+        :param str version: the Nextflow version to use.
+        :rtype: ``str``"""
         
         full_pipeline_location = os.path.abspath(self.path)
         param_string = " ".join([
@@ -55,7 +70,16 @@ class Pipeline:
 
     
     def run(self, location=".", params=None, profile=None, version=None):
-        """Runs the pipeline."""
+        """Runs the pipeline and returns an :py:class:`.Execution` object once
+        it is completed. You can specifiy where it will run, the command line
+        parameters passed to it, the profile(s) it will run with, and the
+        Nextflow version it will use.
+        
+        :param str location: the directory to run within and save outputs to.
+        :param dict params: the parameters to pass at the command line.
+        :param list profile: the names of profiles to use when running.
+        :param str version: the Nextflow version to use.
+        :rtype: ``Execution``"""
         
         full_run_location = os.path.abspath(location)
         original_location = os.getcwd()
@@ -73,9 +97,18 @@ class Pipeline:
         )
     
 
-    def run_and_poll(self, location=".", params=None, profile=None, sleep=5, version=None):
-        """Runs the pipeline as creates executions at intervals, returning them
-        as a generator."""
+    def run_and_poll(self, location=".", params=None, profile=None, version=None, sleep=5):
+        """Runs the pipeline and creates :py:class:`.Execution` objects at
+        intervals, returning them as a generator. You can specifiy where it will
+        run, the command line parameters passed to it, the profile(s) it will
+        run with, and the Nextflow version it will use.
+        
+        :param str location: the directory to run within and save outputs to.
+        :param dict params: the parameters to pass at the command line.
+        :param list profile: the names of profiles to use when running.
+        :param str version: the Nextflow version to use.
+        :param int sleep: the amount of time between Execution updates.
+        :rtype: ``Execution``"""
         
         full_run_location = os.path.abspath(location)
         original_location = os.getcwd()
@@ -103,10 +136,37 @@ class Pipeline:
 
 
 def run(pipeline, config, *args, **kwargs):
+    """Runs a pipeline by pathand returns an :py:class:`.Execution` object once
+    it is completed. You can specifiy where it will run, the command line
+    parameters passed to it, the profile(s) it will run with, and the
+    Nextflow version it will use.
+    
+    :param str path: the path to the .nf file.
+    :param str config: the path to the associated config file.
+    :param str location: the directory to run within and save outputs to.
+    :param dict params: the parameters to pass at the command line.
+    :param list profile: the names of profiles to use when running.
+    :param str version: the Nextflow version to use.
+    :rtype: ``Execution``"""
+
     pipeline = Pipeline(path=pipeline, config=config)
     return pipeline.run(*args, **kwargs)
 
 
 def run_and_poll(pipeline, config, *args, **kwargs):
+    """Runs a pipeline by path and creates :py:class:`.Execution` objects at
+    intervals, returning them as a generator. You can specifiy where it will
+    run, the command line parameters passed to it, the profile(s) it will
+    run with, and the Nextflow version it will use.
+    
+    :param str path: the path to the .nf file.
+    :param str config: the path to the associated config file.
+    :param str location: the directory to run within and save outputs to.
+    :param dict params: the parameters to pass at the command line.
+    :param list profile: the names of profiles to use when running.
+    :param str version: the Nextflow version to use.
+    :param int sleep: the amount of time between Execution updates.
+    :rtype: ``Execution``"""
+
     pipeline = Pipeline(path=pipeline, config=config)
     return pipeline.run_and_poll(*args, **kwargs)
