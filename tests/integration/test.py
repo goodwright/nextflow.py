@@ -143,8 +143,12 @@ class DirectRunningTests(PipelineTest):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
-            version="20.04.0"
+            params={"file": self.get_path("data.txt"), "count": "12"},
+            location=self.get_path("rundirectory"),
+            version="21.10.3"
         )
+        self.check_execution(execution)
+        self.assertIn("21.10.3", execution.log)
 
         
 
