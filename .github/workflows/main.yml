@@ -12,6 +12,10 @@ jobs:
           - "3.8"
           - "3.9"
           - "3.10"
+        nextflow-version:
+          - "22.04.3"
+          - "21.10.6"
+          - "20.10.0"
 
     steps:
       - uses: actions/checkout@v2
@@ -23,10 +27,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
-      - name: Install Nextflow
+      - name: Install Nextflow ${{ matrix.nextflow-version }}
         run: |
           mkdir install
           cd install
+          export NXF_VER=${{ matrix.nextflow-version }}"
           curl -s https://get.nextflow.io | bash
           chmod +x nextflow
           mv nextflow /usr/local/bin
