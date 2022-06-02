@@ -31,6 +31,6 @@ class ProcessExecutionStartedTests(TestCase):
     def test_can_get_started(self):
         process_execution = ProcessExecution(
              Mock(), "12/3456", "FASTQC", "FASTQC (1)", "COMPLETED",
-            "good", "bad", "Jul-06", datetime(2021, 7, 6, 1, 2, 3), 1.2, "0"
+            "good", "bad", "Jul-06", datetime(2021, 1, 6, 1, 2, 3), 1.2, "0"
         )
-        self.assertEqual(process_execution.started, 1625529723)
+        self.assertEqual(process_execution.started, 1609894923)

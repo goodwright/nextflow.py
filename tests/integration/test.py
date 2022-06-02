@@ -26,14 +26,14 @@ class PipelineTest(TestCase):
         )
     
 
-    def check_execution(self, execution, long=False):
+    def check_execution(self, execution, long=False, check_stderr=True):
         # Execution is fine
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
         self.assertEqual(execution.location, self.get_path("rundirectory"))
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.id))
         self.assertIn("N E X T F L O W", execution.stdout)
-        self.assertFalse(execution.stderr)
+        if check_stderr: self.assertFalse(execution.stderr)
         self.assertEqual(execution.returncode, 0)
         self.assertLessEqual(time.time() - execution.started, 30 if long else 5)
         self.assertEqual(execution.started_dt.year, datetime.now().year)
@@ -148,7 +148,7 @@ class DirectRunningTests(PipelineTest):
             location=self.get_path("rundirectory"),
             version="21.10.3"
         )
-        self.check_execution(execution)
+        self.check_execution(execution, check_stderr=False)
         self.assertIn("21.10.3", execution.log)
 
 
