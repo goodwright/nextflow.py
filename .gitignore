@@ -2,7 +2,7 @@
 __pycache__
 *.pyc
 temp.py
-*nextflow*
+.nextflow.log*
 build/
 dist/
 results

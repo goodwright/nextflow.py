@@ -14,6 +14,7 @@ process SPLIT_FILE {
     if "$params.wait".isnumeric():
         import time
         time.sleep(int("$params.wait"))
+    print("Splitting...")
     splits = {}
     for line in lines:
         first = line.split()[0]

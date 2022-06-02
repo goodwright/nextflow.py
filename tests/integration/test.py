@@ -2,6 +2,7 @@ import os
 import re
 import time
 import shutil
+from datetime import datetime
 from unittest import TestCase
 import nextflow
 from nextflow.utils import parse_duration
@@ -35,7 +36,10 @@ class PipelineTest(TestCase):
         self.assertIn("N E X T F L O W", execution.stdout)
         self.assertFalse(execution.stderr)
         self.assertEqual(execution.returncode, 0)
-        self.assertLessEqual(time.time() - execution.timestamp, 30 if long else 5)
+        self.assertLessEqual(time.time() - execution.started, 30 if long else 5)
+        self.assertEqual(execution.started_dt.year, datetime.now().year)
+        self.assertIn(str(datetime.now().year), execution.started_string)
+        self.assertGreaterEqual(len(execution.started_string), 13)
         self.assertLessEqual(execution.duration, 30 if long else 5)
         self.assertEqual(execution.status, "OK")
         log = execution.log
@@ -45,9 +49,11 @@ class PipelineTest(TestCase):
         # Process executions are fine
         self.assertEqual(len(execution.process_executions), 5)
         for process in execution.process_executions:
-            self.assertEqual(process.attempt, "1")
+            self.assertIn(process.stdout, ["", "Splitting...\n"])
+            self.assertIn(process.stderr, ["", ":/\n"])
+            self.assertIs(process.execution, execution)
             self.assertEqual(process.status, "COMPLETED")
-            self.assertEqual(process.exit, "0")
+            self.assertEqual(process.returncode, "0")
             self.assertIn(process.process, [
                 "SPLIT_FILE",
                 "PROCESS_DATA:COMBINE_LINES",
@@ -60,6 +66,11 @@ class PipelineTest(TestCase):
                 "PROCESS_DATA:DUPLICATE_LINE (1)",
                 "PROCESS_DATA:DUPLICATE_LINE (2)"
             ])
+            self.assertGreaterEqual(len(process.started_string), 10)
+            self.assertEqual(process.started_dt.year, datetime.now().year)
+            self.assertLessEqual(time.time() - process.started, 30 if long else 5)
+            self.assertGreater(process.duration, 0)
+            self.assertLessEqual(process.duration, 6)
 
         # Config was used
         self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))
@@ -119,10 +130,10 @@ class DirectRunningTests(PipelineTest):
                 self.assertIn(process.status, ["-", "COMPLETED"])
 
             for process in processes1:
-                duration = parse_duration(process.duration)
+                duration = process.duration
                 for process2 in processes2:
                     if process2.name == process.name:
-                        self.assertLessEqual(duration, parse_duration(process2.duration))
+                        self.assertLessEqual(duration, process2.duration)
         self.assertEqual(returncodes[-1], 0)
         self.assertEqual(set(returncodes[:-1]), {None})
         self.check_execution(execution, long=True)
