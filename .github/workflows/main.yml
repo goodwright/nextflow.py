@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir install
           cd install
-          export NXF_VER=${{ matrix.nextflow-version }}"
+          export NXF_VER=${{ matrix.nextflow-version }}
           curl -s https://get.nextflow.io | bash
           chmod +x nextflow
           mv nextflow /usr/local/bin
