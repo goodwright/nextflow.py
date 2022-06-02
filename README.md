@@ -2,6 +2,7 @@
 
 ![](https://github.com/goodwright/nextflow.py/actions/workflows/main.yml/badge.svg)
 [![](https://img.shields.io/pypi/pyversions/nextflow.svg?color=3776AB&logo=python&logoColor=white)](https://www.python.org/)
+[![](https://img.shields.io/badge/Nextflow-22.04%20%7C%2021.10%20%7C%2020.10-orange)](https://www.nextflow.io/)
 [![](https://img.shields.io/pypi/l/nextflow.svg?color=blue)](https://github.com/goodwright/nextflow.py/blob/master/LICENSE)
 
 nextflow.py is a Python wrapper around the Nextflow pipeline framework. It lets
