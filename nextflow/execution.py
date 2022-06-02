@@ -1,10 +1,19 @@
+"""Tools for representing Nextflow executions."""
+
 import os
 import re
 from datetime import datetime
 from nextflow.utils import *
 
 class Execution:
-    """The record of the running of a Nextflow script."""
+    """The record of the running of a Nextflow script. Upon initialisation all
+    :py:class:`.ProcessExecution` objects will be generated.
+    
+    :param str location: the path where the execution took place and is saved.
+    :param str id: the Nextflow ID assigned to the execution.
+    :param str stdout: the stdout the execution produced.
+    :param str stderr: the stderr the execution produced.
+    :param str returncode: the return code the execution finished with."""
 
     def __init__(self, location, id, stdout=None, stderr=None, returncode=None):
         self.location = location
@@ -17,6 +26,15 @@ class Execution:
 
     @staticmethod
     def create_from_location(location, stdout, stderr, returncode):
+        """Create a :py:class:`.Execution` object from its location alone (i.e.
+        without knowing its Nextflow ID.
+        
+        :param str location: the path where the execution took place and is saved.
+        :param str stdout: the stdout the execution produced.
+        :param str stderr: the stderr the execution produced.
+        :param str returncode: the return code the execution finished with.
+        :rtype: ``Execution``"""
+
         with open(os.path.join(location, ".nextflow.log")) as f:
             log_text = f.read()
         run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
@@ -33,7 +51,9 @@ class Execution:
     @property
     def history_data(self):
         """Gets the execution's data line from .nextflow/history as a list of
-        values."""
+        values.
+        
+        :rtype: ``list``"""
 
         with open(os.path.join(self.location, ".nextflow", "history")) as f:
             lines = f.readlines()
@@ -44,7 +64,9 @@ class Execution:
     
     @property
     def started_string(self):
-        """The datetime at which the execution started as a string."""
+        """The datetime at which the execution started as a string.
+
+        :rtype: ``str``"""
 
         data = self.history_data
         if data: return data[0]
@@ -52,6 +74,10 @@ class Execution:
 
     @property
     def started_dt(self):
+        """The datetime at which the execution started.
+
+        :rtype: ``datetime``"""
+
         string = self.started_string
         if not string: return None
         return parse_datetime(string)
@@ -59,12 +85,20 @@ class Execution:
 
     @property
     def started(self):
-        return datetime.timestamp(self.started_dt)
+        """The datetime at which the execution started as a UNIX timestamp.
+
+        :rtype: ``float``"""
+
+        dt = self.started_dt
+        if not dt: return None
+        return datetime.timestamp(dt)
     
 
     @property
     def duration_string(self):
-        """How long the execution took to complete."""
+        """How long the execution took to complete (as a string).
+        
+        :rtype: ``str``"""
 
         data = self.history_data
         if data: return data[1]
@@ -72,6 +106,10 @@ class Execution:
 
     @property
     def duration(self):
+        """How long the execution took to complete in seconds.
+        
+        :rtype: ``float``"""
+
         string = self.duration_string
         if not string: return None
         return parse_duration(self.duration_string)
@@ -79,7 +117,9 @@ class Execution:
 
     @property
     def status(self):
-        """The Nextflow reported status of the execution."""
+        """The Nextflow reported status of the execution.
+        
+        :rtype: ``str``"""
 
         data = self.history_data
         if data: return data[3]
@@ -87,7 +127,9 @@ class Execution:
 
     @property
     def command(self):
-        """The command used at the terminal to run the pipeline."""
+        """The command used at the terminal to run the pipeline.
+
+        :rtype: ``str``"""
 
         data = self.history_data
         if data: return data[6]
@@ -95,7 +137,9 @@ class Execution:
 
     @property
     def log(self):
-        """Gets the full text of the execution's log file."""
+        """Gets the full text of the execution's log file.
+
+        :rtype: ``str``"""
 
         for filename in os.listdir(self.location):
             if ".nextflow.log" in filename:
@@ -106,14 +150,16 @@ class Execution:
 
     def get_processes_from_log(self):
         """Populates the process_executions list from data in the execution's
-        log file."""
+        log file.
+
+        :rtype: ``list``"""
 
         log_text = self.log
         self.process_executions = []
-        for process_id in [match for match in re.findall(
+        for process_id in re.findall(
             r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
             log_text, flags=re.MULTILINE
-        )]:
+        ):
             fields = {
                 "hash": process_id,
                 "process": "",
@@ -143,6 +189,20 @@ class Execution:
             
 
 class ProcessExecution:
+    """The record of the running of a process within a Nextflow execution.
+    
+    :param Execution execution: the Execution it took place within.
+    :param str hash: the Nextflow ID assigned to the execution.
+    :param str process: the process's name.
+    :param str name: the process execution's name.
+    :param str status: the process's reported status upon completion.
+    :param str stdout: the process's stdout.
+    :param str stderr: the process's stderr.
+    :param str started_string: the datetime the process started (as a string).
+    :param str started_dt: the datetime the process started (as a datetime).
+    :param float duration: how long the process ran for.
+    :param str returncode: the return code the execution finished with."""
+
 
     def __init__(self, execution, hash, process, name, status, stdout, stderr, started_string, started, duration, returncode):
         self.execution = execution
@@ -164,4 +224,8 @@ class ProcessExecution:
 
     @property
     def started(self):
+        """The start time of the process execution as a UNIX timestamp.
+        
+        :rtype: ``float``"""
+        
         return datetime.timestamp(self.started_dt)

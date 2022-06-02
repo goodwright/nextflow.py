@@ -1,21 +1,17 @@
 from datetime import datetime
-from freezegun import freeze_time
 from unittest import TestCase
 from unittest.mock import PropertyMock, mock_open, patch, Mock, MagicMock
-from nextflow.pipeline import *
+from nextflow.execution import *
 
 class ExecutionTest(TestCase):
 
     def setUp(self):
-        self.patch1 = patch("nextflow.execution.Execution.update_process_executions_with_nextflow")
-        self.patch2 = patch("nextflow.execution.Execution.update_process_executions_without_nextflow")
-        self.mock_update_with = self.patch1.start()
-        self.mock_update_without = self.patch2.start()
+        self.patch = patch("nextflow.execution.Execution.get_processes_from_log")
+        self.mock_get_processes = self.patch.start()
     
 
     def tearDown(self):
-        self.patch1.stop()
-        self.patch2.stop()
+        self.patch.stop()
 
 
 
@@ -29,7 +25,7 @@ class ExecutionCreationTests(ExecutionTest):
         self.assertIsNone(execution.stderr)
         self.assertIsNone(execution.returncode)
         self.assertEqual(str(execution), "<Execution [xxx_yyy]>")
-        self.mock_update_with.assert_called_once_with()
+        self.mock_get_processes.assert_called_once_with()
     
 
     def test_can_create_execution_with_process(self):
@@ -40,18 +36,7 @@ class ExecutionCreationTests(ExecutionTest):
         self.assertEqual(execution.stderr, "bad")
         self.assertEqual(execution.returncode, 1)
         self.assertEqual(str(execution), "<Execution [xxx_yyy]>")
-        self.mock_update_with.assert_called_once_with()
-    
-
-    def test_can_create_execution_without_nextflow(self):
-        execution = Execution("/location", "xxx_yyy", use_nextflow=False)
-        self.assertEqual(execution.location, "/location")
-        self.assertEqual(execution.id, "xxx_yyy")
-        self.assertIsNone(execution.stdout)
-        self.assertIsNone(execution.stderr)
-        self.assertIsNone(execution.returncode)
-        self.assertEqual(str(execution), "<Execution [xxx_yyy]>")
-        self.mock_update_without.assert_called_once_with()
+        self.mock_get_processes.assert_called_once_with()
 
 
 
@@ -66,12 +51,11 @@ class ExecutionFromLocationTests(TestCase):
         mock_file.read.return_value = "abc [xx_yy] def"
         mock_open.return_value = open_return
         ex = Execution.create_from_location(
-            "/path/to/execution", "ok", "bad", 1, True
+            "/path/to/execution", "ok", "bad", 1
         )
         mock_open.assert_called_with("/path/to/execution/.nextflow.log")
         mock_Ex.assert_called_with(
-            "/path/to/execution", "xx_yy", stdout="ok", stderr="bad",
-            returncode=1, use_nextflow=True
+            "/path/to/execution", "xx_yy", stdout="ok", stderr="bad", returncode=1
         )
         self.assertIs(ex, mock_Ex.return_value)
 
@@ -106,43 +90,60 @@ class HistoryDataTests(ExecutionTest):
 
 
 
-class ExecutionDatetimeStringTests(ExecutionTest):
+class ExecutionStartedStringTests(ExecutionTest):
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
-    def test_can_get_datetime_string(self, mock_history):
+    def test_can_get_started_string(self, mock_history):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
         execution = Execution("/location", "ccc_ddd")
-        self.assertEqual(execution.datetime_string, "2021-10-09 19:54:49")
+        self.assertEqual(execution.started_string, "2021-10-09 19:54:49")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
-    def test_can_get_no_datetime(self, mock_history):
+    def test_can_get_no_started_string(self, mock_history):
         mock_history.return_value = None
         execution = Execution("/location", "ccc_ddd")
-        self.assertIsNone(execution.datetime_string)
+        self.assertIsNone(execution.started_string)
 
 
 
-class ExecutionTimestampTests(ExecutionTest):
+class ExecutionStartedDtTests(ExecutionTest):
 
-    @patch("nextflow.execution.Execution.datetime_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.Execution.started_string", new_callable=PropertyMock)
     @patch("nextflow.execution.parse_datetime")
-    def test_can_get_datetime(self, mock_parse_datetime, mock_datetime_string):
-        mock_datetime_string.return_value = "2022"
+    def test_can_get_started_dt(self, mock_parse_datetime, mock_started_string):
+        mock_started_string.return_value = "2022"
         execution = Execution("/location", "ccc_ddd")
-        self.assertEqual(execution.timestamp, mock_parse_datetime.return_value)
+        self.assertEqual(execution.started_dt, mock_parse_datetime.return_value)
         mock_parse_datetime.assert_called_with("2022")
     
 
-    @patch("nextflow.execution.Execution.datetime_string", new_callable=PropertyMock)
+    @patch("nextflow.execution.Execution.started_string", new_callable=PropertyMock)
     @patch("nextflow.execution.parse_datetime")
-    def test_can_get_no_datetime(self, mock_parse_datetime, mock_datetime_string):
-        mock_datetime_string.return_value = None
+    def test_can_get_no_started_dt(self, mock_parse_datetime, mock_started_string):
+        mock_started_string.return_value = None
         execution = Execution("/location", "ccc_ddd")
-        self.assertEqual(execution.timestamp, None)
+        self.assertEqual(execution.started_dt, None)
         self.assertFalse(mock_parse_datetime.called)
+
+
+
+class ExecutionStartedTests(ExecutionTest):
+
+    @patch("nextflow.execution.Execution.started_dt", new_callable=PropertyMock)
+    def test_can_get_started(self, mock_started_dt):
+        mock_started_dt.return_value = datetime(2021, 1, 2, 3, 4, 5)
+        execution = Execution("/location", "ccc_ddd")
+        self.assertEqual(execution.started, 1609556645)
+    
+
+    @patch("nextflow.execution.Execution.started_dt", new_callable=PropertyMock)
+    def test_can_get_no_started(self, mock_started_dt):
+        mock_started_dt.return_value = None
+        execution = Execution("/location", "ccc_ddd")
+        self.assertEqual(execution.started, None)
 
 
 
@@ -241,105 +242,66 @@ class ExecutionLogTests(ExecutionTest):
 
 
 
-class AvailableFieldsTests(ExecutionTest):
-
-    @patch("subprocess.run")
-    def test_can_get_available_fields(self, mock_run):
-        mock_run.return_value.stdout = "f1\n f2 \n\n"
-        execution = Execution("/location", "ccc_ddd")
-        fields = execution.get_available_fields()
-        self.assertEqual(fields, ["f1", "f2"])
-        mock_run.assert_called_with(
-            "nextflow log ccc_ddd -l",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="/location"
-        )
-
-
-
-class ProcessPathTests(ExecutionTest):
-
-    @patch("subprocess.run")
-    def test_can_get_process_paths(self, mock_run):
-        mock_run.return_value.stdout = "path1\npath2\n"
-        execution = Execution("/location", "ccc_ddd")
-        fields = execution.get_process_paths()
-        self.assertEqual(fields, ["path1", "path2"])
-        mock_run.assert_called_with(
-            "nextflow log ccc_ddd",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="/location"
-        )
-
-
-
-class ProcessExecutionUpdatingWithNextflowTests(TestCase):
-
-    @patch("nextflow.execution.Execution.get_available_fields")
-    @patch("subprocess.run")
-    @patch("nextflow.execution.ProcessExecution")
-    def test_can_get_process_executions(self, mock_procex, mock_run, mock_fields):
-        mock_fields.return_value = ["field1", "field2"]
-        mock_run.return_value = Mock(stdout="  1 XXXXXXXXX 2\n3 XXXXXXXXX 4\n5 XXXXXXXXX 6  ")
-        execution = Execution("/location", "ccc_ddd")
-        mock_fields.assert_called_once_with()
-        mock_run.assert_any_call(
-            "nextflow log ccc_ddd -t \"\\$field1 XXXXXXXXX \\$field2\"",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True, cwd="/location"
-        )
-        mock_procex.assert_any_call(fields={"field1": "1", "field2": "2"}, execution=execution)
-        mock_procex.assert_any_call(fields={"field1": "3", "field2": "4"}, execution=execution)
-        mock_procex.assert_any_call(fields={"field1": "5", "field2": "6"}, execution=execution)
-        self.assertEqual(execution.process_executions, [
-            mock_procex.return_value, mock_procex.return_value, mock_procex.return_value
-        ])
-
-
-
-class ProcessExecutionUpdatingWithoutNextflowTests(TestCase):
+class ProcessesFromLogTests(ExecutionTest):
 
     @patch("nextflow.execution.Execution.log", new_callable=PropertyMock)
-    @patch("os.listdir")
-    @patch("builtins.open")
+    @patch("nextflow.execution.get_process_name_from_log")
+    @patch("nextflow.execution.get_process_start_from_log")
+    @patch("nextflow.execution.get_process_status_from_log")
+    @patch("nextflow.execution.get_process_stdout")
+    @patch("nextflow.execution.get_process_stderr")
+    @patch("nextflow.execution.get_process_returncode")
+    @patch("nextflow.execution.get_process_end_from_log")
     @patch("nextflow.execution.ProcessExecution")
-    @freeze_time(datetime(2022, 2, 11, 12, 58, 19))
-    def test_can_get_process_executions(self, mock_procex, mock_open, mock_list, mock_log):
-        mock_log.return_value = """
-        line1
-        Feb-11 12:52:44.567 [Task submitter] - [57/05b758] Submitted process > PROC1 (10)
-        Feb-11 12:53:44.567 [Task submitter] - [a4/abcdef] Submitted process > PROC2 (file2.txt)
-        Feb-11 12:53:44.567 [Task submitter] - [12/883345] Submitted process > PROC3 (file3.txt)
-        line2
-        Feb-11 12:54:40.101 [Task monitor] - Task completed > TaskHandler[status: COMPLETED; exit: 1; workDir: work/57/05b758fe8af8b0f1fad77b63d5b1ad]
-        line3
-        Feb-11 12:54:41.101 [Task monitor] - Task completed > TaskHandler[status: COMPLETED; exit: 0; workDir: work/12/883345fe8af8b0f1fad77b63d5b1ad]
-        """.replace("        ", "")
-        mock_list.side_effect = [["05b758sadsadsa", "assadfdsf"], ["abcdefad"], ["883345fe8af8b0f"]]
-        mock_open.return_value.__enter__().read.side_effect = [
-            "out1", "err1", "out2", "err2", "out3", "err3"
+    def test_can_get_processes_from_log(self, *mocks):
+        mocks[-1].return_value = (
+            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
+            "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)\n"
+            "Jun-01 16:46:08.965 [Task submitter] INFO  nextflow.Session - [99/6165a9] Submitted process > DEMULTIPLEX:FASTQC\n"
+            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+        )
+        mocks[-2].side_effect = ["CSV_TO_BARCODE (file.csv)", "FASTQC"]
+        mocks[-3].side_effect = ["Jun-01 16:45:57.148", "Jul-07 16:45:57.148"]
+        mocks[-4].side_effect = ["COMPLETED", "ERROR"]
+        mocks[-5].side_effect = ["out1", "out2"]
+        mocks[-6].side_effect = ["err1", "err2"]
+        mocks[-7].side_effect = ["0", "1"]
+        mocks[-8].side_effect = [
+            datetime(datetime.now().year, 6, 1, 17, 45, 57, 148000),
+            datetime(datetime.now().year, 7, 7, 17, 45, 57, 148000),
         ]
-        execution = Execution("/location", "ccc_ddd", use_nextflow=False)
-        mock_list.assert_any_call(os.path.join("/location", "work", "57"))
-        mock_list.assert_any_call(os.path.join("/location", "work", "a4"))
-        mock_list.assert_any_call(os.path.join("/location", "work", "12"))
-        self.assertEqual(execution.process_executions, [
-            mock_procex.return_value, mock_procex.return_value, mock_procex.return_value
-        ])
-        mock_procex.assert_any_call(fields={
-            "hash": "57/05b758", "name": "PROC1 (10)", "process": "PROC1",
-            "start": "2022-02-11 12:52:44", "duration": "115s",
-            "stdout": "out1", "stderr": "err1", "status": "ERROR"
-        }, execution=execution)
-        mock_procex.assert_any_call(fields={
-            "hash": "a4/abcdef", "name": "PROC2 (file2.txt)", "process": "PROC2",
-            "start": "2022-02-11 12:53:44", "duration": "274s",
-            "stdout": "out2", "stderr": "err2", "status": "-"
-        }, execution=execution)
-        mock_procex.assert_any_call(fields={
-            "hash": "12/883345", "name": "PROC3 (file3.txt)", "process": "PROC3",
-            "start": "2022-02-11 12:53:44", "duration": "56s",
-            "stdout": "out3", "stderr": "err3", "status": "COMPLETED"
-        }, execution=execution)
-        
-        
+        execution = Execution("/location", "ccc_ddd")
+        self.patch.stop()
+        execution.get_processes_from_log()
+        for mock in mocks[-2:-5] + tuple(mocks[-8:-9]):
+            mock.assert_any_call(mocks[-1].return_value, "d6/31d530")
+            mock.assert_any_call(mocks[-1].return_value, "99/6165a9")
+        for mock in mocks[-5:-8]:
+            mock.assert_any_call(execution, "d6/31d530")
+            mock.assert_any_call(execution, "99/6165a9")
+        mocks[-9].assert_any_call(
+            execution=execution,
+            hash="d6/31d530",
+            process="CSV_TO_BARCODE",
+            name="CSV_TO_BARCODE (file.csv)",
+            started_string="Jun-01 16:45:57.148",
+            started=datetime(datetime.now().year, 6, 1, 16, 45, 57, 148000),
+            duration=3600,
+            status="COMPLETED",
+            stdout="out1",
+            stderr="err1",
+            returncode="0"
+        )
+        mocks[-9].assert_any_call(
+            execution=execution,
+            hash="99/6165a9",
+            process="FASTQC",
+            name="FASTQC",
+            started_string="Jul-07 16:45:57.148",
+            started=datetime(datetime.now().year, 7, 7, 16, 45, 57, 148000),
+            duration=3600,
+            status="ERROR",
+            stdout="out2",
+            stderr="err2",
+            returncode="1"
+        )
