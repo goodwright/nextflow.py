@@ -8,8 +8,7 @@ Example
 -------
 
    >>> import nextflow
-   >>> pipeline = nextflow.Pipeline("main.nf")
-   >>> execution = pipeline.run(params={"param1": "123"})
+   >>> execution = nextflow.run(path="main.nf", params={"param1": "123"})
    >>> print(execution.status)
 
 Table of Contents
@@ -17,5 +16,6 @@ Table of Contents
 
 .. toctree ::
    installing
+   overview
    api
    changelog
