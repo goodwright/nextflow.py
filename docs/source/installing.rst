@@ -27,7 +27,7 @@ Nextflow
 ~~~~~~~~
 
 nextflow.py requires the Nextflow executable to be installed and in your PATH.
-Instructions for install Nextflow can be found at
+Instructions for installing Nextflow can be found at
 `their website <https://www.nextflow.io/docs/latest/getstarted.html#installation/>`_.
 
 

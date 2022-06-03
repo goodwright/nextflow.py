@@ -8,7 +8,7 @@ Release 0.3
 
 * Allow module-level run methods for directly running pipelines.
 * Allow for running pipelines with different Nextflow versions.
-* Imroved datetime parsing.
+* Improved datetime parsing.
 * Simplified process execution parsing.
 * Fixed concatenation of process executions with no parentheses.
 * Tests now check compatability with different Nextflow versions.

@@ -4,7 +4,7 @@ Overview
 The starting point for any nextflow.py pipeline is the :py:class:`.Pipeline`
 object. This is initialised with a path to the file in question, and,
 optionally, the location of an accompanying config file and input schema
-(formatted acording to nf-core) guidelines:
+(formatted acording to nf-core guidelines):
 
     >>> pipeline1 = nextflow.Pipeline("pipelines/my-pipeline.nf")
     >>> pipeline2 = nextflow.Pipeline("main.nf", config="nextflow.config", schema="inputs.json")
