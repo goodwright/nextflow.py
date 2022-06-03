@@ -16,4 +16,5 @@ Table of Contents
 -----------------
 
 .. toctree ::
-  changelog
+   installing
+   changelog
