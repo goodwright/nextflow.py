@@ -2,7 +2,7 @@ from setuptools import setup
 from glob import glob
 import os
 
-with open("README.md") as f:
+with open("README.rst") as f:
     long_description = f.read()
 
 setup(
@@ -14,7 +14,7 @@ setup(
     url="https://github.com/goodwright/nextflow.py",
     author="Sam Ireland",
     author_email="sam@goodwright.com",
-    license="GPLv3+",
+    license="MIT",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Internet :: WWW/HTTP",
