@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 
 project = "nextflow.py"
-copyright = "2022, Sam Ireland"
+copyright = "2022, Goodwright Ltd"
 author = "Sam Ireland"
 
 # The full version, including alpha/beta/rc tags
