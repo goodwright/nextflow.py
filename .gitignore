@@ -8,3 +8,4 @@ dist/
 results
 work
 *.egg-info/
+deploy.sh

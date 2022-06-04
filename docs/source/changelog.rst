@@ -4,7 +4,7 @@ Changelog
 Release 0.3
 ~~~~~~~~~~~
 
-`3rd June, 2022`
+`4th June, 2022`
 
 * Allow module-level run methods for directly running pipelines.
 * Allow for running pipelines with different Nextflow versions.
