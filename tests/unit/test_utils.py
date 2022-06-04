@@ -122,13 +122,20 @@ class ProcessStatusFromLogTests(TestCase):
             "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
             "Jun-01 16:46:00.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DEMULTIPLEX:CSV_TO_BARCODE (file.csv); status: COMPLETED; exit: 0; error: -; workDir: /work/d6/31d530a65ef23d1cb302940a782909]\n"
             "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file.fastq); status: COMPLETED; exit: 0; error: -; workDir: /work/8a/c2a4dc996d54cad136abeb4e4e309a]\n"
+            "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 1; error: -; workDir: /work/4b/302940a782909c996d54cad31d53d45]\n"
             "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
         )
     
     
-    def test_can_get_process_status_from_log(self):
+    def test_can_get_completed_process_status_from_log(self):
         self.assertEqual(
             get_process_status_from_log(self.log, "8a/c2a4dc"), "COMPLETED"
+        )
+    
+
+    def test_can_get_fail_process_status_from_log(self):
+        self.assertEqual(
+            get_process_status_from_log(self.log, "4b/302940"), "FAILED"
         )
     
 

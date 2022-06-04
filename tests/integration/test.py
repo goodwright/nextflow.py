@@ -3,6 +3,7 @@ import re
 import time
 import shutil
 from datetime import datetime
+from typing import Counter
 from unittest import TestCase
 import nextflow
 
@@ -150,6 +151,26 @@ class DirectRunningTests(PipelineTest):
         )
         self.check_execution(execution, check_stderr=False)
         self.assertIn("21.10.3", execution.log)
+    
+
+    def test_can_handle_pipeline_error(self):
+        execution = nextflow.run(
+            pipeline=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+            params={"file": self.get_path("data.txt"), "count": "string"},
+            location=self.get_path("rundirectory"),
+        )
+        self.assertEqual(execution.status, "ERR")
+        self.assertEqual(execution.returncode, 1)
+        self.assertIn("Error executing process", execution.stdout)
+        self.assertEqual(
+            Counter([p.status for p in execution.process_executions]),
+            {"COMPLETED": 3, "FAILED": 2}
+        )
+        self.assertEqual(
+            Counter([p.returncode for p in execution.process_executions]),
+            {"0": 3, "1": 2}
+        )
 
 
 

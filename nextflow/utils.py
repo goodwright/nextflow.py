@@ -93,8 +93,10 @@ def get_process_status_from_log(log, id):
     :rtype: ``string``"""
 
     escaped_id = id.replace('/', '\\/')
-    match = re.search(f".+Task completed.+status: ([A-Z]+).+{escaped_id}", log)
-    return match[1] if match else "-"
+    match = re.search(
+        f".+Task completed.+status: ([A-Z]+).+exit: (\d+).+{escaped_id}", log
+    )
+    return ("FAILED" if match[2] != "0" else match[1]) if match else "-"
 
 
 def get_process_stdout(execution, id):
