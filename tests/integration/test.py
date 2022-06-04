@@ -163,13 +163,13 @@ class DirectRunningTests(PipelineTest):
         self.assertEqual(execution.status, "ERR")
         self.assertEqual(execution.returncode, 1)
         self.assertIn("Error executing process", execution.stdout)
-        self.assertEqual(
+        self.assertIn(
             Counter([p.status for p in execution.process_executions]),
-            {"COMPLETED": 3, "FAILED": 2}
+            [{"COMPLETED": 3, "FAILED": 2}, {"COMPLETED": 3, "FAILED": 1, "-": 1}]
         )
-        self.assertEqual(
+        self.assertIn(
             Counter([p.returncode for p in execution.process_executions]),
-            {"0": 3, "1": 2}
+            [{"0": 3, "1": 2}, {"0": 3, "1": 1, "": 1}]
         )
 
 
