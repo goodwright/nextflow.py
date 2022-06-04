@@ -10,7 +10,7 @@ setup(
     version="0.3.0",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     url="https://github.com/goodwright/nextflow.py",
     author="Sam Ireland",
     author_email="sam@goodwright.com",
