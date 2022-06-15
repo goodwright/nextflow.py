@@ -190,6 +190,14 @@ If you just want to run a single pipeline without initialising a
 Changelog
 ---------
 
+Release 0.3.1
+~~~~~~~~~~~
+
+`15th June, 2022`
+
+* Process polling now accesses stdout and stderr while process is ongoing.
+
+
 Release 0.3
 ~~~~~~~~~~~
 
