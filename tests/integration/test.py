@@ -110,6 +110,7 @@ class DirectRunningTests(PipelineTest):
             self.assertEqual(execution.location, self.get_path("rundirectory"))
             returncodes.append(execution.returncode)
             ids.append(execution.id)
+            self.assertGreater(len(execution.stdout), 0)
             process_executions.append(execution.process_executions)
         self.assertEqual(len(set(ids)), 1)
         for a, b in zip(ids[:-1], ids[1:]):

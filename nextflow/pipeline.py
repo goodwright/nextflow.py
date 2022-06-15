@@ -115,23 +115,28 @@ class Pipeline:
         command_string = self.create_command_string(params, profile, version)
         try:
             os.chdir(full_run_location)
-            process = subprocess.Popen(
-                command_string,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                universal_newlines=True, shell=True, cwd=full_run_location,
-            )
-            while True:
-                time.sleep(sleep)
-                returncode = process.poll()
-                out, err = "", ""
-                if returncode is not None: out, err = process.communicate()
-                if os.path.exists(os.path.join(full_run_location, ".nextflow.log")):
-                    if os.path.exists(os.path.join(full_run_location, ".nextflow", "history")):
-                        yield Execution.create_from_location(
-                            full_run_location, out, err, returncode
-                        )
-                if returncode is not None: break
-        finally: os.chdir(original_location)
+            with open("nfstdout", "w") as fout:
+                with open("nfstderr", "w") as ferr:
+                    process = subprocess.Popen(
+                        command_string, stdout=fout, stderr=ferr,
+                        universal_newlines=True, shell=True,
+                        cwd=full_run_location,
+                    )
+                    while True:
+                        time.sleep(sleep)
+                        returncode = process.poll()
+                        with open("nfstdout") as f: out = f.read()
+                        with open("nfstderr") as f: err = f.read()
+                        if os.path.exists(os.path.join(full_run_location, ".nextflow.log")):
+                            if os.path.exists(os.path.join(full_run_location, ".nextflow", "history")):
+                                yield Execution.create_from_location(
+                                    full_run_location, out, err, returncode
+                                )
+                        if returncode is not None: break
+        finally:
+            if os.path.exists("nfstdout"): os.remove("nfstdout")
+            if os.path.exists("nfstderr"): os.remove("nfstderr")
+            os.chdir(original_location)
 
 
 
