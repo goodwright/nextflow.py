@@ -172,10 +172,6 @@ can adjust this as required with the ``sleep`` paramater. This is useful if you
 want to get information about the progress of the pipeline execution as it
 proceeds.
 
-.. note::
-    You cannot get the stdout or stderr of the execution until the end however,
-    due to a limitation in how Python communicates with subprocesses.
-
 Direct Running
 ~~~~~~~~~~~~~~
 
