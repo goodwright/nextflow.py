@@ -7,7 +7,7 @@ with open("README.rst") as f:
 
 setup(
     name="nextflow",
-    version="0.3.0",
+    version="0.3.1",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -19,7 +19,7 @@ setup(
         "Development Status :: 4 - Beta",
         "Topic :: Internet :: WWW/HTTP",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "License :: License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
