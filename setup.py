@@ -1,13 +1,11 @@
 from setuptools import setup
-from glob import glob
-import os
 
 with open("README.rst") as f:
     long_description = f.read()
 
 setup(
     name="nextflow",
-    version="0.3.1",
+    version="0.4.0",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
