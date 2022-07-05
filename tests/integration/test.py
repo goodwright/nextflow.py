@@ -3,7 +3,7 @@ import re
 import time
 import shutil
 from datetime import datetime
-from typing import Counter
+from collections import Counter
 from unittest import TestCase
 import nextflow
 
@@ -27,6 +27,21 @@ class PipelineTest(TestCase):
         )
     
 
+    def check_process_execution(self, process_execution, execution, long):
+        self.assertGreaterEqual(len(process_execution.started_string), 10)
+        self.assertEqual(process_execution.started_dt.year, datetime.now().year)
+        self.assertLessEqual(time.time() - process_execution.started, 30 if long else 5)
+        self.assertGreater(process_execution.duration, 0)
+        self.assertLessEqual(process_execution.duration, 6)
+        self.assertEqual(process_execution.status, "COMPLETED")
+        self.assertEqual(process_execution.returncode, "0")
+        self.assertIs(process_execution.execution, execution)
+    
+
+    def get_process_execution(self, execution, name):
+        return [e for e in execution.process_executions if e.name == name][0]
+
+    
     def check_execution(self, execution, long=False, check_stderr=True):
         # Execution is fine
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
@@ -45,41 +60,59 @@ class PipelineTest(TestCase):
         log = execution.log
         self.assertIn("Starting process", log)
         self.assertIn("Execution complete -- Goodbye", log)
+        self.assertEqual(len(execution.process_executions), 8)
 
         # Process executions are fine
-        self.assertEqual(len(execution.process_executions), 5)
-        for process in execution.process_executions:
-            self.assertIn(process.stdout, ["", "Splitting...\n"])
-            self.assertIn(process.stderr, ["", ":/\n"])
-            self.assertIs(process.execution, execution)
-            self.assertEqual(process.status, "COMPLETED")
-            self.assertEqual(process.returncode, "0")
-            self.assertIn(process.process, [
-                "SPLIT_FILE",
-                "PROCESS_DATA:COMBINE_LINES",
-                "PROCESS_DATA:DUPLICATE_LINE",
-            ])
-            self.assertIn(process.name, [
-                "SPLIT_FILE",
-                "PROCESS_DATA:COMBINE_LINES (1)",
-                "PROCESS_DATA:COMBINE_LINES (2)",
-                "PROCESS_DATA:DUPLICATE_LINE (1)",
-                "PROCESS_DATA:DUPLICATE_LINE (2)"
-            ])
-            self.assertGreaterEqual(len(process.started_string), 10)
-            self.assertEqual(process.started_dt.year, datetime.now().year)
-            self.assertLessEqual(time.time() - process.started, 30 if long else 5)
-            self.assertGreater(process.duration, 0)
-            self.assertLessEqual(process.duration, 6)
+        proc_ex = self.get_process_execution(execution, "SPLIT_FILE")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "Splitting...\n")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "SPLIT_FILE")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_abc.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
+
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_xyz.dat)")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
+
+        proc_ex = self.get_process_execution(execution, "JOIN:COMBINE_FILES")
+        self.check_process_execution(proc_ex, execution, long)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.process, "JOIN:COMBINE_FILES")
 
         # Config was used
         self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))
-        self.assertIn("abc.dat", os.listdir(self.get_path("rundirectory/results/split_file")))
-        self.assertIn("xyz.dat", os.listdir(self.get_path("rundirectory/results/split_file")))
-        self.assertIn("combine_lines", os.listdir(self.get_path("rundirectory/results")))
-        self.assertIn("combined.txt", os.listdir(self.get_path("rundirectory/results/combine_lines")))
-        self.assertIn("duplicate_line", os.listdir(self.get_path("rundirectory/results")))
-        self.assertIn("duplicated.txt", os.listdir(self.get_path("rundirectory/results/duplicate_line")))
 
 
 
@@ -89,7 +122,10 @@ class DirectRunningTests(PipelineTest):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
-            params={"file": self.get_path("data.txt"), "count": "12"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            },
             location=self.get_path("rundirectory")
         )
         self.check_execution(execution)
@@ -104,7 +140,10 @@ class DirectRunningTests(PipelineTest):
             config=self.get_path("pipeline.config"),
             sleep=3,
             profile=["special"],
-            params={"file": self.get_path("data.txt"), "count": "12", "wait": "5"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt"), "wait": "5"
+            },
             location=self.get_path("rundirectory")
         ):
             self.assertEqual(execution.location, self.get_path("rundirectory"))
@@ -146,7 +185,10 @@ class DirectRunningTests(PipelineTest):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
-            params={"file": self.get_path("data.txt"), "count": "12"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            },
             location=self.get_path("rundirectory"),
             version="21.10.3"
         )
@@ -158,19 +200,21 @@ class DirectRunningTests(PipelineTest):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
-            params={"file": self.get_path("data.txt"), "count": "string"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "string",
+                "suffix": self.get_path("files/suffix.txt")
+            },
             location=self.get_path("rundirectory"),
         )
         self.assertEqual(execution.status, "ERR")
         self.assertEqual(execution.returncode, 1)
         self.assertIn("Error executing process", execution.stdout)
-        self.assertIn(
-            Counter([p.status for p in execution.process_executions]),
-            [{"COMPLETED": 3, "FAILED": 2}, {"COMPLETED": 3, "FAILED": 1, "-": 1}]
-        )
-        self.assertTrue(
-            any([p.returncode == "1" for p in execution.process_executions])
-        )
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
+        self.assertEqual(proc_ex.status, "FAILED")
+        self.assertEqual(proc_ex.returncode, "1")
+        proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
+        self.assertEqual(proc_ex.status, "FAILED")
+        self.assertEqual(proc_ex.returncode, "1")
 
 
 
@@ -182,7 +226,10 @@ class PipelineRunningTests(PipelineTest):
             config=self.get_path("pipeline.config"),
         )
         execution = pipeline.run(
-            params={"file": self.get_path("data.txt"), "count": "12"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            },
             location=self.get_path("rundirectory")
         )
         self.check_execution(execution)
@@ -198,7 +245,10 @@ class PipelineRunningTests(PipelineTest):
         process_executions = []
         for execution in pipeline.run_and_poll(
             sleep=3,
-            params={"file": self.get_path("data.txt"), "count": "12", "wait": "5"},
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            },
             location=self.get_path("rundirectory")
         ):
             self.assertEqual(execution.location, self.get_path("rundirectory"))
@@ -281,35 +331,3 @@ class PipelineIntrospectionTests(PipelineTest):
                 "fa_icon": "fas fa-barcode"
             }
         })
-
-        
-
-'''
-
-    
-
-    def test_running_with_profile(self):
-        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
-        execution = pipeline.run(location=self.get_path("rundirectory"), profile=["profile1,profile2"])
-        self.assertIn(".nextflow", os.listdir(os.path.join(self.get_path("rundirectory"))))
-        self.assertIn(".nextflow.log", os.listdir(os.path.join(self.get_path("rundirectory"))))
-
-        # Examine resultant execution
-        self.assertIn("_", execution.id)
-        self.assertEqual(execution.status, "OK")
-        self.assertEqual(execution.command, f"nextflow run {os.path.abspath(self.get_path('pipeline.nf'))} -profile profile1,profile2\n")
-
-
-
-class PipelineProcessTests(PipelineTest):
-
-    def test_can_get_process_info(self):
-        pipeline = nextflow.Pipeline(self.get_path("pipeline.nf"))
-        execution = pipeline.run(location=self.get_path("rundirectory"))
-        
-        processes = sorted(execution.process_executions, key=str)
-        self.assertEqual(len(processes), 4)
-        self.assertEqual(processes[0].process, "sayHello")
-        self.assertEqual(processes[0].name, "sayHello (1)")
-        self.assertIs(processes[0].execution, execution)
-        self.assertTrue(processes[0].stdout.endswith(" world!\n"))'''

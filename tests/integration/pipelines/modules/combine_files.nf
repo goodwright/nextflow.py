@@ -1,4 +1,4 @@
-process COMBINE_LINES {
+process COMBINE_FILES {
     input:
         path file
 
@@ -11,8 +11,12 @@ process COMBINE_LINES {
     if "$params.wait".isnumeric():
         import time
         time.sleep(int("$params.wait"))
-    with open("$file") as f1:
-        with open("combined.txt", "w") as f2:
-            f2.write(" ".join(f1.read().splitlines()))
+    files = "$file".split()
+    text = ""
+    for file in files:
+        with open(file) as f:
+            text += f.read()
+    with open("combined.txt", "w") as f:
+        f.write(text)
     """
 }
