@@ -1,6 +1,5 @@
 """Tools for representing Nextflow pipelines."""
 
-import json
 import os
 import time
 import subprocess
@@ -10,29 +9,15 @@ class Pipeline:
     """A .nf file somewhere on the local filesystem.
     
     :param str path: the path to the .nf file.
-    :param str config: the path to the associated config file.
-    :param str schema: the path to the associated JSON schema file."""
+    :param str config: the path to the associated config file.."""
 
-    def __init__(self, path, config=None, schema=None):
+    def __init__(self, path, config=None):
         self.path = path
         self.config = config
-        self.schema = schema
     
 
     def __repr__(self):
         return f"<Pipeline ({self.path})>"
-    
-
-    @property
-    def input_schema(self):
-        """The input JSON from the associated schema file.
-        
-        :rtype: ``dict``"""
-
-        if not self.schema: return None
-        with open(self.schema) as f:
-            schema = json.load(f)
-        return schema["definitions"]
     
 
     @property

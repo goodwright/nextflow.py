@@ -12,25 +12,9 @@ class PipelineCreationTests(TestCase):
     
 
     def test_can_create_pipeline_with_options(self):
-        pipeline = Pipeline("/path/run.nf", schema="schema.json", config="/path/nextflow.config")
+        pipeline = Pipeline("/path/run.nf", config="/path/nextflow.config")
         self.assertEqual(pipeline.path, "/path/run.nf")
-        self.assertEqual(pipeline.schema, "schema.json")
         self.assertEqual(pipeline.config, "/path/nextflow.config")
-
-
-
-class PipelineInputSchemaTests(TestCase):
-
-    @patch("builtins.open", new_callable=mock_open, read_data=json.dumps({"definitions": {"1": 2}}))
-    def test_can_get_input_schema(self, mock_open):
-        pipeline = Pipeline("/path/run.nf", schema="schema.json")
-        self.assertEqual(pipeline.input_schema, {"1": 2})
-        mock_open.assert_called_with("schema.json")
-    
-
-    def test_can_handle_no_schema(self):
-        pipeline = Pipeline("/path/run.nf")
-        self.assertIsNone(pipeline.input_schema)
 
 
 
