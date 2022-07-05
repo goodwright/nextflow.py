@@ -67,48 +67,76 @@ class PipelineTest(TestCase):
         self.assertEqual(proc_ex.stdout, "Splitting...\n")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "SPLIT_FILE")
+        self.assertEqual(proc_ex.input_data(), [self.get_path("files/data.txt")])
+        self.assertEqual(proc_ex.input_data(include_path=False), ["data.txt"])
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
+        self.assertEqual(proc_ex.input_data(include_path=False), ["abc.dat"])
+        self.assertIn(
+            self.get_process_execution(execution, "SPLIT_FILE").hash,
+            proc_ex.input_data()[0]
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
+        self.assertEqual(proc_ex.input_data(include_path=False), ["xyz.dat"])
+        self.assertIn(
+            self.get_process_execution(execution, "SPLIT_FILE").hash,
+            proc_ex.input_data()[0]
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
+        self.assertEqual(proc_ex.input_data(include_path=False), ["duplicated_abc.dat"])
+        self.assertIn(
+            self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)").hash,
+            proc_ex.input_data()[0]
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
+        self.assertEqual(proc_ex.input_data(include_path=False), ["duplicated_xyz.dat"])
+        self.assertIn(
+            self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)").hash,
+            proc_ex.input_data()[0]
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_abc.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
+        self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_abc.dat", "suffix.txt"})
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
+        self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_xyz.dat", "suffix.txt"})
 
         proc_ex = self.get_process_execution(execution, "JOIN:COMBINE_FILES")
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "JOIN:COMBINE_FILES")
+        self.assertEqual(
+            set(proc_ex.input_data(include_path=False)),
+            {"suffix_lowered_duplicated_abc.dat", "suffix_lowered_duplicated_xyz.dat"}
+        )
 
         # Config was used
         self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))

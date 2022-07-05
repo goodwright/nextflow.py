@@ -34,3 +34,39 @@ class ProcessExecutionStartedTests(TestCase):
             "good", "bad", "Jul-06", datetime(2021, 1, 6, 1, 2, 3), 1.2, "0"
         )
         self.assertEqual(process_execution.started, 1609894923)
+
+
+
+class InputDataTests(TestCase):
+
+    def setUp(self):
+        self.process_execution = ProcessExecution(
+             Mock(), "12/3456", "FASTQC", "FASTQC (1)", "COMPLETED",
+            "good", "bad", "Jul-06", datetime(2021, 1, 6, 1, 2, 3), 1.2, "0"
+        )
+
+    @patch("nextflow.execution.get_process_directory")
+    @patch("os.listdir")
+    @patch("os.path.islink")
+    @patch("os.path.realpath")
+    def test_can_get_input_data(self, mock_path, mock_link, mock_dir, mock_pd):
+        mock_dir.return_value = ["file1", "file2", "file3", "file4"]
+        mock_link.side_effect = [True, True, False, False]
+        mock_path.side_effect = ["path1", "path2"]
+        
+        self.assertEqual(self.process_execution.input_data(), ["path1", "path2"])
+        mock_pd.assert_called_with(self.process_execution.execution, "12/3456")
+        mock_dir.assert_called_with(mock_pd.return_value)
+    
+
+    @patch("nextflow.execution.get_process_directory")
+    @patch("os.listdir")
+    @patch("os.path.islink")
+    @patch("os.path.basename")
+    def test_can_get_input_data_filenames(self, mock_base, mock_link, mock_dir, mock_pd):
+        mock_dir.return_value = ["file1", "file2", "file3", "file4"]
+        mock_link.side_effect = [True, True, False, False]
+        mock_base.side_effect = ["name1", "name2"]
+        self.assertEqual(self.process_execution.input_data(include_path=False), ["name1", "name2"])
+        mock_pd.assert_called_with(self.process_execution.execution, "12/3456")
+        mock_dir.assert_called_with(mock_pd.return_value)

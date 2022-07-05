@@ -1,6 +1,7 @@
 """Tools for representing Nextflow executions."""
 
 import os
+from pathlib import Path
 import re
 from datetime import datetime
 from nextflow.utils import *
@@ -229,3 +230,21 @@ class ProcessExecution:
         :rtype: ``float``"""
         
         return datetime.timestamp(self.started_dt)
+    
+
+    def input_data(self, include_path=True):
+        """A list of files passed to the process execution as inputs.
+        
+        :param bool include_path: if ``False``, only filenames returned.
+        :type: ``list``"""
+        
+        inputs = []
+        directory = get_process_directory(self.execution, self.hash)
+        for f in os.listdir(directory):
+            full_path = Path(f"{directory}/{f}")
+            if os.path.islink(full_path):
+                if include_path:
+                    inputs.append(os.path.realpath(full_path))
+                else:
+                    inputs.append(os.path.basename(full_path))
+        return inputs

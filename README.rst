@@ -153,6 +153,9 @@ following properties:
 
 * ``returncode`` - the exit code of the process execution - usually 0 or 1.
 
+They also have a ``input_data`` method for getting the input data paths
+to the process execution.
+
 Polling
 ~~~~~~~
 
