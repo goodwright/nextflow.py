@@ -246,5 +246,22 @@ class ProcessExecution:
                 if include_path:
                     inputs.append(os.path.realpath(full_path))
                 else:
-                    inputs.append(os.path.basename(full_path))
+                    inputs.append(f)
         return inputs
+    
+
+    def all_output_data(self, include_path=True):
+        """A list of all output data produced by the process execution,
+        including unpublished staging files.
+
+        :param bool include_path: if ``False``, only filenames returned.
+        :type: ``list``"""
+
+        outputs = []
+        directory = get_process_directory(self.execution, self.hash)
+        for f in os.listdir(directory):
+            full_path = Path(f"{directory}/{f}")
+            if not f.startswith(".command") and f != ".exitcode":
+                if not os.path.islink(full_path):
+                    outputs.append(str(full_path) if include_path else f)
+        return outputs

@@ -62,11 +62,53 @@ class InputDataTests(TestCase):
     @patch("nextflow.execution.get_process_directory")
     @patch("os.listdir")
     @patch("os.path.islink")
-    @patch("os.path.basename")
-    def test_can_get_input_data_filenames(self, mock_base, mock_link, mock_dir, mock_pd):
+    def test_can_get_input_data_filenames(self, mock_link, mock_dir, mock_pd):
         mock_dir.return_value = ["file1", "file2", "file3", "file4"]
         mock_link.side_effect = [True, True, False, False]
-        mock_base.side_effect = ["name1", "name2"]
-        self.assertEqual(self.process_execution.input_data(include_path=False), ["name1", "name2"])
+        self.assertEqual(self.process_execution.input_data(include_path=False), ["file1", "file2"])
         mock_pd.assert_called_with(self.process_execution.execution, "12/3456")
         mock_dir.assert_called_with(mock_pd.return_value)
+
+
+
+class AllOutputDataTests(TestCase):
+
+    def setUp(self):
+        self.process_execution = ProcessExecution(
+             Mock(), "12/3456", "FASTQC", "FASTQC (1)", "COMPLETED",
+            "good", "bad", "Jul-06", datetime(2021, 1, 6, 1, 2, 3), 1.2, "0"
+        )
+    
+
+    @patch("nextflow.execution.get_process_directory")
+    @patch("os.listdir")
+    @patch("os.path.islink")
+    def test_can_get_all_output_data(self, mock_link, mock_dir, mock_pd):
+        mock_pd.return_value = "/loc"
+        mock_dir.return_value = ["file1", "file2", ".command.run", ".exitcode", "file3"]
+        mock_link.side_effect = [False, True, False]
+        self.assertEqual(
+            self.process_execution.all_output_data(),
+            [str(Path("/loc/file1")), str(Path("/loc/file3"))]
+        )
+        mock_pd.assert_called_with(self.process_execution.execution, "12/3456")
+        mock_dir.assert_called_with(mock_pd.return_value)
+        mock_link.assert_any_call(Path("/loc/file1"))
+        mock_link.assert_any_call(Path("/loc/file3"))
+    
+
+    @patch("nextflow.execution.get_process_directory")
+    @patch("os.listdir")
+    @patch("os.path.islink")
+    def test_can_get_all_output_filenames(self, mock_link, mock_dir, mock_pd):
+        mock_pd.return_value = "/loc"
+        mock_dir.return_value = ["file1", "file2", ".command.run", ".exitcode", "file3"]
+        mock_link.side_effect = [False, True, False]
+        self.assertEqual(
+            self.process_execution.all_output_data(include_path=False),
+            ["file1", "file3"]
+        )
+        mock_pd.assert_called_with(self.process_execution.execution, "12/3456")
+        mock_dir.assert_called_with(mock_pd.return_value)
+        mock_link.assert_any_call(Path("/loc/file1"))
+        mock_link.assert_any_call(Path("/loc/file3"))

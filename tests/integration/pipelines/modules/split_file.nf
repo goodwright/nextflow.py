@@ -16,6 +16,7 @@ process SPLIT_FILE {
         time.sleep(int("$params.wait"))
     print("Splitting...")
     splits = {}
+    with open("log.txt", "w") as f: f.write("log")
     for line in lines:
         first = line.split()[0]
         if first not in splits: splits[first] = []

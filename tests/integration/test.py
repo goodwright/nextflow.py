@@ -69,6 +69,11 @@ class PipelineTest(TestCase):
         self.assertEqual(proc_ex.process, "SPLIT_FILE")
         self.assertEqual(proc_ex.input_data(), [self.get_path("files/data.txt")])
         self.assertEqual(proc_ex.input_data(include_path=False), ["data.txt"])
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)),
+            {"abc.dat", "xyz.dat", "log.txt"}
+        )
+        self.assertIn(proc_ex.hash, proc_ex.all_output_data()[0])
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
         self.check_process_execution(proc_ex, execution, long)
