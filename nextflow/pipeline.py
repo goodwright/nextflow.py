@@ -88,7 +88,7 @@ class Pipeline:
             )
         finally: os.chdir(original_location)
         return Execution.create_from_location(
-            full_run_location, process.stdout, process.stderr, process.returncode
+            full_run_location, self, process.stdout, process.stderr, process.returncode
         )
     
 
@@ -125,7 +125,7 @@ class Pipeline:
                         if os.path.exists(os.path.join(full_run_location, ".nextflow.log")):
                             if os.path.exists(os.path.join(full_run_location, ".nextflow", "history")):
                                 yield Execution.create_from_location(
-                                    full_run_location, out, err, returncode
+                                    full_run_location, self, out, err, returncode
                                 )
                         if returncode is not None: break
         finally:

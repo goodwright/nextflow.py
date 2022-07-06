@@ -126,6 +126,7 @@ class PipelineRunningTests(TestCase):
         )
         self.mock_create.assert_called_with(
             "/abs/loc",
+            pipeline,
             self.mock_run.return_value.stdout,
             self.mock_run.return_value.stderr,
             self.mock_run.return_value.returncode,
@@ -153,6 +154,7 @@ class PipelineRunningTests(TestCase):
         )
         self.mock_create.assert_called_with(
             "/abs/loc",
+            pipeline,
             self.mock_run.return_value.stdout,
             self.mock_run.return_value.stderr,
             self.mock_run.return_value.returncode,
@@ -237,9 +239,9 @@ class PipelineRunPollTests(TestCase):
         self.assertEqual(self.mock_exists.call_count, 9)
         self.mock_sleep.assert_called_with(5)
         self.assertEqual(self.mock_sleep.call_count, 4)
-        self.mock_create.assert_any_call("/abs/loc", "g", "b", None)
-        self.mock_create.assert_any_call("/abs/loc", "goo", "ba", None)
-        self.mock_create.assert_any_call("/abs/loc", "good", "bad", "0")
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "g", "b", None)
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "goo", "ba", None)
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "good", "bad", "0")
     
 
     def test_can_poll_pipeline_with_options(self):
@@ -275,9 +277,9 @@ class PipelineRunPollTests(TestCase):
         self.assertEqual(self.mock_exists.call_count, 9)
         self.mock_sleep.assert_called_with(2)
         self.assertEqual(self.mock_sleep.call_count, 4)
-        self.mock_create.assert_any_call("/abs/loc", "g", "b", None)
-        self.mock_create.assert_any_call("/abs/loc", "goo", "ba", None)
-        self.mock_create.assert_any_call("/abs/loc", "good", "bad", "0")
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "g", "b", None)
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "goo", "ba", None)
+        self.mock_create.assert_any_call("/abs/loc", pipeline, "good", "bad", "0")
         self.mock_remove.assert_any_call("nfstdout")
         self.mock_remove.assert_any_call("nfstderr")
 

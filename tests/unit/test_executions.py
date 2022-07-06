@@ -8,6 +8,7 @@ class ExecutionTest(TestCase):
     def setUp(self):
         self.patch = patch("nextflow.execution.Execution.get_processes_from_log")
         self.mock_get_processes = self.patch.start()
+        self.pipeline = Mock()
     
 
     def tearDown(self):
@@ -18,9 +19,10 @@ class ExecutionTest(TestCase):
 class ExecutionCreationTests(ExecutionTest):
 
     def test_can_create_execution(self):
-        execution = Execution("/location", "xxx_yyy")
+        execution = Execution("/location", "xxx_yyy", self.pipeline)
         self.assertEqual(execution.location, "/location")
         self.assertEqual(execution.id, "xxx_yyy")
+        self.assertEqual(execution.pipeline, self.pipeline)
         self.assertIsNone(execution.stdout)
         self.assertIsNone(execution.stderr)
         self.assertIsNone(execution.returncode)
@@ -29,9 +31,10 @@ class ExecutionCreationTests(ExecutionTest):
     
 
     def test_can_create_execution_with_process(self):
-        execution = Execution("/location", "xxx_yyy", stdout="ok", stderr="bad", returncode=1)
+        execution = Execution("/location", "xxx_yyy", self.pipeline, stdout="ok", stderr="bad", returncode=1)
         self.assertEqual(execution.location, "/location")
         self.assertEqual(execution.id, "xxx_yyy")
+        self.assertEqual(execution.pipeline, self.pipeline)
         self.assertEqual(execution.stdout, "ok")
         self.assertEqual(execution.stderr, "bad")
         self.assertEqual(execution.returncode, 1)
@@ -40,7 +43,7 @@ class ExecutionCreationTests(ExecutionTest):
 
 
 
-class ExecutionFromLocationTests(TestCase):
+class ExecutionFromLocationTests(ExecutionTest):
 
     @patch("builtins.open")
     @patch("nextflow.execution.Execution")
@@ -51,11 +54,11 @@ class ExecutionFromLocationTests(TestCase):
         mock_file.read.return_value = "abc [xx_yy] def"
         mock_open.return_value = open_return
         ex = Execution.create_from_location(
-            "/path/to/execution", "ok", "bad", 1
+            "/path/to/execution", self.pipeline, "ok", "bad", 1
         )
         mock_open.assert_called_with("/path/to/execution/.nextflow.log")
         mock_Ex.assert_called_with(
-            "/path/to/execution", "xx_yy", stdout="ok", stderr="bad", returncode=1
+            "/path/to/execution", "xx_yy", self.pipeline, stdout="ok", stderr="bad", returncode=1
         )
         self.assertIs(ex, mock_Ex.return_value)
 
@@ -70,7 +73,7 @@ class HistoryDataTests(ExecutionTest):
             "2021-10-09 19:54:49\t-\tccc_ddd\t-\t2dcf6dbff4\tc2e4c5df-a8ae-4d3a\tnextflow run main.nf",
             "2021-10-09 20:54:49\t-\teee_fff\t-\t3dcf6dbff4\tc2e4c5df-a8ae-4d3a\tnextflow run main.nf"
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.history_data, [
             "2021-10-09 19:54:49", "-", "ccc_ddd", "-", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ])
@@ -84,7 +87,7 @@ class HistoryDataTests(ExecutionTest):
             "2021-10-09 19:54:49\t-\tccc_ddd\t-\t2dcf6dbff4\tc2e4c5df-a8ae-4d3a\tnextflow run main.nf",
             "2021-10-09 20:54:49\t-\teee_fff\t-\t3dcf6dbff4\tc2e4c5df-a8ae-4d3a\tnextflow run main.nf"
         ]
-        execution = Execution("/location", "xxx_yyy")
+        execution = Execution("/location", "xxx_yyy", self.pipeline)
         self.assertIsNone(execution.history_data)
         mock_open.assert_called_with(os.path.join("/location", ".nextflow", "history"))
 
@@ -97,14 +100,14 @@ class ExecutionStartedStringTests(ExecutionTest):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.started_string, "2021-10-09 19:54:49")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
     def test_can_get_no_started_string(self, mock_history):
         mock_history.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertIsNone(execution.started_string)
 
 
@@ -115,7 +118,7 @@ class ExecutionStartedDtTests(ExecutionTest):
     @patch("nextflow.execution.parse_datetime")
     def test_can_get_started_dt(self, mock_parse_datetime, mock_started_string):
         mock_started_string.return_value = "2022"
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.started_dt, mock_parse_datetime.return_value)
         mock_parse_datetime.assert_called_with("2022")
     
@@ -124,7 +127,7 @@ class ExecutionStartedDtTests(ExecutionTest):
     @patch("nextflow.execution.parse_datetime")
     def test_can_get_no_started_dt(self, mock_parse_datetime, mock_started_string):
         mock_started_string.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.started_dt, None)
         self.assertFalse(mock_parse_datetime.called)
 
@@ -135,14 +138,14 @@ class ExecutionStartedTests(ExecutionTest):
     @patch("nextflow.execution.Execution.started_dt", new_callable=PropertyMock)
     def test_can_get_started(self, mock_started_dt):
         mock_started_dt.return_value = datetime(2021, 1, 2, 3, 4, 5)
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.started, 1609556645)
     
 
     @patch("nextflow.execution.Execution.started_dt", new_callable=PropertyMock)
     def test_can_get_no_started(self, mock_started_dt):
         mock_started_dt.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.started, None)
 
 
@@ -154,14 +157,14 @@ class ExecutionDurationStringTests(ExecutionTest):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.duration_string, "4s")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
     def test_can_get_no_duration_string(self, mock_history):
         mock_history.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertIsNone(execution.duration_string)
 
 
@@ -172,7 +175,7 @@ class ExecutionDurationTests(ExecutionTest):
     @patch("nextflow.execution.parse_duration")
     def test_can_get_duration(self, mock_parse_duration, mock_duration_string):
         mock_duration_string.return_value = "5s"
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.duration, mock_parse_duration.return_value)
         mock_parse_duration.assert_called_with("5s")
     
@@ -181,7 +184,7 @@ class ExecutionDurationTests(ExecutionTest):
     @patch("nextflow.execution.parse_duration")
     def test_can_get_no_duration(self, mock_parse_duration, mock_duration_string):
         mock_duration_string.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.duration, None)
         self.assertFalse(mock_parse_duration.called)
 
@@ -194,14 +197,14 @@ class ExecutionStatusTests(ExecutionTest):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.status, "OK")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
     def test_can_get_no_status(self, mock_history):
         mock_history.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertIsNone(execution.status)
 
 
@@ -213,14 +216,14 @@ class ExecutionCommandTests(ExecutionTest):
         mock_history.return_value = [
             "2021-10-09 19:54:49", "4s", "ccc_ddd", "OK", "2dcf6dbff4", "c2e4c5df-a8ae-4d3a", "nextflow run main.nf"
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.command, "nextflow run main.nf")
     
 
     @patch("nextflow.execution.Execution.history_data", new_callable=PropertyMock)
     def test_can_get_no_command(self, mock_history):
         mock_history.return_value = None
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertIsNone(execution.command)
 
 
@@ -234,7 +237,7 @@ class ExecutionLogTests(ExecutionTest):
         mock_open.return_value.__enter__().read.side_effect = [
             "aaa [aaa_bbb] ...", "aaa [ccc_ddd] ...", "aaa [eee_fff] ..."
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.assertEqual(execution.log, "aaa [ccc_ddd] ...")
         mock_dir.assert_called_with("/location")
         mock_open.assert_any_call(os.path.join("/location", ".nextflow.log"))
@@ -270,7 +273,7 @@ class ProcessesFromLogTests(ExecutionTest):
             datetime(datetime.now().year, 6, 1, 17, 45, 57, 148000),
             datetime(datetime.now().year, 7, 7, 17, 45, 57, 148000),
         ]
-        execution = Execution("/location", "ccc_ddd")
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
         self.patch.stop()
         execution.get_processes_from_log()
         for mock in mocks[-2:-5] + tuple(mocks[-8:-9]):

@@ -12,13 +12,15 @@ class Execution:
     
     :param str location: the path where the execution took place and is saved.
     :param str id: the Nextflow ID assigned to the execution.
+    :param Pipeline pipeline: the originating pipeline.
     :param str stdout: the stdout the execution produced.
     :param str stderr: the stderr the execution produced.
     :param str returncode: the return code the execution finished with."""
 
-    def __init__(self, location, id, stdout=None, stderr=None, returncode=None):
+    def __init__(self, location, id, pipeline, stdout=None, stderr=None, returncode=None):
         self.location = location
         self.id = id
+        self.pipeline = pipeline
         self.stdout = stdout
         self.stderr = stderr
         self.returncode = returncode
@@ -26,11 +28,12 @@ class Execution:
     
 
     @staticmethod
-    def create_from_location(location, stdout, stderr, returncode):
+    def create_from_location(location, pipeline, stdout, stderr, returncode):
         """Create a :py:class:`.Execution` object from its location alone (i.e.
         without knowing its Nextflow ID.
         
         :param str location: the path where the execution took place and is saved.
+        :param Pipeline pipeline: the originating pipeline.
         :param str stdout: the stdout the execution produced.
         :param str stderr: the stderr the execution produced.
         :param str returncode: the return code the execution finished with.
@@ -40,7 +43,7 @@ class Execution:
             log_text = f.read()
         run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
         return Execution(
-            location, run_id, stdout=stdout, stderr=stderr,
+            location, run_id, pipeline, stdout=stdout, stderr=stderr,
             returncode=returncode
         )
     
