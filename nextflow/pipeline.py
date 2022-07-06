@@ -3,7 +3,6 @@
 import os
 import time
 import subprocess
-from nextflow.parse import get_module_paths
 from .execution import Execution
 
 class Pipeline:
@@ -54,15 +53,6 @@ class Pipeline:
         command_string += f"{param_string}{profile_string}"
         return command_string
     
-
-    def get_module_paths(self):
-        """Gets the paths for all modules used in the pipeline, by process
-        name.
-        
-        :rtype: ``dict``"""
-
-        return get_module_paths(self.path)
-
     
     def run(self, location=".", params=None, profile=None, version=None):
         """Runs the pipeline and returns an :py:class:`.Execution` object once

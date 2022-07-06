@@ -257,13 +257,6 @@ class PipelineRunningTests(PipelineTest):
             path=self.get_path("pipeline.nf"),
             config=self.get_path("pipeline.config"),
         )
-        self.assertEqual(pipeline.get_module_paths(), {
-            "JOIN:COMBINE_FILES": self.get_path("modules/combine_files.nf"),
-            "PROCESS_DATA:APPEND": self.get_path("modules/append.nf"),
-            "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE": self.get_path("modules/duplicate.nf"),
-            "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER": self.get_path("modules/lower.nf"),
-            "SPLIT_FILE": self.get_path("modules/split_file.nf"),
-        })
         execution = pipeline.run(
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",

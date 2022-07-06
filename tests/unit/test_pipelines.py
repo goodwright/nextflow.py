@@ -71,17 +71,6 @@ class PipelineCommandStringTests(TestCase):
         self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
 
 
-
-class PipelineModuleTests(TestCase):
-
-    @patch("nextflow.pipeline.get_module_paths")
-    def test_can_get_pipeline_modules(self, mock_paths):
-        pipeline = Pipeline("/path/run.nf")
-        self.assertEqual(pipeline.get_module_paths(), mock_paths.return_value)
-        mock_paths.assert_called_with("/path/run.nf")
-
-
-
 class PipelineRunningTests(TestCase):
 
     def setUp(self):
