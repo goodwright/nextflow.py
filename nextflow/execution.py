@@ -243,14 +243,17 @@ class ProcessExecution:
         
         inputs = []
         directory = get_process_directory(self.execution, self.hash)
-        for f in os.listdir(directory):
-            full_path = Path(f"{directory}/{f}")
-            if os.path.islink(full_path):
-                if include_path:
-                    inputs.append(os.path.realpath(full_path))
-                else:
-                    inputs.append(f)
-        return inputs
+        try:
+            with open(Path(f"{directory}/.command.run")) as f:
+                stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", f.read())
+        except FileNotFoundError: return []
+        if stage:
+            contents = stage[1]
+            inputs = re.findall(r"ln -s (.+?) ", contents)
+        if include_path:
+            return inputs
+        else:
+            return [os.path.basename(f) for f in inputs]
     
 
     def all_output_data(self, include_path=True):
@@ -262,9 +265,10 @@ class ProcessExecution:
 
         outputs = []
         directory = get_process_directory(self.execution, self.hash)
+        inputs = self.input_data(include_path=False)
         for f in os.listdir(directory):
             full_path = Path(f"{directory}/{f}")
             if not f.startswith(".command") and f != ".exitcode":
-                if not os.path.islink(full_path):
+                if f not in inputs:
                     outputs.append(str(full_path) if include_path else f)
         return outputs

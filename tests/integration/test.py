@@ -85,6 +85,9 @@ class PipelineTest(TestCase):
             self.get_process_execution(execution, "SPLIT_FILE").hash,
             proc_ex.input_data()[0]
         )
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"duplicated_abc.dat"}
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
@@ -95,6 +98,9 @@ class PipelineTest(TestCase):
         self.assertIn(
             self.get_process_execution(execution, "SPLIT_FILE").hash,
             proc_ex.input_data()[0]
+        )
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"duplicated_xyz.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
@@ -107,6 +113,9 @@ class PipelineTest(TestCase):
             self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)").hash,
             proc_ex.input_data()[0]
         )
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"lowered_duplicated_abc.dat"}
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
@@ -118,6 +127,9 @@ class PipelineTest(TestCase):
             self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)").hash,
             proc_ex.input_data()[0]
         )
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"lowered_duplicated_xyz.dat"}
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_abc.dat)")
         self.check_process_execution(proc_ex, execution, long)
@@ -125,6 +137,9 @@ class PipelineTest(TestCase):
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
         self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_abc.dat", "suffix.txt"})
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"suffix_lowered_duplicated_abc.dat"}
+        )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_xyz.dat)")
         self.check_process_execution(proc_ex, execution, long)
@@ -132,6 +147,9 @@ class PipelineTest(TestCase):
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
         self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_xyz.dat", "suffix.txt"})
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"suffix_lowered_duplicated_xyz.dat"}
+        )
 
         proc_ex = self.get_process_execution(execution, "JOIN:COMBINE_FILES")
         self.check_process_execution(proc_ex, execution, long)
@@ -141,6 +159,9 @@ class PipelineTest(TestCase):
         self.assertEqual(
             set(proc_ex.input_data(include_path=False)),
             {"suffix_lowered_duplicated_abc.dat", "suffix_lowered_duplicated_xyz.dat"}
+        )
+        self.assertEqual(
+            set(proc_ex.all_output_data(include_path=False)), {"combined.txt"}
         )
 
         # Config was used
