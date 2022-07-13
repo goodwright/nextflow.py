@@ -263,10 +263,10 @@ class DirectRunningTests(PipelineTest):
         self.assertEqual(execution.returncode, 1)
         self.assertIn("Error executing process", execution.stdout)
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
-        self.assertEqual(proc_ex.status, "FAILED")
+        self.assertIn(proc_ex.status, ["FAILED", "-"])
         self.assertEqual(proc_ex.returncode, "1")
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
-        self.assertEqual(proc_ex.status, "FAILED")
+        self.assertIn(proc_ex.status, ["FAILED", "-"])
         self.assertEqual(proc_ex.returncode, "1")
 
 
