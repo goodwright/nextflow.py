@@ -1,6 +1,17 @@
 Changelog
 ---------
 
+Release 0.4.0
+~~~~~~~~~~~~~
+
+`13th July, 2022`
+
+* Process executions now report their input files as paths.
+* Process executions now report all their output files as paths.
+* Executions now have properties for their originating pipeline.
+* Removed schema functionality.
+
+
 Release 0.3.1
 ~~~~~~~~~~~~~
 

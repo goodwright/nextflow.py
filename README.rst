@@ -127,6 +127,8 @@ An ``Execution`` represents a single execution of a
 
 * ``returncode`` - the exit code of the run - usually 0 or 1.
 
+* ``pipeline`` - the ``Pipeline`` that created the execution.
+
 It also has a ``process_executions`` property, which is a list of
 ``ProcessExecution`` objects. Nextflow processes data by chaining
 together isolated 'processes', and each of these has a
@@ -153,8 +155,19 @@ following properties:
 
 * ``returncode`` - the exit code of the process execution - usually 0 or 1.
 
-They also have a ``input_data`` method for getting the input data paths
-to the process execution.
+Process executions can have various files passed to them, and will create files
+during their execution too. These can be obtained as follows:
+
+    >>> process_execution.input_data() # Full absolute paths
+    >>> process_execution.input_data(include_path=False) # Just file names
+    >>> process_execution.all_output_data() # Full absolute paths
+    >>> process_execution.all_output_data(include_path=False) # Just file names
+
+.. note::
+   Nextflow makes a distinction between process output files which were
+   'published' via some channel, and those which weren't. It is not possible to
+   distinguish these once execution is complete, so nextflow.py reports all
+   output files, not just those which are 'published'.
 
 Polling
 ~~~~~~~
@@ -187,6 +200,17 @@ If you just want to run a single pipeline without initialising a
 
 Changelog
 ---------
+
+Release 0.4.0
+~~~~~~~~~~~~~
+
+`13th July, 2022`
+
+* Process executions now report their input files as paths.
+* Process executions now report all their output files as paths.
+* Executions now have properties for their originating pipeline.
+* Removed schema functionality.
+
 
 Release 0.3.1
 ~~~~~~~~~~~~~
