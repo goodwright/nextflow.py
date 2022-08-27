@@ -45,18 +45,14 @@ class ExecutionCreationTests(ExecutionTest):
 
 class ExecutionFromLocationTests(ExecutionTest):
 
-    @patch("builtins.open")
+    @patch("nextflow.execution.get_directory_id")
     @patch("nextflow.execution.Execution")
-    def test_can_create_execution_from_location(self, mock_Ex, mock_open):
-        open_return = MagicMock()
-        mock_file = Mock()
-        open_return.__enter__.return_value = mock_file
-        mock_file.read.return_value = "abc [xx_yy] def"
-        mock_open.return_value = open_return
+    def test_can_create_execution_from_location(self, mock_Ex, mock_id):
+        mock_id.return_value = "xx_yy"
         ex = Execution.create_from_location(
             "/path/to/execution", self.pipeline, "ok", "bad", 1
         )
-        mock_open.assert_called_with("/path/to/execution/.nextflow.log")
+        mock_id.assert_called_with("/path/to/execution")
         mock_Ex.assert_called_with(
             "/path/to/execution", "xx_yy", self.pipeline, stdout="ok", stderr="bad", returncode=1
         )

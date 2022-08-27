@@ -30,7 +30,7 @@ class Execution:
     @staticmethod
     def create_from_location(location, pipeline, stdout, stderr, returncode):
         """Create a :py:class:`.Execution` object from its location alone (i.e.
-        without knowing its Nextflow ID.
+        without knowing its Nextflow ID).
         
         :param str location: the path where the execution took place and is saved.
         :param Pipeline pipeline: the originating pipeline.
@@ -39,9 +39,7 @@ class Execution:
         :param str returncode: the return code the execution finished with.
         :rtype: ``Execution``"""
 
-        with open(os.path.join(location, ".nextflow.log")) as f:
-            log_text = f.read()
-        run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
+        run_id = get_directory_id(location)
         return Execution(
             location, run_id, pipeline, stdout=stdout, stderr=stderr,
             returncode=returncode

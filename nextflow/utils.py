@@ -5,11 +5,28 @@ import re
 from pathlib import Path
 from datetime import datetime
 
-def directory_is_ready(path):
-    """Takes the path to a directory that should contain an execution, and
-    checks if it is ready to be parsed.
+def get_directory_id(path):
+    """Gets the ID of the most recent execution in a given directory.
     
     :param str path: the path to the directory.
+    :rtype: ``str``"""
+    
+    log_path = Path(path, ".nextflow.log")
+    if not os.path.exists(log_path): return None
+    with open(log_path) as f:
+        log_text = f.read()
+    run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)
+    if not run_id: return None
+    return run_id[1]
+    
+
+def directory_is_ready(path, existing_id=None):
+    """Takes the path to a directory that should contain an execution, and
+    checks if it is ready to be parsed. You can supply an execution ID that
+    should be considered invalid if found.
+    
+    :param str path: the path to the directory.
+    :param str existing_id: an ID to reject if found.
     :rtype: ``bool``"""
     
     log_path = Path(path, ".nextflow.log")
@@ -19,6 +36,7 @@ def directory_is_ready(path):
         log_text = f.read()
     run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)
     if not run_id: return False
+    if existing_id and run_id[1] == existing_id: return False
     return True
 
 
