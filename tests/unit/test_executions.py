@@ -308,3 +308,12 @@ class ProcessesFromLogTests(ExecutionTest):
             stderr="err2",
             returncode="1"
         )
+    
+
+    @patch("nextflow.execution.Execution.log", new_callable=PropertyMock)
+    def test_can_get_processes_from_log(self, mock_log):
+        mock_log.return_value = ""
+        execution = Execution("/location", "ccc_ddd", self.pipeline)
+        self.patch.stop()
+        execution.get_processes_from_log()
+        self.assertEqual(execution.process_executions, [])

@@ -162,9 +162,10 @@ class PipelineRunPollTests(TestCase):
         self.patch5 = patch("builtins.open")
         self.patch6 = patch("subprocess.Popen")
         self.patch7 = patch("time.sleep")
-        self.patch8 = patch("os.path.exists")
+        self.patch8 = patch("nextflow.pipeline.directory_is_ready")
         self.patch9 = patch("nextflow.pipeline.Execution.create_from_location")
-        self.patch10 = patch("os.remove")
+        self.patch10 = patch("os.path.exists")
+        self.patch11 = patch("os.remove")
         self.mock_abspath = self.patch1.start()
         self.mock_cwd = self.patch2.start()
         self.mock_command_string = self.patch3.start()
@@ -172,9 +173,10 @@ class PipelineRunPollTests(TestCase):
         self.mock_open = self.patch5.start()
         self.mock_popen = self.patch6.start()
         self.mock_sleep = self.patch7.start()
-        self.mock_exists = self.patch8.start()
+        self.mock_ready = self.patch8.start()
         self.mock_create = self.patch9.start()
-        self.mock_remove = self.patch10.start()
+        self.mock_exists = self.patch10.start()
+        self.mock_remove = self.patch11.start()
 
         self.file_contexts = [Mock() for _ in range(10)]
         self.mock_open.return_value.__enter__.side_effect = self.file_contexts
@@ -196,6 +198,8 @@ class PipelineRunPollTests(TestCase):
         self.patch7.stop()
         self.patch8.stop()
         self.patch9.stop()
+        self.patch10.stop()
+        self.patch11.stop()
 
 
     def test_can_poll_basic_pipeline(self):
@@ -205,7 +209,8 @@ class PipelineRunPollTests(TestCase):
         process = Mock()
         process.poll.side_effect = [None, None, None, "0"]
         self.mock_popen.return_value = process
-        self.mock_exists.side_effect = [False, True, True, True, True, True, True, False, False]
+        self.mock_ready.side_effect = [False, True, True, True]
+        self.mock_exists.side_effect = [False, False]
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll())
         self.assertEqual(len(executions), 3)
@@ -223,14 +228,15 @@ class PipelineRunPollTests(TestCase):
             stdout=self.file_contexts[0], stderr=self.file_contexts[1],
             universal_newlines=True, shell=True, cwd="/abs/loc"
         )
-        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow.log"))
-        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow", "history"))
-        self.assertEqual(self.mock_exists.call_count, 9)
         self.mock_sleep.assert_called_with(5)
         self.assertEqual(self.mock_sleep.call_count, 4)
+        self.mock_ready.assert_called_with("/abs/loc")
         self.mock_create.assert_any_call("/abs/loc", pipeline, "g", "b", None)
         self.mock_create.assert_any_call("/abs/loc", pipeline, "goo", "ba", None)
         self.mock_create.assert_any_call("/abs/loc", pipeline, "good", "bad", "0")
+        self.mock_exists.assert_any_call("nfstdout")
+        self.mock_exists.assert_any_call("nfstderr")
+        self.assertEqual(self.mock_exists.call_count, 2)
     
 
     def test_can_poll_pipeline_with_options(self):
@@ -240,7 +246,8 @@ class PipelineRunPollTests(TestCase):
         process = Mock()
         process.poll.side_effect = [None, None, None, "0"]
         self.mock_popen.return_value = process
-        self.mock_exists.side_effect = [False, True, True, True, True, True, True, True, True]
+        self.mock_ready.side_effect = [False, True, True, True]
+        self.mock_exists.side_effect = [True, True]
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll(
             location="otherloc", params="params", profile="profiles",
@@ -261,14 +268,15 @@ class PipelineRunPollTests(TestCase):
             stdout=self.file_contexts[0], stderr=self.file_contexts[1],
             universal_newlines=True, shell=True, cwd="/abs/loc"
         )
-        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow.log"))
-        self.mock_exists.assert_any_call(os.path.join("/abs/loc", ".nextflow", "history"))
-        self.assertEqual(self.mock_exists.call_count, 9)
         self.mock_sleep.assert_called_with(2)
         self.assertEqual(self.mock_sleep.call_count, 4)
+        self.mock_ready.assert_called_with("/abs/loc")
         self.mock_create.assert_any_call("/abs/loc", pipeline, "g", "b", None)
         self.mock_create.assert_any_call("/abs/loc", pipeline, "goo", "ba", None)
         self.mock_create.assert_any_call("/abs/loc", pipeline, "good", "bad", "0")
+        self.mock_exists.assert_any_call("nfstdout")
+        self.mock_exists.assert_any_call("nfstderr")
+        self.assertEqual(self.mock_exists.call_count, 2)
         self.mock_remove.assert_any_call("nfstdout")
         self.mock_remove.assert_any_call("nfstderr")
 

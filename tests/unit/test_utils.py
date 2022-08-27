@@ -3,6 +3,46 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 from nextflow.utils import *
 
+class DirectoryIsReadyTests(TestCase):
+
+    @patch("os.path.exists")
+    def test_log_must_exist(self, mock_exists):
+        mock_exists.return_value = False
+        self.assertFalse(directory_is_ready("dir"))
+        mock_exists.assert_called_with(Path("dir", ".nextflow.log"))
+    
+
+    @patch("os.path.exists")
+    def test_history_must_exist(self, mock_exists):
+        mock_exists.side_effect = [True, False]
+        self.assertFalse(directory_is_ready("dir"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow.log"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow", "history"))
+    
+
+    @patch("os.path.exists")
+    @patch("builtins.open")
+    def test_id_must_exist(self, mock_open, mock_exists):
+        mock_exists.side_effect = [True, True]
+        mock_open.return_value.__enter__.return_value.read.return_value = "log text"
+        self.assertFalse(directory_is_ready("dir"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow.log"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow", "history"))
+        mock_open.assert_called_with(Path("dir", ".nextflow.log"))
+    
+
+    @patch("os.path.exists")
+    @patch("builtins.open")
+    def test_ok_if_id(self, mock_open, mock_exists):
+        mock_exists.side_effect = [True, True]
+        mock_open.return_value.__enter__.return_value.read.return_value = "a [xxx_yyy] b"
+        self.assertTrue(directory_is_ready("dir"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow.log"))
+        mock_exists.assert_any_call(Path("dir", ".nextflow", "history"))
+        mock_open.assert_called_with(Path("dir", ".nextflow.log"))
+
+
+
 class DatetimeParsingTests(TestCase):
 
     def test_can_parse_datetime(self):

@@ -41,8 +41,7 @@ class Execution:
 
         with open(os.path.join(location, ".nextflow.log")) as f:
             log_text = f.read()
-        run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)
-        run_id = run_id[1] if run_id else None  
+        run_id = re.search(r"\[([a-z]+_[a-z]+)\]", log_text)[1]
         return Execution(
             location, run_id, pipeline, stdout=stdout, stderr=stderr,
             returncode=returncode
@@ -161,11 +160,11 @@ class Execution:
 
         log_text = self.log
         self.process_executions = []
-        ids = re.findall(
+        process_ids = re.findall(
             r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
             log_text, flags=re.MULTILINE
-        ) if log_text else []
-        for process_id in ids:
+        )
+        for process_id in process_ids:
             fields = {
                 "hash": process_id,
                 "process": "",
