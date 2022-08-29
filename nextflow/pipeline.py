@@ -4,6 +4,7 @@ import os
 import time
 import subprocess
 from .execution import Execution
+from .utils import directory_is_ready, get_directory_id
 
 class Pipeline:
     """A .nf file somewhere on the local filesystem.
@@ -100,6 +101,7 @@ class Pipeline:
         command_string = self.create_command_string(params, profile, version)
         try:
             os.chdir(full_run_location)
+            existing_id = get_directory_id(full_run_location)
             with open("nfstdout", "w") as fout:
                 with open("nfstderr", "w") as ferr:
                     process = subprocess.Popen(
@@ -112,11 +114,10 @@ class Pipeline:
                         returncode = process.poll()
                         with open("nfstdout") as f: out = f.read()
                         with open("nfstderr") as f: err = f.read()
-                        if os.path.exists(os.path.join(full_run_location, ".nextflow.log")):
-                            if os.path.exists(os.path.join(full_run_location, ".nextflow", "history")):
-                                yield Execution.create_from_location(
-                                    full_run_location, self, out, err, returncode
-                                )
+                        if directory_is_ready(full_run_location, existing_id):
+                            yield Execution.create_from_location(
+                                full_run_location, self, out, err, returncode
+                            )
                         if returncode is not None: break
         finally:
             if os.path.exists("nfstdout"): os.remove("nfstdout")
