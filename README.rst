@@ -42,9 +42,10 @@ If you get permission errors, try using ``sudo``::
 
 
 Miniconda
-~~~
+~~~~~~~~~
 
-The package is available via [Bioconda](https://anaconda.org/bioconda/python-nextflow)::
+
+The package is available via `Bioconda <https://anaconda.org/bioconda/python-nextflow>`::
 
     $ conda install -c bioconda python-nextflow
 
