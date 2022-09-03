@@ -45,7 +45,7 @@ Miniconda
 ~~~~~~~~~
 
 
-The package is available via `Bioconda <https://anaconda.org/bioconda/python-nextflow>`::
+The package is available via `Bioconda <https://anaconda.org/bioconda/python-nextflow>`_::
 
     $ conda install -c bioconda python-nextflow
 
