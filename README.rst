@@ -41,6 +41,14 @@ If you get permission errors, try using ``sudo``::
     $ sudo pip install nextflow
 
 
+Miniconda
+~~~
+
+The package is available via [Bioconda](https://anaconda.org/bioconda/python-nextflow)::
+
+    $ conda install -c bioconda python-nextflow
+
+
 Development
 ~~~~~~~~~~~
 
