@@ -1,6 +1,5 @@
-from os import pipe
 from unittest import TestCase
-from unittest.mock import PropertyMock, mock_open, patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from nextflow.pipeline import *
 
 class PipelineCreationTests(TestCase):
@@ -41,7 +40,7 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string(None, None, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf"')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf"')
     
 
     @patch("os.path.abspath")
@@ -50,7 +49,7 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, None, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
     
 
     @patch("os.path.abspath")
@@ -59,7 +58,7 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
     
 
     @patch("os.path.abspath")
@@ -68,7 +67,7 @@ class PipelineCommandStringTests(TestCase):
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], "1.2.3")
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
 
 
 class PipelineRunningTests(TestCase):

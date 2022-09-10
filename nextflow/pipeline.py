@@ -49,7 +49,7 @@ class Pipeline:
         profile_string = (" -profile " + ",".join(profile)) if profile else ""
         command_string = "NXF_ANSI_LOG=false "
         if version: command_string += f"NXF_VER={version} "
-        command_string += f"nextflow{self.config_string} "
+        command_string += f"nextflow -Duser.country=US{self.config_string} "
         command_string += f"run \"{full_pipeline_location}\" "
         command_string += f"{param_string}{profile_string}"
         return command_string
