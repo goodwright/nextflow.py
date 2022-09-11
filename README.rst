@@ -9,6 +9,9 @@ nextflow.py
 .. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflow.svg
   :target: https://pypi.org/project/nextflow/
 
+.. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflow.svg
+  :target: https://pypi.org/project/nextflow/
+
 .. |nextfow| image:: https://img.shields.io/badge/Nextflow-22.04%20%7C%2021.10%20%7C%2020.10-orange
   :target: https://www.nextflow.io/
 
@@ -200,6 +203,16 @@ If you just want to run a single pipeline without initialising a
 
 Changelog
 ---------
+
+Release 0.4.1
+~~~~~~~~~~~~~
+
+`11th September, 2022`
+
+* Fixed issue in execution polling where previous execution interferes initially.
+* Execution parsing now checks directory is fully ready for parsing.
+* Fixed issue where logs are unparseable in certain locales.
+
 
 Release 0.4.0
 ~~~~~~~~~~~~~

@@ -1,6 +1,16 @@
 Changelog
 ---------
 
+Release 0.4.1
+~~~~~~~~~~~~~
+
+`11th September, 2022`
+
+* Fixed issue in execution polling where previous execution interferes initially.
+* Execution parsing now checks directory is fully ready for parsing.
+* Fixed issue where logs are unparseable in certain locales.
+
+
 Release 0.4.0
 ~~~~~~~~~~~~~
 
