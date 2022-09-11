@@ -1,15 +1,15 @@
 nextflow.py
 ===========
 
-|ci| |pypi| |nextfow| |version| |license|
+|ci| |version| |pypi| |nextfow| |license|
 
 .. |ci| image:: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml/badge.svg
   :target: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml
 
-.. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflow.svg
+.. |version| image:: https://img.shields.io/pypi/v/nextflow.svg
   :target: https://pypi.org/project/nextflow/
 
-.. |version| image:: https://img.shields.io/pypi/v/nextflow.svg
+.. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflow.svg
   :target: https://pypi.org/project/nextflow/
 
 .. |nextfow| image:: https://img.shields.io/badge/Nextflow-22.04%20%7C%2021.10%20%7C%2020.10-orange
