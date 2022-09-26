@@ -204,6 +204,14 @@ If you just want to run a single pipeline without initialising a
 Changelog
 ---------
 
+Release 0.4.2
+~~~~~~~~~~~~~
+
+`26th September, 2022`
+
+* Added `bash` attribute to process executions.
+
+
 Release 0.4.1
 ~~~~~~~~~~~~~
 
