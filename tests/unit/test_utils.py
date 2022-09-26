@@ -281,6 +281,33 @@ class ProcessStderrTests(TestCase):
 
 
 
+class ProcessBashTests(TestCase):
+    
+    @patch("nextflow.utils.get_process_directory")
+    @patch("builtins.open")
+    def test_can_get_bash(self, mock_open, mock_dir):
+        mock_dir.return_value = "/work/1a/234bcd454353452"
+        mock_open.return_value.__enter__.return_value.read.return_value = "good"
+        self.assertEqual(get_process_bash("execution", "1a/234bcd"), "good")
+        mock_dir.assert_called_with("execution", "1a/234bcd")
+        mock_open.assert_called_with(
+            os.path.join("/work/1a/234bcd454353452", ".command.sh")
+        )
+    
+
+    @patch("nextflow.utils.get_process_directory")
+    @patch("builtins.open")
+    def test_can_get_no_bash(self, mock_open, mock_dir):
+        mock_dir.return_value = "/work/1a/234bcd454353452"
+        mock_open.side_effect = FileNotFoundError
+        self.assertEqual(get_process_bash("execution", "1a/234bcd"), "-")
+        mock_dir.assert_called_with("execution", "1a/234bcd")
+        mock_open.assert_called_with(
+            os.path.join("/work/1a/234bcd454353452", ".command.sh")
+        )
+
+
+
 class ProcessReturnCodeTests(TestCase):
     
     @patch("nextflow.utils.get_process_directory")

@@ -249,6 +249,7 @@ class ProcessesFromLogTests(ExecutionTest):
     @patch("nextflow.execution.get_process_status_from_log")
     @patch("nextflow.execution.get_process_stdout")
     @patch("nextflow.execution.get_process_stderr")
+    @patch("nextflow.execution.get_process_bash")
     @patch("nextflow.execution.get_process_returncode")
     @patch("nextflow.execution.get_process_end_from_log")
     @patch("nextflow.execution.ProcessExecution")
@@ -264,8 +265,9 @@ class ProcessesFromLogTests(ExecutionTest):
         mocks[-4].side_effect = ["COMPLETED", "ERROR"]
         mocks[-5].side_effect = ["out1", "out2"]
         mocks[-6].side_effect = ["err1", "err2"]
-        mocks[-7].side_effect = ["0", "1"]
-        mocks[-8].side_effect = [
+        mocks[-7].side_effect = ["bash1", "bash2"]
+        mocks[-8].side_effect = ["0", "1"]
+        mocks[-9].side_effect = [
             datetime(datetime.now().year, 6, 1, 17, 45, 57, 148000),
             datetime(datetime.now().year, 7, 7, 17, 45, 57, 148000),
         ]
@@ -278,7 +280,7 @@ class ProcessesFromLogTests(ExecutionTest):
         for mock in mocks[-5:-8]:
             mock.assert_any_call(execution, "d6/31d530")
             mock.assert_any_call(execution, "99/6165a9")
-        mocks[-9].assert_any_call(
+        mocks[-10].assert_any_call(
             execution=execution,
             hash="d6/31d530",
             process="CSV_TO_BARCODE",
@@ -291,7 +293,7 @@ class ProcessesFromLogTests(ExecutionTest):
             stderr="err1",
             returncode="0"
         )
-        mocks[-9].assert_any_call(
+        mocks[-10].assert_any_call(
             execution=execution,
             hash="99/6165a9",
             process="FASTQC",

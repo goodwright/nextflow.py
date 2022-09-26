@@ -173,6 +173,7 @@ class Execution:
                 "status":  get_process_status_from_log(log_text, process_id),
                 "stdout": get_process_stdout(self, process_id),
                 "stderr": get_process_stderr(self, process_id),
+                "bash": get_process_bash(self, process_id),
                 "returncode": get_process_returncode(self, process_id),
             }
             if "(" in fields["name"]:
@@ -201,13 +202,14 @@ class ProcessExecution:
     :param str status: the process's reported status upon completion.
     :param str stdout: the process's stdout.
     :param str stderr: the process's stderr.
+    :param str bash: the process's bash script.
     :param str started_string: the datetime the process started (as a string).
     :param str started_dt: the datetime the process started (as a datetime).
     :param float duration: how long the process ran for.
     :param str returncode: the return code the execution finished with."""
 
 
-    def __init__(self, execution, hash, process, name, status, stdout, stderr, started_string, started, duration, returncode):
+    def __init__(self, execution, hash, process, name, status, stdout, stderr, bash, started_string, started, duration, returncode):
         self.execution = execution
         self.hash = hash
         self.process = process
@@ -215,6 +217,7 @@ class ProcessExecution:
         self.status = status
         self.stdout = stdout
         self.stderr = stderr
+        self.bash = bash
         self.started_string = started_string
         self.started_dt = started
         self.duration = duration

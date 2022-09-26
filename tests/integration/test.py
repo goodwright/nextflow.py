@@ -66,6 +66,7 @@ class PipelineTest(TestCase):
         self.check_process_execution(proc_ex, execution, long)
         self.assertEqual(proc_ex.stdout, "Splitting...\n")
         self.assertEqual(proc_ex.stderr, "")
+        self.assertTrue(proc_ex.bash.startswith, "#!/usr/bin/env")
         self.assertEqual(proc_ex.process, "SPLIT_FILE")
         self.assertEqual(proc_ex.input_data(), [self.get_path("files/data.txt")])
         self.assertEqual(proc_ex.input_data(include_path=False), ["data.txt"])

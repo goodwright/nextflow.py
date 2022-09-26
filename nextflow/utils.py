@@ -165,6 +165,21 @@ def get_process_stderr(execution, id):
     except: return "-"
 
 
+def get_process_bash(execution, id):
+    """Gets a process's bash script text, given its parent execution and its
+    unique ID. If it can't be obtained, '-' is returned.
+    
+    :param Execution execution: The parent Execution object.
+    :param str id: The process's ID (eg. '1a/234bcd').
+    :rtype: ``string``"""
+
+    location = get_process_directory(execution, id)
+    try:
+        with open(os.path.join(location, ".command.sh")) as f:
+            return f.read()
+    except: return "-"
+
+
 def get_process_returncode(execution, id):
     """Gets a process's returncode (typically 0 or 1), given its parent
     execution and its unique ID. If it can't be obtained, an empty string is
