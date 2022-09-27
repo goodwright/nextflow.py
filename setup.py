@@ -12,7 +12,7 @@ setup(
     url="https://github.com/goodwright/nextflow.py",
     author="Sam Ireland",
     author_email="sam@goodwright.com",
-    license="MIT",
+    license="GPLv3+",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Internet :: WWW/HTTP",
