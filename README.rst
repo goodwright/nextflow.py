@@ -97,12 +97,13 @@ This will return an ``Execution`` object, which represents the pipeline
 execution that just took place. You can customise the execution with various
 options:
 
-    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1")
+    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1", config=["env.config"])
 
 This sets the execution to take place in a different location, passes
 ``--param1=123`` as a command line argument when the pipeline is run, uses the
-Nextflow profiles 'docker' and 'test', and runs with Nextflow version 22.0.1
-(regardless of what version of Nextflow is installed).
+Nextflow profiles 'docker' and 'test', runs with Nextflow version 22.0.1
+(regardless of what version of Nextflow is installed), and passes in an extra
+config file to use on the run.
 
 Executions
 ##########
@@ -199,10 +200,19 @@ If you just want to run a single pipeline without initialising a
 ``Pipeline``:
 
     >>> import nextflow
-    >>> execution = nextflow.run(path="pipeline.nf", config="settings.config", params={"param1": "123"})
+    >>> execution = nextflow.run(path="pipeline.nf", config=["settings.config"], params={"param1": "123"})
 
 Changelog
 ---------
+
+Release 0.5.0
+~~~~~~~~~~~~~
+
+`28th October, 2022`
+
+* Little c (`-c`) is now used instead of big C (`-C`) for passing config.
+* You can now pass multiple config files during pipeline execution.
+
 
 Release 0.4.2
 ~~~~~~~~~~~~~

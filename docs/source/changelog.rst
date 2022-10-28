@@ -1,6 +1,15 @@
 Changelog
 ---------
 
+Release 0.5.0
+~~~~~~~~~~~~~
+
+`28th October, 2022`
+
+* Little c (`-c`) is now used instead of big C (`-C`) for passing config.
+* You can now pass multiple config files during pipeline execution.
+
+
 Release 0.4.2
 ~~~~~~~~~~~~~
 
