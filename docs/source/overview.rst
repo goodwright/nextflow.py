@@ -19,12 +19,13 @@ This will return an :py:class:`.Execution` object, which represents the pipeline
 execution that just took place. You can customise the execution with various
 options:
 
-    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1")
+    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1", config=["env.config"])
 
 This sets the execution to take place in a different location, passes
 ``--param1=123`` as a command line argument when the pipeline is run, uses the
-Nextflow profiles 'docker' and 'test', and runs with Nextflow version 22.0.1
-(regardless of what version of Nextflow is installed).
+Nextflow profiles 'docker' and 'test', runs with Nextflow version 22.0.1
+(regardless of what version of Nextflow is installed), and passes in an extra
+config file to use on the run.
 
 Executions
 ##########
@@ -121,4 +122,4 @@ If you just want to run a single pipeline without initialising a
 :py:class:`.Pipeline`:
 
     >>> import nextflow
-    >>> execution = nextflow.run(path="pipeline.nf", config="settings.config", params={"param1": "123"})
+    >>> execution = nextflow.run(path="pipeline.nf", config=["settings.config"], params={"param1": "123"})
