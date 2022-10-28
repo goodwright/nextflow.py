@@ -175,7 +175,7 @@ class DirectRunningTests(PipelineTest):
     def test_can_run_pipeline_directly(self):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config"),
+            config=[self.get_path("pipeline.config")],
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -191,7 +191,7 @@ class DirectRunningTests(PipelineTest):
         process_executions = []
         for execution in nextflow.run_and_poll(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config"),
+            config=[self.get_path("pipeline.config")],
             sleep=3,
             profile=["special"],
             params={
@@ -238,7 +238,7 @@ class DirectRunningTests(PipelineTest):
     def test_can_run_pipeline_directly_with_specific_version(self):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config"),
+            config=[self.get_path("pipeline.config")],
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -253,7 +253,7 @@ class DirectRunningTests(PipelineTest):
     def test_can_handle_pipeline_error(self):
         execution = nextflow.run(
             pipeline=self.get_path("pipeline.nf"),
-            config=self.get_path("pipeline.config"),
+            config=[self.get_path("pipeline.config")],
             params={
                 "input": self.get_path("files/data.txt"), "count": "string",
                 "suffix": self.get_path("files/suffix.txt")
@@ -289,6 +289,26 @@ class PipelineRunningTests(PipelineTest):
         self.check_execution(execution)
     
 
+    def test_can_run_pipeline_with_extra_config(self):
+        pipeline = nextflow.Pipeline(
+            path=self.get_path("pipeline.nf"),
+            config=self.get_path("pipeline.config"),
+        )
+        execution = pipeline.run(
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            },
+            location=self.get_path("rundirectory"),
+            config=[self.get_path("second.config")]
+        )
+        self.check_execution(execution)
+        with open(self.get_path("rundirectory/.nextflow.log")) as f:
+            log = f.read()
+            self.assertTrue(re.search(r"Parsing config file: (.+?)pipeline.config", log))
+            self.assertTrue(re.search(r"Parsing config file: (.+?)second.config", log))
+    
+
     def test_can_run_pipeline_and_poll(self):
         pipeline = nextflow.Pipeline(
             path=self.get_path("pipeline.nf"),
@@ -303,7 +323,8 @@ class PipelineRunningTests(PipelineTest):
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
             },
-            location=self.get_path("rundirectory")
+            location=self.get_path("rundirectory"),
+            config=[self.get_path("second.config")]
         ):
             self.assertEqual(execution.location, self.get_path("rundirectory"))
             returncodes.append(execution.returncode)
@@ -312,3 +333,10 @@ class PipelineRunningTests(PipelineTest):
         self.assertEqual(len(set(ids)), 1)
         for a, b in zip(ids[:-1], ids[1:]):
             self.assertGreaterEqual(b, a)
+        with open(self.get_path("rundirectory/.nextflow.log")) as f:
+            log = f.read()
+            self.assertTrue(re.search(r"Parsing config file: (.+?)pipeline.config", log))
+            self.assertTrue(re.search(r"Parsing config file: (.+?)second.config", log))
+    
+
+    

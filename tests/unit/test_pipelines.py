@@ -23,51 +23,95 @@ class ConfigStringTests(TestCase):
     def test_can_get_config_string(self, mock_abspath):
         mock_abspath.return_value = "/full/path"
         pipeline = Pipeline("/path/run.nf", config="schema.json")
-        self.assertEqual(pipeline.config_string, ' -c "/full/path"')
+        self.assertEqual(pipeline.config_string(), ' -c "/full/path"')
     
 
     def test_can_handle_no_config(self):
         pipeline = Pipeline("/path/run.nf")
-        self.assertEqual(pipeline.config_string, "")
+        self.assertEqual(pipeline.config_string(), "")
+    
+
+    @patch("os.path.abspath")
+    def test_can_handle_extra_config(self, mock_abspath):
+        mock_abspath.side_effect =  ["/full/path1", "/full/path2"]
+        pipeline = Pipeline("/path/run.nf")
+        self.assertEqual(
+            pipeline.config_string(extra_config=["conf1", "conf2"]),
+            ' -c "/full/path1" -c "/full/path2"'
+        )
+    
+
+    @patch("os.path.abspath")
+    def test_can_handle_extra_config_and_original_config(self, mock_abspath):
+        mock_abspath.side_effect =  ["/full/path1", "/full/path2", "/full/path3"]
+        pipeline = Pipeline("/path/run.nf", config="schema.json")
+        self.assertEqual(
+            pipeline.config_string(extra_config=["conf1", "conf2"]),
+            ' -c "/full/path1" -c "/full/path2" -c "/full/path3"'
+        )
 
 
 
 class PipelineCommandStringTests(TestCase):
 
     @patch("os.path.abspath")
-    def test_can_get_command_string(self, mock_abs):
+    @patch("nextflow.pipeline.Pipeline.config_string")
+    def test_can_get_command_string(self, mock_conf, mock_abs):
         pipeline = Pipeline("/path/run.nf")
+        mock_conf.return_value = " conf"
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string(None, None, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf"')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US conf run "/full/path/run.nf"')
+        mock_conf.assert_called_with(None)
     
 
     @patch("os.path.abspath")
-    def test_can_get_command_string_with_params(self, mock_abs):
+    @patch("nextflow.pipeline.Pipeline.config_string")
+    def test_can_get_command_string_with_params(self, mock_conf, mock_abs):
         pipeline = Pipeline("/path/run.nf")
+        mock_conf.return_value = " conf"
         mock_abs.return_value = "/full/path/run.nf"
         string = pipeline.create_command_string({"A": "B", "C": "D"}, None, None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US conf run "/full/path/run.nf" --A=\'B\' --C=\'D\'')
+        mock_conf.assert_called_with(None)
     
 
     @patch("os.path.abspath")
-    def test_can_get_command_string_with_profile(self, mock_abs):
+    @patch("nextflow.pipeline.Pipeline.config_string")
+    def test_can_get_command_string_with_profile(self,mock_conf, mock_abs):
         pipeline = Pipeline("/path/run.nf")
+        mock_conf.return_value = " conf"
         mock_abs.return_value = "/full/path/run.nf"
-        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], None)
+        string = pipeline.create_command_string(None, ["prof1", "prof2"], None)
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US conf run "/full/path/run.nf" -profile prof1,prof2')
+        mock_conf.assert_called_with(None)
     
 
     @patch("os.path.abspath")
-    def test_can_get_command_string_with_nf_version(self, mock_abs):
+    @patch("nextflow.pipeline.Pipeline.config_string")
+    def test_can_get_command_string_with_nf_version(self, mock_conf, mock_abs):
         pipeline = Pipeline("/path/run.nf")
+        mock_conf.return_value = " conf"
         mock_abs.return_value = "/full/path/run.nf"
-        string = pipeline.create_command_string({"A": "B", "C": "D"}, ["prof1", "prof2"], "1.2.3")
+        string = pipeline.create_command_string(None, None, "1.2.3")
         mock_abs.assert_called_with("/path/run.nf")
-        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow -Duser.country=US run "/full/path/run.nf" --A=\'B\' --C=\'D\' -profile prof1,prof2')
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false NXF_VER=1.2.3 nextflow -Duser.country=US conf run "/full/path/run.nf"')
+        mock_conf.assert_called_with(None)
+    
+
+    @patch("os.path.abspath")
+    @patch("nextflow.pipeline.Pipeline.config_string")
+    def test_can_get_command_string_with_extra_conf(self, mock_conf, mock_abs):
+        pipeline = Pipeline("/path/run.nf")
+        mock_conf.return_value = " conf"
+        mock_abs.return_value = "/full/path/run.nf"
+        string = pipeline.create_command_string(None, None, None, extra_config="c1")
+        mock_abs.assert_called_with("/path/run.nf")
+        self.assertEqual(string.strip(), 'NXF_ANSI_LOG=false nextflow -Duser.country=US conf run "/full/path/run.nf"')
+        mock_conf.assert_called_with("c1")
 
 
 class PipelineRunningTests(TestCase):
@@ -104,7 +148,7 @@ class PipelineRunningTests(TestCase):
         execution = pipeline.run()
         self.mock_abspath.assert_any_call(".")
         self.mock_cwd.assert_called_with()
-        self.mock_command_string.assert_called_with(None, None, None)
+        self.mock_command_string.assert_called_with(None, None, None, None)
         self.mock_chdir.assert_any_call("/abs/loc")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
@@ -128,11 +172,12 @@ class PipelineRunningTests(TestCase):
         self.mock_command_string.return_value = "run script.nf"
         pipeline = Pipeline("/path/run.nf")
         execution = pipeline.run(
-            location="/path", params="params", profile="profiles", version="version"
+            location="/path", params="params", profile="profiles",
+            version="version", config=["c"]
         )
         self.mock_abspath.assert_any_call("/path")
         self.mock_cwd.assert_called_with()
-        self.mock_command_string.assert_called_with("params", "profiles", "version")
+        self.mock_command_string.assert_called_with("params", "profiles", "version", ["c"])
         self.mock_chdir.assert_any_call("/abs/loc")
         self.mock_chdir.assert_any_call("current")
         self.mock_run.assert_any_call(
@@ -220,7 +265,7 @@ class PipelineRunPollTests(TestCase):
             self.assertIs(execution, self.mock_create.return_value)
         self.mock_abspath.assert_any_call(".")
         self.mock_cwd.assert_called_with()
-        self.mock_command_string.assert_called_with(None, None, None)
+        self.mock_command_string.assert_called_with(None, None, None, None)
         self.mock_chdir.assert_any_call("/abs/loc")
         self.mock_chdir.assert_any_call("current")
         self.mock_old.assert_any_call("/abs/loc")
@@ -254,14 +299,14 @@ class PipelineRunPollTests(TestCase):
         pipeline = Pipeline("/path/run.nf")
         executions = list(pipeline.run_and_poll(
             location="otherloc", params="params", profile="profiles",
-            version="version", sleep=2
+            version="version", config=["c"], sleep=2
         ))
         self.assertEqual(len(executions), 3)
         for execution in executions:
             self.assertIs(execution, self.mock_create.return_value)
         self.mock_abspath.assert_any_call("otherloc")
         self.mock_cwd.assert_called_with()
-        self.mock_command_string.assert_called_with("params", "profiles", "version")
+        self.mock_command_string.assert_called_with("params", "profiles", "version", ["c"])
         self.mock_chdir.assert_any_call("/abs/loc")
         self.mock_old.assert_any_call("/abs/loc")
         self.mock_chdir.assert_any_call("current")
@@ -290,9 +335,9 @@ class DirectRunningTests(TestCase):
 
     @patch("nextflow.pipeline.Pipeline")
     def test_can_run_directly(self, mock_Pipeline):
-        execution = run("/path", "/config", 1, 2, a=3, b=4)
+        execution = run("/path", 1, 2, a=3, b=4)
         self.assertIs(execution, mock_Pipeline.return_value.run.return_value)
-        mock_Pipeline.assert_called_with(path="/path", config="/config")
+        mock_Pipeline.assert_called_with(path="/path")
         mock_Pipeline.return_value.run.assert_called_with(1, 2, a=3, b=4)
 
 
@@ -301,7 +346,7 @@ class DirectPollingTests(TestCase):
 
     @patch("nextflow.pipeline.Pipeline")
     def test_can_run_directly(self, mock_Pipeline):
-        execution = run_and_poll("/path", "/config", 1, 2, a=3, b=4)
+        execution = run_and_poll("/path", 1, 2, a=3, b=4)
         self.assertIs(execution, mock_Pipeline.return_value.run_and_poll.return_value)
-        mock_Pipeline.assert_called_with(path="/path", config="/config")
+        mock_Pipeline.assert_called_with(path="/path")
         mock_Pipeline.return_value.run_and_poll.assert_called_with(1, 2, a=3, b=4)
