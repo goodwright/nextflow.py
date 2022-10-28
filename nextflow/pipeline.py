@@ -30,7 +30,7 @@ class Pipeline:
         
         if not self.config: return ""
         full_config_path = os.path.abspath(self.config)
-        return f" -C \"{full_config_path}\""
+        return f" -c \"{full_config_path}\""
     
 
     def create_command_string(self, params, profile, version):

@@ -23,7 +23,7 @@ class ConfigStringTests(TestCase):
     def test_can_get_config_string(self, mock_abspath):
         mock_abspath.return_value = "/full/path"
         pipeline = Pipeline("/path/run.nf", config="schema.json")
-        self.assertEqual(pipeline.config_string, ' -C "/full/path"')
+        self.assertEqual(pipeline.config_string, ' -c "/full/path"')
     
 
     def test_can_handle_no_config(self):
