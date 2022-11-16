@@ -6,17 +6,19 @@ nextflow.py
 .. |ci| image:: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml/badge.svg
   :target: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml
 
-.. |version| image:: https://img.shields.io/pypi/v/nextflow.svg
-  :target: https://pypi.org/project/nextflow/
+.. |version| image:: https://img.shields.io/pypi/v/nextflowpy.svg
+  :target: https://pypi.org/project/nextflowpy/
 
-.. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflow.svg
-  :target: https://pypi.org/project/nextflow/
+.. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflowpy.svg
+  :target: https://pypi.org/project/nextflowpy/
 
 .. |nextfow| image:: https://img.shields.io/badge/Nextflow-22.04%20%7C%2021.10%20%7C%2020.10-orange
   :target: https://www.nextflow.io/
 
-.. |license| image:: https://img.shields.io/pypi/l/nextflow.svg?color=blue)
+.. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue)
   :target: https://github.com/goodwright/nextflow.py/blob/master/LICENSE
+
+**IMPORTANT: The name of the package on PyPI has now changed from `nextflow` to `nextflowpy`.**
 
 nextflow.py is a Python wrapper around the Nextflow pipeline framework. It lets
 you run Nextflow pipelines from Python code.
@@ -37,11 +39,11 @@ pip
 
 nextflow.py can be installed using pip::
 
-    $ pip install nextflow
+    $ pip install nextflowpy
 
 If you get permission errors, try using ``sudo``::
 
-    $ sudo pip install nextflow
+    $ sudo pip install nextflowpy
 
 
 Development

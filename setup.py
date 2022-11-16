@@ -4,7 +4,7 @@ with open("README.rst") as f:
     long_description = f.read()
 
 setup(
-    name="nextflow",
+    name="nextflowpy",
     version="0.5.0",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
