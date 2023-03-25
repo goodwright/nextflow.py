@@ -52,12 +52,12 @@ class NextflowCommandTests(TestCase):
         mock_conf.return_value = ""
         mock_params.return_value = ""
         mock_prof.return_value = ""
-        command = make_nextflow_command("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
+        command = make_nextflow_command(None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
         mock_env.assert_called_with("21.10")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "cd /exdir; nextflow -Duser.country=US run main.nf")
+        self.assertEqual(command, "nextflow -Duser.country=US run main.nf")
 
 
 

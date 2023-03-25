@@ -40,7 +40,8 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     params = make_nextflow_command_params_string(params)
     profiles = make_nextflow_command_profiles_string(profiles)
     command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles}"
-    return f"cd {run_path}; {command}".strip()
+    if run_path: command = f"cd {run_path}; {command}"
+    return command.strip()
 
 
 def make_nextflow_command_env_string(version):
