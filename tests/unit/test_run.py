@@ -7,7 +7,8 @@ class RunTests(TestCase):
     @patch("nextflow.run.make_nextflow_command")
     @patch("nextflow.run.make_run_command")
     @patch("nextflow.run.create_script")
-    def test_can_run(self, mock_script, mock_rc, mock_nc):
+    @patch("subprocess.run")
+    def test_can_run(self, mock_run, mock_script, mock_rc, mock_nc):
         run(
             "main.nf", run_path="/exdir", script_path="/run.sh", script_contents="line1",
             remote="user@host", shell="bash", version="21.10", configs=["conf1"],
@@ -16,6 +17,10 @@ class RunTests(TestCase):
         mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
         mock_rc.assert_called_with(mock_nc.return_value, "user@host", "/run.sh", "bash")
         mock_script.assert_called_with(mock_nc.return_value, "line1", "/run.sh", "user@host")
+        mock_run.assert_called_with(
+            mock_rc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True
+        )
 
 
 

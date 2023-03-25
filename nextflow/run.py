@@ -14,6 +14,10 @@ def run(pipeline_path, run_path=None, script_path=None, script_contents="", remo
     )
     if script_path:
         create_script(nextflow_command, script_contents, script_path, remote)
+    subprocess.run(
+        run_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        universal_newlines=True, shell=True
+    )
 
 
 
@@ -100,10 +104,8 @@ def make_run_command(nextflow_command, remote, script_path="", shell=None):
         parent_dir = os.path.dirname(script_path)
         filename = os.path.basename(script_path)
         shell = shell or os.environ.get("SHELL", "/bin/bash")
-        if parent_dir:
-            command = f"cd {parent_dir} && {shell} {filename}"
-        else:
-            command = f"{shell} {filename}"
+        command = f"{shell} {filename}"
+        if parent_dir: command = f"cd {parent_dir} && {shell} {filename}"
     else:
         command = nextflow_command
     if remote:
