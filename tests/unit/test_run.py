@@ -6,14 +6,16 @@ class RunTests(TestCase):
 
     @patch("nextflow.run.make_nextflow_command")
     @patch("nextflow.run.make_run_command")
-    def test_can_run(self, mock_rc, mock_nc):
+    @patch("nextflow.run.create_script")
+    def test_can_run(self, mock_script, mock_rc, mock_nc):
         run(
-            "main.nf", run_path="/exdir", script_path="/run.sh", remote="user@host",
-            shell="bash", version="21.10", configs=["conf1"], params={"param": "2"},
-            profiles=["docker"]
+            "main.nf", run_path="/exdir", script_path="/run.sh", script_contents="line1",
+            remote="user@host", shell="bash", version="21.10", configs=["conf1"],
+            params={"param": "2"}, profiles=["docker"]
         )
         mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
         mock_rc.assert_called_with(mock_nc.return_value, "user@host", "/run.sh", "bash")
+        mock_script.assert_called_with(mock_nc.return_value, "line1", "/run.sh", "user@host")
 
 
 
@@ -151,4 +153,23 @@ class RunCommandTests(TestCase):
         self.assertEqual(
             make_run_command("nextflow run", "user@host", "/path/script.sh", "/zsh"),
             'ssh user@host "cd /path && /zsh script.sh"'
+        )
+
+
+
+class CreateScriptTests(TestCase):
+
+    @patch("builtins.open")
+    def test_can_create_local_script(self, mock_open):
+        create_script("nextflow run", "command1\ncommand2", "/path/script.sh")
+        mock_open.assert_called_with("/path/script.sh", "w")
+        mock_open.return_value.__enter__.return_value.write.assert_called_with("command1\ncommand2\n\n\nnextflow run")
+    
+
+    @patch("subprocess.run")
+    def test_can_create_remote_script(self, mock_run):
+        create_script("nextflow run", "command1\n'command2'", "/path/script.sh", "user@host")
+        mock_run.assert_called_with(
+            "echo 'command1\n\\'command2\\'\n\n\nnextflow run' | ssh user@host 'cat > /path/script.sh'",
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )

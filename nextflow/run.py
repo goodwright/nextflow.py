@@ -1,6 +1,7 @@
 import os
+import subprocess
 
-def run(pipeline_path, run_path=None, script_path=None, remote=None, shell=None, version=None, configs=None, params=None, profiles=None):
+def run(pipeline_path, run_path=None, script_path=None, script_contents="", remote=None, shell=None, version=None, configs=None, params=None, profiles=None):
     """
     :param str run_location: the location to run the pipeline command from.
     """
@@ -11,6 +12,9 @@ def run(pipeline_path, run_path=None, script_path=None, remote=None, shell=None,
     run_command = make_run_command(
         nextflow_command, remote, script_path, shell
     )
+    if script_path:
+        create_script(nextflow_command, script_contents, script_path, remote)
+
 
 
 def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles):
@@ -106,3 +110,26 @@ def make_run_command(nextflow_command, remote, script_path="", shell=None):
         command = command.replace('"', '\\"')
         command = f"ssh {remote} \"{command}\""
     return command
+
+
+def create_script(nextflow_command, script_contents, script_path, remote=""):
+    """Creates a script at the given path with the given command.
+    
+    :param str nextflow_command: the nextflow command to run.
+    :param str script_contents: the script content before the command.
+    :param str script_path: the path of the script which wraps the command.
+    :param str remote: the ssh hostname to run the command on.
+    :rtype: ``str``"""
+
+    text = script_contents + "\n\n\n" + nextflow_command
+    if remote:
+        text = text.replace("'", "\\'")
+        ssh_command = f"echo '{text}' | ssh {remote} 'cat > {script_path}'"
+        subprocess.run(
+            ssh_command, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    else:
+        with open(script_path, "w") as f:
+            f.write(text)
+    return script_path
