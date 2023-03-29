@@ -303,17 +303,18 @@ def get_process_execution(process_id, path, log, execution_path, remote):
         "returncode": returncode,
         "started": get_process_start_from_log(log, process_id),
         "finished": get_process_end_from_log(log, process_id),
+        "status": get_process_status_from_log(log, process_id),
     }
 
 
-def get_process_name_from_log(log, id):
+def get_process_name_from_log(log, process_id):
     """Gets a process's name from the .nextflow.log file, given its unique ID.
     
     :param str log: The text of the log file.
-    :param str id: The process's ID (eg. '1a/234bcd').
+    :param str process_id: The process's ID (eg. '1a/234bcd').
     :rtype: ``str``"""
 
-    escaped_id = id.replace('/', '\\/')
+    escaped_id = process_id.replace('/', '\\/')
     match = re.search(f"\\[{escaped_id}\\] Submitted process > (.+)", log)
     if match: return match[1]
 
@@ -323,7 +324,7 @@ def get_process_start_from_log(log, process_id):
     given its unique ID, if it has started.
     
     :param str log: The text of the log file.
-    :param str id: The process's ID (eg. '1a/234bcd').
+    :param str process_id: The process's ID (eg. '1a/234bcd').
     :rtype: ``datetime``"""
 
     escaped_id = process_id.replace('/', '\\/')
@@ -340,7 +341,7 @@ def get_process_end_from_log(log, process_id):
     given its unique ID, if it has finshed.
     
     :param str log: The text of the log file.
-    :param str id: The process's ID (eg. '1a/234bcd').
+    :param str process_id: The process's ID (eg. '1a/234bcd').
     :rtype: ``datetime``"""
 
     escaped_id = process_id.replace('/', '\\/')
@@ -350,6 +351,21 @@ def get_process_end_from_log(log, process_id):
     if not match: return
     year = datetime.now().year
     return datetime.strptime(f"{year}-{match[1]}", "%Y-%b-%d %H:%M:%S.%f")
+
+
+def get_process_status_from_log(log, process_id):
+    """Gets a process's status (COMPLETED, ERROR etc.) from the .nextflow.log
+    file, given its unique ID. If it's still running, '-' is returned.
+    
+    :param str log: The text of the log file.
+    :param str process_id: The process's ID (eg. '1a/234bcd').
+    :rtype: ``string``"""
+
+    escaped_id = process_id.replace('/', '\\/')
+    match = re.search(
+        f".+Task completed.+status: ([A-Z]+).+exit: (\d+).+{escaped_id}", log
+    )
+    return ("FAILED" if match[2] != "0" else match[1]) if match else "-"
 
 
 
