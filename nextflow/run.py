@@ -294,19 +294,19 @@ def get_process_execution(process_id, path, log, execution_path, remote):
         returncode = get_file_text(os.path.join(full_path, ".exitcode"), remote)
         bash = get_file_text(os.path.join(full_path, ".command.sh"), remote)
     name = get_process_name_from_log(log, process_id)
-    return {
-        "identifier": process_id,
-        "name": name,
-        "process": name[:name.find("(") - 1] if "(" in name else name,
-        "path": path,
-        "stdout": stdout,
-        "stderr": stderr,
-        "returncode": returncode,
-        "bash": bash,
-        "started": get_process_start_from_log(log, process_id),
-        "finished": get_process_end_from_log(log, process_id),
-        "status": get_process_status_from_log(log, process_id),
-    }
+    return ProcessExecution(
+        identifier=process_id,
+        name=name,
+        process=name[:name.find("(") - 1] if "(" in name else name,
+        path=path,
+        stdout=stdout,
+        stderr=stderr,
+        return_code=returncode,
+        bash=bash,
+        started=get_process_start_from_log(log, process_id),
+        finished=get_process_end_from_log(log, process_id),
+        status=get_process_status_from_log(log, process_id),
+    )
 
 
 def get_process_name_from_log(log, process_id):
@@ -391,8 +391,8 @@ class Execution:
     command: str
     process_executions: list
 
-    def __str__(self):
-        return self.identifier
+    def __repr__(self):
+        return f"<Execution: {self.identifier}>"
     
 
     @property
@@ -405,3 +405,24 @@ class Execution:
         if self.return_code == "0": return "OK"
         if self.return_code == "": return "-"
         return "ERROR"
+
+
+
+@dataclass
+class ProcessExecution:
+    """A class to represent the execution of a single Nextflow process."""
+
+    identifier: str
+    name: str
+    process: str
+    path: str
+    stdout: str
+    stderr: str
+    return_code: str
+    bash: str
+    started: datetime
+    finished: datetime
+    status: str
+
+    def __str__(self):
+        return f"<ProcessExecution: {self.identifier}>"
