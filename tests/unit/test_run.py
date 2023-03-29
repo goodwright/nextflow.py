@@ -219,3 +219,81 @@ class FileTextTests(TestCase):
             "ssh user@host 'cat /ex/file.txt'",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+
+
+
+class LogStartedTests(TestCase):
+
+    def test_can_handle_no_log_text(self):
+        self.assertFalse(get_started_from_log(""))
+        
+
+    @patch("nextflow.run.get_datetime_from_line")
+    def test_can_get_started_datetime(self, mock_datetime):
+        mock_datetime.return_value = datetime(2020, 1, 1, 1, 1, 1)
+        self.assertEqual(get_started_from_log("line1\nline2"), datetime(2020, 1, 1, 1, 1, 1))
+        mock_datetime.assert_called_with("line1")
+
+
+
+class LogFinishedTests(TestCase):
+
+    def test_can_handle_no_log_text(self):
+        self.assertFalse(get_finished_from_log(""))
+    
+
+    @patch("nextflow.run.log_is_finished")
+    def test_can_handle_no_nextflow_finished_text(self, mock_finished):
+        mock_finished.return_value = False
+        self.assertFalse(get_finished_from_log("line1\nline2"))
+        mock_finished.assert_called_with("line1\nline2")
+    
+
+    @patch("nextflow.run.log_is_finished")
+    @patch("nextflow.run.get_datetime_from_line")
+    def test_can_get_finished_datetime(self, mock_datetime, mock_finished):
+        mock_finished.return_value = True
+        mock_datetime.side_effect = [None, datetime(2020, 1, 1, 1, 1, 1)]
+        self.assertEqual(get_finished_from_log("line1\nline2\nline3"), datetime(2020, 1, 1, 1, 1, 1))
+        mock_finished.assert_called_with("line1\nline2\nline3")
+        self.assertEqual(mock_datetime.call_count, 2)
+        mock_datetime.assert_any_call("line3")
+        mock_datetime.assert_any_call("line2")
+
+
+class LogIsFinishedTests(TestCase):
+
+    def test_can_handle_no_log_text(self):
+        self.assertFalse(log_is_finished(""))
+    
+
+    def test_can_handle_no_nextflow_finished_text(self):
+        self.assertFalse(log_is_finished("line1\nline2"))
+    
+
+    def test_can_handle_nextflow_finished_text(self):
+        self.assertTrue(log_is_finished("line1\nline2\ - > Execution complete -- Goodbye\n"))
+    
+
+    def test_can_handle_java_error_with_spaces(self):
+        text = "line1\nline2\njava.nio.file.NoSuchFileException: /media/\n	at 1"
+        self.assertTrue(log_is_finished(text))
+    
+
+    def test_can_handle_java_error_with_tabs(self):
+        text = "line1\nline2\njava.nio.file.NoSuchFileException: /media/\n\tat 1"
+        self.assertTrue(log_is_finished(text))
+
+
+
+class DatetimeFromLineTests(TestCase):
+
+    def test_can_get_datetime_from_line(self):
+        self.assertEqual(
+            get_datetime_from_line("Mar-29 02:48:56.642 [main] DEBUG"),
+            datetime(datetime.now().year, 3, 29, 2, 48, 56, 642000)
+        )
+    
+
+    def test_can_get_datetime_from_line_with_no_datetime(self):
+        self.assertEqual(get_datetime_from_line("DEBUG"), None)

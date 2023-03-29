@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from datetime import datetime
 import subprocess
 
 def run(pipeline_path, run_path=None, script_path=None, script_contents="", remote=None, shell=None, version=None, configs=None, params=None, profiles=None):
@@ -147,10 +148,14 @@ def get_execution(execution_path, remote):
     identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
     stdout = get_file_text(os.path.join(execution_path, "stdout.txt"), remote)
     stderr = get_file_text(os.path.join(execution_path, "stderr.txt"), remote)
+    started = get_started_from_log(log)
+    finished = get_finished_from_log(log)
     return {
         "identifier": identifier,
         "stdout": stdout[:20],
         "stderr": stderr[:20],
+        "started": started,
+        "finished": finished,
     }
 
 
@@ -172,3 +177,56 @@ def get_file_text(path, remote):
         with open(path, "r") as f: return f.read()
     except FileNotFoundError:
         return ""
+
+
+def get_started_from_log(log):
+    """Gets the time the pipeline was started from the log file.
+    
+    :param str log: the contents of the log file.
+    :rtype: ``datetime.datetime``"""
+
+    if not log: return None
+    lines = log.splitlines()
+    if not lines: return None
+    return get_datetime_from_line(lines[0])
+
+
+def get_finished_from_log(log):
+    """Gets the time the pipeline ended from the log file.
+    
+    :param str log: the contents of the log file.
+    :rtype: ``datetime.datetime``"""
+
+    if not log: return None
+    lines = log.splitlines()
+    if log_is_finished(log):
+        for line in reversed(lines):
+            dt = get_datetime_from_line(line)
+            if dt: return dt
+
+
+def log_is_finished(log):
+    """Checks if the log file indicates the pipeline has finished.
+    
+    :param str log: the contents of the log file.
+    :rtype: ``bool``"""
+
+    if not log: return False
+    lines = log.strip().splitlines()
+    if lines[-1].endswith(" - > Execution complete -- Goodbye"): return True
+    if lines[-1].startswith("    at ") or lines[-1].startswith("\tat "):
+        last_unindented = [l for l in lines if not l.startswith("	at ")][-1]
+        if "Exception" in last_unindented: return True
+    return False
+
+
+def get_datetime_from_line(line):
+    """Gets the datetime from a line of the log file.
+    
+    :param str line: a line from the log file.
+    :rtype: ``datetime.datetime``"""
+
+    year = datetime.now().year
+    if (m := re.search(r"[A-Z][a-z]{2}-\d{1,2} \d{2}:\d{2}:\d{2}\.\d{3}", line)):
+        return datetime.strptime(f"{year}-{m.group(0)}", "%Y-%b-%d %H:%M:%S.%f")
+    return None
