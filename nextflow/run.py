@@ -162,8 +162,9 @@ def get_execution(execution_path, remote, nextflow_command):
         return_code=return_code.strip(),
         started=started,
         finished=finished,
+        command=command,
+        log=log,
         process_executions=process_executions,
-        command=command
     )
 
 
@@ -389,6 +390,7 @@ class Execution:
     started: datetime
     finished: datetime
     command: str
+    log: str
     process_executions: list
 
     def __repr__(self):
