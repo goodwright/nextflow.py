@@ -1,10 +1,20 @@
 import os
 import re
 import time
+from pathlib import Path
 from datetime import datetime
 import subprocess
 
-def run(pipeline_path, run_path=None, script_path=None, script_contents="", remote=None, shell=None, version=None, configs=None, params=None, profiles=None):
+def run(*args, **kwargs):
+    return list(_run(*args, poll=False, **kwargs))[0]
+
+
+def run_and_poll(*args, **kwargs):
+    for execution in _run(*args, poll=True, **kwargs):
+        yield execution
+
+
+def _run(pipeline_path, poll=False, run_path=None, script_path=None, script_contents="", remote=None, shell=None, version=None, configs=None, params=None, profiles=None, sleep=2):
     """
     :param str run_location: the location to run the pipeline command from.
     """
@@ -17,12 +27,17 @@ def run(pipeline_path, run_path=None, script_path=None, script_contents="", remo
     )
     if script_path:
         create_script(nextflow_command, script_contents, script_path, remote)
-    subprocess.run(
+    subprocess.Popen(
         run_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        universal_newlines=True, shell=True
+        universal_newlines=True, shell=True,
     )
-    exection = get_execution(run_path, remote, nextflow_command)
-    return exection
+    execution = None
+    while True:
+        time.sleep(sleep)
+        execution = get_execution(run_path, remote, nextflow_command)
+        if execution and poll: yield execution
+        if execution and execution.finished: break
+    yield execution
 
 
 def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles):
@@ -155,7 +170,7 @@ def get_execution(execution_path, remote, nextflow_command):
     command = sorted(nextflow_command.split(";"), key=len)[-1].replace(
         ">stdout.txt 2>stderr.txt", ""
     ).strip()
-    return Execution(
+    execution = Execution(
         identifier=identifier,
         stdout=stdout,
         stderr=stderr,
@@ -164,8 +179,13 @@ def get_execution(execution_path, remote, nextflow_command):
         finished=finished,
         command=command,
         log=log,
+        path=execution_path,
+        remote=remote,
         process_executions=process_executions,
     )
+    for process_execution in execution.process_executions:
+        process_execution.execution = execution
+    return execution
 
 
 def get_file_text(path, remote):
@@ -372,7 +392,13 @@ def get_process_status_from_log(log, process_id):
 
 
 
-
+def get_directory_contents(path, remote):
+    if remote:
+        return filter(bool, subprocess.check_output(
+            f"ssh {remote} 'ls {path}'",
+            shell=True
+        ).decode("utf-8").split("\n"))
+    return os.listdir(path)
 
 
 
@@ -391,6 +417,8 @@ class Execution:
     finished: datetime
     command: str
     log: str
+    path: str
+    remote: str
     process_executions: list
 
     def __repr__(self):
@@ -426,5 +454,52 @@ class ProcessExecution:
     finished: datetime
     status: str
 
-    def __str__(self):
+    def __repr__(self):
         return f"<ProcessExecution: {self.identifier}>"
+    
+
+    @property
+    def duration(self):
+        return self.finished - self.started
+
+
+    @property
+    def full_path(self):
+        if not self.path: return ""
+        return Path(self.execution.path, "work", self.path)
+    
+
+    def input_data(self, include_path=True):
+        """A list of files passed to the process execution as inputs.
+        
+        :param bool include_path: if ``False``, only filenames returned.
+        :type: ``list``"""
+        
+        inputs = []
+        run = get_file_text(self.full_path / ".command.run", self.execution.remote)
+        stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", run)
+        if not stage: return []
+        contents = stage[1]
+        inputs = re.findall(r"ln -s (.+?) ", contents)
+        if include_path:
+            return inputs
+        else:
+            return [os.path.basename(f) for f in inputs]
+    
+
+    def all_output_data(self, include_path=True):
+        """A list of all output data produced by the process execution,
+        including unpublished staging files.
+
+        :param bool include_path: if ``False``, only filenames returned.
+        :type: ``list``"""
+
+        outputs = []
+        if not self.path: return []
+        inputs = self.input_data(include_path=False)
+        for f in get_directory_contents(self.full_path, self.execution.remote):
+            full_path = Path(f"{self.full_path}/{f}")
+            if not f.startswith(".command") and f != ".exitcode":
+                if f not in inputs:
+                    outputs.append(str(full_path) if include_path else f)
+        return outputs
