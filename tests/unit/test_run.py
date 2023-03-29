@@ -8,8 +8,9 @@ class RunTests(TestCase):
     @patch("nextflow.run.make_run_command")
     @patch("nextflow.run.create_script")
     @patch("subprocess.run")
-    def test_can_run(self, mock_run, mock_script, mock_rc, mock_nc):
-        run(
+    @patch("nextflow.run.get_execution")
+    def test_can_run(self, mock_ex, mock_run, mock_script, mock_rc, mock_nc):
+        execution = run(
             "main.nf", run_path="/exdir", script_path="/run.sh", script_contents="line1",
             remote="user@host", shell="bash", version="21.10", configs=["conf1"],
             params={"param": "2"}, profiles=["docker"]
@@ -21,6 +22,8 @@ class RunTests(TestCase):
             mock_rc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True
         )
+        mock_ex.assert_called_with("/exdir", "user@host")
+        self.assertEqual(execution, mock_ex.return_value)
 
 
 
@@ -173,8 +176,46 @@ class CreateScriptTests(TestCase):
 
     @patch("subprocess.run")
     def test_can_create_remote_script(self, mock_run):
-        create_script("nextflow run", "command1\n'command2'", "/path/script.sh", "user@host")
+        create_script("nextflow run", "command1\n\"command2\"", "/path/script.sh", "user@host")
         mock_run.assert_called_with(
-            "echo 'command1\n\\'command2\\'\n\n\nnextflow run' | ssh user@host 'cat > /path/script.sh'",
+            'echo "command1\n\\"command2\\"\n\n\nnextflow run" | ssh user@host "cat > /path/script.sh"',
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+
+
+class LogTextTests(TestCase):
+
+    @patch("builtins.open")
+    def test_can_get_local_log_text(self, mock_open):
+        mock_open.return_value.__enter__.return_value.read.return_value = "line1\nline2"
+        self.assertEqual(get_log_text("/ex", ""), "line1\nline2")
+        mock_open.assert_called_with(os.path.join("/ex", ".nextflow.log"), "r")
+    
+
+    @patch("builtins.open")
+    def test_can_can_handle_no_log_text(self, mock_open):
+        mock_open.side_effect = FileNotFoundError
+        self.assertEqual(get_log_text("/ex", ""), "")
+        mock_open.assert_called_with(os.path.join("/ex", ".nextflow.log"), "r")
+    
+
+    @patch("subprocess.run")
+    def test_can_get_remote_log_text(self, mock_run):
+        mock_run.return_value.stdout = b"line1\nline2"
+        mock_run.return_value.returncode = 0
+        self.assertEqual(get_log_text("/ex", "user@host"), "line1\nline2")
+        mock_run.assert_called_with(
+            "ssh user@host 'cat /ex/.nextflow.log'",
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    
+
+    @patch("subprocess.run")
+    def test_can_handle_error_getting_remote_log_text(self, mock_run):
+        mock_run.return_value.returncode = 1
+        self.assertEqual(get_log_text("/ex", "user@host"), "")
+        mock_run.assert_called_with(
+            "ssh user@host 'cat /ex/.nextflow.log'",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )

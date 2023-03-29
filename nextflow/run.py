@@ -1,4 +1,6 @@
 import os
+import re
+import time
 import subprocess
 
 def run(pipeline_path, run_path=None, script_path=None, script_contents="", remote=None, shell=None, version=None, configs=None, params=None, profiles=None):
@@ -18,6 +20,8 @@ def run(pipeline_path, run_path=None, script_path=None, script_contents="", remo
         run_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         universal_newlines=True, shell=True
     )
+    exection = get_execution(run_path, remote)
+    return exection
 
 
 
@@ -126,8 +130,8 @@ def create_script(nextflow_command, script_contents, script_path, remote=""):
 
     text = script_contents + "\n\n\n" + nextflow_command
     if remote:
-        text = text.replace("'", "\\'")
-        ssh_command = f"echo '{text}' | ssh {remote} 'cat > {script_path}'"
+        text = text.replace('"', '\\"')
+        ssh_command = f'echo "{text}" | ssh {remote} "cat > {script_path}"'
         subprocess.run(
             ssh_command, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -136,3 +140,36 @@ def create_script(nextflow_command, script_contents, script_path, remote=""):
         with open(script_path, "w") as f:
             f.write(text)
     return script_path
+
+
+def get_execution(execution_location, remote):
+    # What is the log file content?
+    # What does nextflow log say?
+
+    log = get_log_text(execution_location, remote)
+    identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
+
+    return {
+        "identifier": identifier
+    }
+
+
+def get_log_text(execution_location, remote):
+    """Gets the contents of the nextflow log file, if it exists. The log file
+    can be on the local machine or on a remote machine.
+    
+    :param str execution_location: the location of the nextflow run.
+    :param str remote: the ssh hostname the pipeline was run on.
+    :rtype: ``str``"""
+    
+    path = os.path.join(execution_location, ".nextflow.log")
+    if remote:
+        command = f"ssh {remote} 'cat {path}'"
+        process = subprocess.run(
+            command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        return process.stdout.decode() if process.returncode == 0 else ""
+    try:
+        with open(path, "r") as f: return f.read()
+    except FileNotFoundError:
+        return ""
