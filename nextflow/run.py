@@ -151,6 +151,7 @@ def get_execution(execution_path, remote):
     return_code = get_file_text(os.path.join(execution_path, "rc.txt"), remote)
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
+    process_executions = get_process_executions(log, execution_path, remote)
     return Execution(
         identifier=identifier,
         stdout=stdout,
@@ -158,6 +159,7 @@ def get_execution(execution_path, remote):
         return_code=return_code.strip(),
         started=started,
         finished=finished,
+        process_executions=process_executions,
     )
 
 
@@ -234,6 +236,51 @@ def get_datetime_from_line(line):
     return None
 
 
+def get_process_executions(log, execution_path, remote):
+    process_ids = re.findall(
+        r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
+        log, flags=re.MULTILINE
+    )
+    process_executions = []
+    process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path, remote)
+    for process_id in process_ids:
+        process_executions.append({
+            "identifier": process_id,
+            "path": process_ids_to_paths.get(process_id, process_id),
+        })
+    return process_executions
+
+
+def get_process_ids_to_paths(process_ids, execution_path, remote):
+    """Takes a list of nine character process IDs and maps them to the full
+    directories they represent.
+    
+    :param list process_ids: a list of nine character process IDs.
+    :param str execution_path: the path to the execution directory.
+    :param str remote: the ssh hostname the the path is for.
+    :rtype: ``dict``"""
+    
+    process_ids_to_paths = {}
+    path = os.path.join(execution_path, "work")
+    command = f"find {path} -type d"
+    if remote: command = f'ssh {remote} "{command}"'
+    result = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, shell=True
+    )
+    if result.returncode == 0:
+        subdirectories = result.stdout.strip().split('\n')
+        subdirectories = [
+            os.path.sep.join(s.split(os.path.sep)[-2:]) for s in subdirectories
+        ]
+        for process_id in process_ids:
+            for subdirectory in subdirectories:
+                if subdirectory.startswith(process_id):
+                    process_ids_to_paths[process_id] = subdirectory
+                    break
+    return process_ids_to_paths
+
+
 
 from dataclasses import dataclass
 
@@ -247,6 +294,7 @@ class Execution:
     return_code: str
     started: datetime
     finished: datetime
+    process_executions: list
 
     def __str__(self):
         return self.identifier

@@ -43,7 +43,7 @@ class NextflowCommandTests(TestCase):
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test >stdout.txt 2>stderr.txt")
+        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test >stdout.txt 2>stderr.txt; echo $? >rc.txt")
     
 
     @patch("nextflow.run.make_nextflow_command_env_string")
@@ -60,7 +60,7 @@ class NextflowCommandTests(TestCase):
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt")
+        self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
 
 
 
@@ -297,3 +297,45 @@ class DatetimeFromLineTests(TestCase):
 
     def test_can_get_datetime_from_line_with_no_datetime(self):
         self.assertEqual(get_datetime_from_line("DEBUG"), None)
+
+
+
+class ProcessIdsToPathsTest(TestCase):
+
+    @patch("subprocess.run")
+    def test_can_get_local_paths(self, mock_run):
+        process_ids = ["ab/123456", "cd/7890123"]
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "/ex/work/xx\n/ex/work/xx/yyyyyyy\n/ex/work/cd\n/ex/work/cd/789012345678"
+        paths = get_process_ids_to_paths(process_ids, "/ex", "")
+        self.assertEqual(paths, {"cd/7890123": "cd/789012345678"})
+        mock_run.assert_called_with(
+            f"find {os.path.join('/ex', 'work')} -type d",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
+        )
+    
+
+    @patch("subprocess.run")
+    def test_can_get_remote_paths(self, mock_run):
+        process_ids = ["ab/123456", "cd/7890123"]
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "/ex/work/xx\n/ex/work/xx/yyyyyyy\n/ex/work/cd\n/ex/work/cd/789012345678"
+        paths = get_process_ids_to_paths(process_ids, "/ex", "user@host")
+        self.assertEqual(paths, {"cd/7890123": "cd/789012345678"})
+        mock_run.assert_called_with(
+            f"ssh user@host \"find {os.path.join('/ex', 'work')} -type d\"",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
+        )
+    
+
+    @patch("subprocess.run")
+    def test_can_handle_command_fail(self, mock_run):
+        process_ids = ["ab/123456", "cd/7890123"]
+        mock_run.return_value.returncode = 1
+        mock_run.return_value.stdout = "/ex/work/xx\n/ex/work/xx/yyyyyyy\n/ex/work/cd\n/ex/work/cd/789012345678"
+        paths = get_process_ids_to_paths(process_ids, "/ex", "")
+        self.assertEqual(paths, {})
+        mock_run.assert_called_with(
+            f"find {os.path.join('/ex', 'work')} -type d",
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
+        )
