@@ -244,11 +244,27 @@ def get_process_executions(log, execution_path, remote):
     process_executions = []
     process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path, remote)
     for process_id in process_ids:
-        process_executions.append({
-            "identifier": process_id,
-            "path": process_ids_to_paths.get(process_id, process_id),
-        })
+        path = process_ids_to_paths.get(process_id, "")
+        process_executions.append(get_process_execution(
+            process_id, path, execution_path, remote
+        ))
     return process_executions
+
+
+def get_process_execution(process_id, path, execution_path, remote):
+    stdout, stderr, returncode = "", "", ""
+    if path:
+        full_path = os.path.join(execution_path, "work", path)
+        stdout = get_file_text(os.path.join(full_path, ".command.out"), remote)
+        stderr = get_file_text(os.path.join(full_path, ".command.err"), remote)
+        returncode = get_file_text(os.path.join(full_path, ".exitcode"), remote)
+    return {
+        "identifier": process_id,
+        "path": path,
+        "stdout": stdout,
+        "stderr": stderr,
+        "returncode": returncode,
+    }
 
 
 def get_process_ids_to_paths(process_ids, execution_path, remote):
@@ -259,7 +275,7 @@ def get_process_ids_to_paths(process_ids, execution_path, remote):
     :param str execution_path: the path to the execution directory.
     :param str remote: the ssh hostname the the path is for.
     :rtype: ``dict``"""
-    
+
     process_ids_to_paths = {}
     path = os.path.join(execution_path, "work")
     command = f"find {path} -type d"
@@ -279,6 +295,9 @@ def get_process_ids_to_paths(process_ids, execution_path, remote):
                     process_ids_to_paths[process_id] = subdirectory
                     break
     return process_ids_to_paths
+
+
+
 
 
 
