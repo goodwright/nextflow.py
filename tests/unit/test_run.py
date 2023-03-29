@@ -361,3 +361,49 @@ class ProcessNameFromLogTests(TestCase):
 
     def test_can_get_no_process_name(self):
         self.assertIsNone(get_process_name_from_log(self.log, "88/6165a9"))
+
+
+
+class ProcessStartFromLogTests(TestCase):
+    
+    def setUp(self):
+        self.log = (
+            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
+            "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)\n"
+            "Jun-01 16:46:08.965 [Task submitter] INFO  nextflow.Session - [99/6165a9] Submitted process > DEMULTIPLEX:FASTQC (sample)\n"
+            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+        )
+    
+
+    def test_can_get_process_start_from_log(self):
+        self.assertEqual(
+            get_process_start_from_log(self.log, "99/6165a9"),
+            datetime(datetime.now().year, 6, 1, 16, 46, 8, 965000)
+        )
+    
+
+    def test_can_get_no_process_start(self):
+        self.assertIsNone(get_process_start_from_log(self.log, "88/6165a9"))
+
+
+
+class ProcessEndFromLogTests(TestCase):
+    
+    def setUp(self):
+        self.log = (
+            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
+            "Jun-01 16:46:00.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DEMULTIPLEX:CSV_TO_BARCODE (file.csv); status: COMPLETED; exit: 0; error: -; workDir: /work/d6/31d530a65ef23d1cb302940a782909]\n"
+            "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file.fastq); status: COMPLETED; exit: 0; error: -; workDir: /work/8a/c2a4dc996d54cad136abeb4e4e309a]\n"
+            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+        )
+    
+
+    def test_can_get_process_end_from_log(self):
+        self.assertEqual(
+            get_process_end_from_log(self.log, "8a/c2a4dc"),
+            datetime(datetime.now().year, 6, 1, 16, 46, 8, 878000)
+        )
+    
+
+    def test_can_get_no_process_end_from_log(self):
+        self.assertIsNone(get_process_end_from_log(self.log, "1a/c2a4dc"))

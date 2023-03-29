@@ -301,6 +301,8 @@ def get_process_execution(process_id, path, log, execution_path, remote):
         "stdout": stdout,
         "stderr": stderr,
         "returncode": returncode,
+        "started": get_process_start_from_log(log, process_id),
+        "finished": get_process_end_from_log(log, process_id),
     }
 
 
@@ -315,6 +317,39 @@ def get_process_name_from_log(log, id):
     match = re.search(f"\\[{escaped_id}\\] Submitted process > (.+)", log)
     if match: return match[1]
 
+
+def get_process_start_from_log(log, process_id):
+    """Gets a process's start time from the .nextflow.log file as a datetime,
+    given its unique ID, if it has started.
+    
+    :param str log: The text of the log file.
+    :param str id: The process's ID (eg. '1a/234bcd').
+    :rtype: ``datetime``"""
+
+    escaped_id = process_id.replace('/', '\\/')
+    match = re.search(
+        f"(...-\d+ \d+:\d+:\d+\.\d+).+\\[{escaped_id}\\] Submitted process", log
+    )
+    if not match: return
+    year = datetime.now().year
+    return datetime.strptime(f"{year}-{match[1]}", "%Y-%b-%d %H:%M:%S.%f")
+
+
+def get_process_end_from_log(log, process_id):
+    """Gets a process's end time from the .nextflow.log file as a datetime,
+    given its unique ID, if it has finshed.
+    
+    :param str log: The text of the log file.
+    :param str id: The process's ID (eg. '1a/234bcd').
+    :rtype: ``datetime``"""
+
+    escaped_id = process_id.replace('/', '\\/')
+    match = re.search(
+        f"(...-\d+ \d+:\d+:\d+\.\d+).+Task completed.+{escaped_id}", log
+    )
+    if not match: return
+    year = datetime.now().year
+    return datetime.strptime(f"{year}-{match[1]}", "%Y-%b-%d %H:%M:%S.%f")
 
 
 
