@@ -45,7 +45,7 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     profiles = make_nextflow_command_profiles_string(profiles)
     command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles}"
     if run_path: command = f"cd {run_path}; {command}"
-    command = command.rstrip() + " >stdout.txt 2>stderr.txt"
+    command = command.rstrip() + " >stdout.txt 2>stderr.txt; echo $? >rc.txt"
     return command
 
 
@@ -148,15 +148,17 @@ def get_execution(execution_path, remote):
     identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
     stdout = get_file_text(os.path.join(execution_path, "stdout.txt"), remote)
     stderr = get_file_text(os.path.join(execution_path, "stderr.txt"), remote)
+    return_code = get_file_text(os.path.join(execution_path, "rc.txt"), remote)
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
-    return {
-        "identifier": identifier,
-        "stdout": stdout[:20],
-        "stderr": stderr[:20],
-        "started": started,
-        "finished": finished,
-    }
+    return Execution(
+        identifier=identifier,
+        stdout=stdout,
+        stderr=stderr,
+        return_code=return_code.strip(),
+        started=started,
+        finished=finished,
+    )
 
 
 def get_file_text(path, remote):
@@ -230,3 +232,33 @@ def get_datetime_from_line(line):
     if (m := re.search(r"[A-Z][a-z]{2}-\d{1,2} \d{2}:\d{2}:\d{2}\.\d{3}", line)):
         return datetime.strptime(f"{year}-{m.group(0)}", "%Y-%b-%d %H:%M:%S.%f")
     return None
+
+
+
+from dataclasses import dataclass
+
+@dataclass
+class Execution:
+    """A class to represent the execution of a Nextflow pipeline."""
+
+    identifier: str
+    stdout: str
+    stderr: str
+    return_code: str
+    started: datetime
+    finished: datetime
+
+    def __str__(self):
+        return self.identifier
+    
+
+    @property
+    def duration(self):
+        return self.finished - self.started
+    
+
+    @property
+    def status(self):
+        if self.return_code == "0": return "OK"
+        if self.return_code == "": return "-"
+        return "ERROR"
