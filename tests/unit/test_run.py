@@ -339,3 +339,25 @@ class ProcessIdsToPathsTest(TestCase):
             f"find {os.path.join('/ex', 'work')} -type d",
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
         )
+
+
+
+class ProcessNameFromLogTests(TestCase):
+
+    def setUp(self):
+        self.log = (
+            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
+            "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)\n"
+            "Jun-01 16:46:08.965 [Task submitter] INFO  nextflow.Session - [99/6165a9] Submitted process > DEMULTIPLEX:FASTQC (sample)\n"
+            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
+        )
+
+    def test_can_get_process_name(self):
+        self.assertEqual(
+            get_process_name_from_log(self.log, "99/6165a9"),
+            "DEMULTIPLEX:FASTQC (sample)"
+        )
+    
+
+    def test_can_get_no_process_name(self):
+        self.assertIsNone(get_process_name_from_log(self.log, "88/6165a9"))

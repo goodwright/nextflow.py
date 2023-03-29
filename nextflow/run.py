@@ -246,25 +246,9 @@ def get_process_executions(log, execution_path, remote):
     for process_id in process_ids:
         path = process_ids_to_paths.get(process_id, "")
         process_executions.append(get_process_execution(
-            process_id, path, execution_path, remote
+            process_id, path, log, execution_path, remote
         ))
     return process_executions
-
-
-def get_process_execution(process_id, path, execution_path, remote):
-    stdout, stderr, returncode = "", "", ""
-    if path:
-        full_path = os.path.join(execution_path, "work", path)
-        stdout = get_file_text(os.path.join(full_path, ".command.out"), remote)
-        stderr = get_file_text(os.path.join(full_path, ".command.err"), remote)
-        returncode = get_file_text(os.path.join(full_path, ".exitcode"), remote)
-    return {
-        "identifier": process_id,
-        "path": path,
-        "stdout": stdout,
-        "stderr": stderr,
-        "returncode": returncode,
-    }
 
 
 def get_process_ids_to_paths(process_ids, execution_path, remote):
@@ -295,6 +279,40 @@ def get_process_ids_to_paths(process_ids, execution_path, remote):
                     process_ids_to_paths[process_id] = subdirectory
                     break
     return process_ids_to_paths
+
+
+def get_process_execution(process_id, path, log, execution_path, remote):
+    stdout, stderr, returncode = "", "", ""
+    if path:
+        full_path = os.path.join(execution_path, "work", path)
+        stdout = get_file_text(os.path.join(full_path, ".command.out"), remote)
+        stderr = get_file_text(os.path.join(full_path, ".command.err"), remote)
+        returncode = get_file_text(os.path.join(full_path, ".exitcode"), remote)
+    name = get_process_name_from_log(log, process_id)
+    return {
+        "identifier": process_id,
+        "name": name,
+        "process": name[:name.find("(") - 1] if "(" in name else name,
+        "path": path,
+        "stdout": stdout,
+        "stderr": stderr,
+        "returncode": returncode,
+    }
+
+
+def get_process_name_from_log(log, id):
+    """Gets a process's name from the .nextflow.log file, given its unique ID.
+    
+    :param str log: The text of the log file.
+    :param str id: The process's ID (eg. '1a/234bcd').
+    :rtype: ``str``"""
+
+    escaped_id = id.replace('/', '\\/')
+    match = re.search(f"\\[{escaped_id}\\] Submitted process > (.+)", log)
+    if match: return match[1]
+
+
+
 
 
 
