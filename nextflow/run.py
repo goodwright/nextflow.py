@@ -286,12 +286,13 @@ def get_process_ids_to_paths(process_ids, execution_path, remote):
 
 
 def get_process_execution(process_id, path, log, execution_path, remote):
-    stdout, stderr, returncode = "", "", ""
+    stdout, stderr, returncode, bash = "", "", "", ""
     if path:
         full_path = os.path.join(execution_path, "work", path)
         stdout = get_file_text(os.path.join(full_path, ".command.out"), remote)
         stderr = get_file_text(os.path.join(full_path, ".command.err"), remote)
         returncode = get_file_text(os.path.join(full_path, ".exitcode"), remote)
+        bash = get_file_text(os.path.join(full_path, ".command.sh"), remote)
     name = get_process_name_from_log(log, process_id)
     return {
         "identifier": process_id,
@@ -301,6 +302,7 @@ def get_process_execution(process_id, path, log, execution_path, remote):
         "stdout": stdout,
         "stderr": stderr,
         "returncode": returncode,
+        "bash": bash,
         "started": get_process_start_from_log(log, process_id),
         "finished": get_process_end_from_log(log, process_id),
         "status": get_process_status_from_log(log, process_id),
