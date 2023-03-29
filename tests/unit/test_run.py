@@ -22,7 +22,7 @@ class RunTests(TestCase):
             mock_rc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             universal_newlines=True, shell=True
         )
-        mock_ex.assert_called_with("/exdir", "user@host")
+        mock_ex.assert_called_with("/exdir", "user@host", mock_nc.return_value)
         self.assertEqual(execution, mock_ex.return_value)
 
 

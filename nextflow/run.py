@@ -21,7 +21,7 @@ def run(pipeline_path, run_path=None, script_path=None, script_contents="", remo
         run_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         universal_newlines=True, shell=True
     )
-    exection = get_execution(run_path, remote)
+    exection = get_execution(run_path, remote, nextflow_command)
     return exection
 
 
@@ -143,7 +143,7 @@ def create_script(nextflow_command, script_contents, script_path, remote=""):
     return script_path
 
 
-def get_execution(execution_path, remote):
+def get_execution(execution_path, remote, nextflow_command):
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"), remote)
     identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
     stdout = get_file_text(os.path.join(execution_path, "stdout.txt"), remote)
@@ -152,6 +152,9 @@ def get_execution(execution_path, remote):
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
     process_executions = get_process_executions(log, execution_path, remote)
+    command = sorted(nextflow_command.split(";"), key=len)[-1].replace(
+        ">stdout.txt 2>stderr.txt", ""
+    ).strip()
     return Execution(
         identifier=identifier,
         stdout=stdout,
@@ -160,6 +163,7 @@ def get_execution(execution_path, remote):
         started=started,
         finished=finished,
         process_executions=process_executions,
+        command=command
     )
 
 
@@ -331,6 +335,7 @@ class Execution:
     return_code: str
     started: datetime
     finished: datetime
+    command: str
     process_executions: list
 
     def __str__(self):
