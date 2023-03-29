@@ -1,9 +1,17 @@
 import os
 import re
 import time
-from pathlib import Path
-from datetime import datetime
 import subprocess
+from nextflow.io import get_file_text
+from nextflow.models import Execution, ProcessExecution
+from nextflow.log import (
+    get_started_from_log,
+    get_finished_from_log,
+    get_process_name_from_log,
+    get_process_start_from_log,
+    get_process_end_from_log,
+    get_process_status_from_log
+)
 
 def run(*args, **kwargs):
     return list(_run(*args, poll=False, **kwargs))[0]
@@ -188,79 +196,6 @@ def get_execution(execution_path, remote, nextflow_command):
     return execution
 
 
-def get_file_text(path, remote):
-    """Gets the contents of a text file, if it exists. The text file can be on
-    the local machine or on a remote machine.
-    
-    :param str path: the location of the file.
-    :param str remote: the ssh hostname the the path is for.
-    :rtype: ``str``"""
-
-    if remote:
-        command = f"ssh {remote} 'cat {path}'"
-        process = subprocess.run(
-            command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        return process.stdout.decode() if process.returncode == 0 else ""
-    try:
-        with open(path, "r") as f: return f.read()
-    except FileNotFoundError:
-        return ""
-
-
-def get_started_from_log(log):
-    """Gets the time the pipeline was started from the log file.
-    
-    :param str log: the contents of the log file.
-    :rtype: ``datetime.datetime``"""
-
-    if not log: return None
-    lines = log.splitlines()
-    if not lines: return None
-    return get_datetime_from_line(lines[0])
-
-
-def get_finished_from_log(log):
-    """Gets the time the pipeline ended from the log file.
-    
-    :param str log: the contents of the log file.
-    :rtype: ``datetime.datetime``"""
-
-    if not log: return None
-    lines = log.splitlines()
-    if log_is_finished(log):
-        for line in reversed(lines):
-            dt = get_datetime_from_line(line)
-            if dt: return dt
-
-
-def log_is_finished(log):
-    """Checks if the log file indicates the pipeline has finished.
-    
-    :param str log: the contents of the log file.
-    :rtype: ``bool``"""
-
-    if not log: return False
-    lines = log.strip().splitlines()
-    if lines[-1].endswith(" - > Execution complete -- Goodbye"): return True
-    if lines[-1].startswith("    at ") or lines[-1].startswith("\tat "):
-        last_unindented = [l for l in lines if not l.startswith("	at ")][-1]
-        if "Exception" in last_unindented: return True
-    return False
-
-
-def get_datetime_from_line(line):
-    """Gets the datetime from a line of the log file.
-    
-    :param str line: a line from the log file.
-    :rtype: ``datetime.datetime``"""
-
-    year = datetime.now().year
-    if (m := re.search(r"[A-Z][a-z]{2}-\d{1,2} \d{2}:\d{2}:\d{2}\.\d{3}", line)):
-        return datetime.strptime(f"{year}-{m.group(0)}", "%Y-%b-%d %H:%M:%S.%f")
-    return None
-
-
 def get_process_executions(log, execution_path, remote):
     process_ids = re.findall(
         r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
@@ -330,176 +265,4 @@ def get_process_execution(process_id, path, log, execution_path, remote):
     )
 
 
-def get_process_name_from_log(log, process_id):
-    """Gets a process's name from the .nextflow.log file, given its unique ID.
-    
-    :param str log: The text of the log file.
-    :param str process_id: The process's ID (eg. '1a/234bcd').
-    :rtype: ``str``"""
 
-    escaped_id = process_id.replace('/', '\\/')
-    match = re.search(f"\\[{escaped_id}\\] Submitted process > (.+)", log)
-    if match: return match[1]
-
-
-def get_process_start_from_log(log, process_id):
-    """Gets a process's start time from the .nextflow.log file as a datetime,
-    given its unique ID, if it has started.
-    
-    :param str log: The text of the log file.
-    :param str process_id: The process's ID (eg. '1a/234bcd').
-    :rtype: ``datetime``"""
-
-    escaped_id = process_id.replace('/', '\\/')
-    match = re.search(
-        f"(...-\d+ \d+:\d+:\d+\.\d+).+\\[{escaped_id}\\] Submitted process", log
-    )
-    if not match: return
-    year = datetime.now().year
-    return datetime.strptime(f"{year}-{match[1]}", "%Y-%b-%d %H:%M:%S.%f")
-
-
-def get_process_end_from_log(log, process_id):
-    """Gets a process's end time from the .nextflow.log file as a datetime,
-    given its unique ID, if it has finshed.
-    
-    :param str log: The text of the log file.
-    :param str process_id: The process's ID (eg. '1a/234bcd').
-    :rtype: ``datetime``"""
-
-    escaped_id = process_id.replace('/', '\\/')
-    match = re.search(
-        f"(...-\d+ \d+:\d+:\d+\.\d+).+Task completed.+{escaped_id}", log
-    )
-    if not match: return
-    year = datetime.now().year
-    return datetime.strptime(f"{year}-{match[1]}", "%Y-%b-%d %H:%M:%S.%f")
-
-
-def get_process_status_from_log(log, process_id):
-    """Gets a process's status (COMPLETED, ERROR etc.) from the .nextflow.log
-    file, given its unique ID. If it's still running, '-' is returned.
-    
-    :param str log: The text of the log file.
-    :param str process_id: The process's ID (eg. '1a/234bcd').
-    :rtype: ``string``"""
-
-    escaped_id = process_id.replace('/', '\\/')
-    match = re.search(
-        f".+Task completed.+status: ([A-Z]+).+exit: (\d+).+{escaped_id}", log
-    )
-    return ("FAILED" if match[2] != "0" else match[1]) if match else "-"
-
-
-
-def get_directory_contents(path, remote):
-    if remote:
-        return filter(bool, subprocess.check_output(
-            f"ssh {remote} 'ls {path}'",
-            shell=True
-        ).decode("utf-8").split("\n"))
-    return os.listdir(path)
-
-
-
-
-from dataclasses import dataclass
-
-@dataclass
-class Execution:
-    """A class to represent the execution of a Nextflow pipeline."""
-
-    identifier: str
-    stdout: str
-    stderr: str
-    return_code: str
-    started: datetime
-    finished: datetime
-    command: str
-    log: str
-    path: str
-    remote: str
-    process_executions: list
-
-    def __repr__(self):
-        return f"<Execution: {self.identifier}>"
-    
-
-    @property
-    def duration(self):
-        return self.finished - self.started
-    
-
-    @property
-    def status(self):
-        if self.return_code == "0": return "OK"
-        if self.return_code == "": return "-"
-        return "ERROR"
-
-
-
-@dataclass
-class ProcessExecution:
-    """A class to represent the execution of a single Nextflow process."""
-
-    identifier: str
-    name: str
-    process: str
-    path: str
-    stdout: str
-    stderr: str
-    return_code: str
-    bash: str
-    started: datetime
-    finished: datetime
-    status: str
-
-    def __repr__(self):
-        return f"<ProcessExecution: {self.identifier}>"
-    
-
-    @property
-    def duration(self):
-        return self.finished - self.started
-
-
-    @property
-    def full_path(self):
-        if not self.path: return ""
-        return Path(self.execution.path, "work", self.path)
-    
-
-    def input_data(self, include_path=True):
-        """A list of files passed to the process execution as inputs.
-        
-        :param bool include_path: if ``False``, only filenames returned.
-        :type: ``list``"""
-        
-        inputs = []
-        run = get_file_text(self.full_path / ".command.run", self.execution.remote)
-        stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", run)
-        if not stage: return []
-        contents = stage[1]
-        inputs = re.findall(r"ln -s (.+?) ", contents)
-        if include_path:
-            return inputs
-        else:
-            return [os.path.basename(f) for f in inputs]
-    
-
-    def all_output_data(self, include_path=True):
-        """A list of all output data produced by the process execution,
-        including unpublished staging files.
-
-        :param bool include_path: if ``False``, only filenames returned.
-        :type: ``list``"""
-
-        outputs = []
-        if not self.path: return []
-        inputs = self.input_data(include_path=False)
-        for f in get_directory_contents(self.full_path, self.execution.remote):
-            full_path = Path(f"{self.full_path}/{f}")
-            if not f.startswith(".command") and f != ".exitcode":
-                if f not in inputs:
-                    outputs.append(str(full_path) if include_path else f)
-        return outputs
