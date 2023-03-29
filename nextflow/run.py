@@ -24,7 +24,6 @@ def run(pipeline_path, run_path=None, script_path=None, script_contents="", remo
     return exection
 
 
-
 def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles):
     """Generates the `nextflow run` commmand.
     
@@ -45,7 +44,8 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     profiles = make_nextflow_command_profiles_string(profiles)
     command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles}"
     if run_path: command = f"cd {run_path}; {command}"
-    return command.strip()
+    command = command.rstrip() + " >stdout.txt 2>stderr.txt"
+    return command
 
 
 def make_nextflow_command_env_string(version):
@@ -142,27 +142,26 @@ def create_script(nextflow_command, script_contents, script_path, remote=""):
     return script_path
 
 
-def get_execution(execution_location, remote):
-    # What is the log file content?
-    # What does nextflow log say?
-
-    log = get_log_text(execution_location, remote)
+def get_execution(execution_path, remote):
+    log = get_file_text(os.path.join(execution_path, ".nextflow.log"), remote)
     identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
-
+    stdout = get_file_text(os.path.join(execution_path, "stdout.txt"), remote)
+    stderr = get_file_text(os.path.join(execution_path, "stderr.txt"), remote)
     return {
-        "identifier": identifier
+        "identifier": identifier,
+        "stdout": stdout[:20],
+        "stderr": stderr[:20],
     }
 
 
-def get_log_text(execution_location, remote):
-    """Gets the contents of the nextflow log file, if it exists. The log file
-    can be on the local machine or on a remote machine.
+def get_file_text(path, remote):
+    """Gets the contents of a text file, if it exists. The text file can be on
+    the local machine or on a remote machine.
     
-    :param str execution_location: the location of the nextflow run.
-    :param str remote: the ssh hostname the pipeline was run on.
+    :param str path: the location of the file.
+    :param str remote: the ssh hostname the the path is for.
     :rtype: ``str``"""
-    
-    path = os.path.join(execution_location, ".nextflow.log")
+
     if remote:
         command = f"ssh {remote} 'cat {path}'"
         process = subprocess.run(

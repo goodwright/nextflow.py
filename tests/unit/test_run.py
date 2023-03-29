@@ -43,7 +43,7 @@ class NextflowCommandTests(TestCase):
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test")
+        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test >stdout.txt 2>stderr.txt")
     
 
     @patch("nextflow.run.make_nextflow_command_env_string")
@@ -60,7 +60,7 @@ class NextflowCommandTests(TestCase):
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "nextflow -Duser.country=US run main.nf")
+        self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt")
 
 
 
@@ -184,29 +184,29 @@ class CreateScriptTests(TestCase):
 
 
 
-class LogTextTests(TestCase):
+class FileTextTests(TestCase):
 
     @patch("builtins.open")
     def test_can_get_local_log_text(self, mock_open):
         mock_open.return_value.__enter__.return_value.read.return_value = "line1\nline2"
-        self.assertEqual(get_log_text("/ex", ""), "line1\nline2")
-        mock_open.assert_called_with(os.path.join("/ex", ".nextflow.log"), "r")
+        self.assertEqual(get_file_text("/ex/file.txt", ""), "line1\nline2")
+        mock_open.assert_called_with("/ex/file.txt", "r")
     
 
     @patch("builtins.open")
     def test_can_can_handle_no_log_text(self, mock_open):
         mock_open.side_effect = FileNotFoundError
-        self.assertEqual(get_log_text("/ex", ""), "")
-        mock_open.assert_called_with(os.path.join("/ex", ".nextflow.log"), "r")
+        self.assertEqual(get_file_text("/ex/file.txt", ""), "")
+        mock_open.assert_called_with("/ex/file.txt", "r")
     
 
     @patch("subprocess.run")
     def test_can_get_remote_log_text(self, mock_run):
         mock_run.return_value.stdout = b"line1\nline2"
         mock_run.return_value.returncode = 0
-        self.assertEqual(get_log_text("/ex", "user@host"), "line1\nline2")
+        self.assertEqual(get_file_text("/ex/file.txt", "user@host"), "line1\nline2")
         mock_run.assert_called_with(
-            "ssh user@host 'cat /ex/.nextflow.log'",
+            "ssh user@host 'cat /ex/file.txt'",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
     
@@ -214,8 +214,8 @@ class LogTextTests(TestCase):
     @patch("subprocess.run")
     def test_can_handle_error_getting_remote_log_text(self, mock_run):
         mock_run.return_value.returncode = 1
-        self.assertEqual(get_log_text("/ex", "user@host"), "")
+        self.assertEqual(get_file_text("/ex/file.txt", "user@host"), "")
         mock_run.assert_called_with(
-            "ssh user@host 'cat /ex/.nextflow.log'",
+            "ssh user@host 'cat /ex/file.txt'",
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
