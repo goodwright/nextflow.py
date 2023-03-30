@@ -1,7 +1,7 @@
 from shutil import which
 from .exceptions import NextflowNotInstalledError
 from .execution import Execution
-from .run import run, run_and_poll
+from .command import run, run_and_poll
 
 __author__ = "Sam Ireland"
 __version__ = "0.6.0"

@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
-from nextflow.io import get_file_text, get_directory_contents
+from nextflow.io import get_file_text
 
 @dataclass
 class Execution:
@@ -18,7 +18,6 @@ class Execution:
     command: str
     log: str
     path: str
-    remote: str
     process_executions: list
 
     def __repr__(self):
@@ -76,7 +75,7 @@ class ProcessExecution:
         :type: ``list``"""
         
         inputs = []
-        run = get_file_text(self.full_path / ".command.run", self.execution.remote)
+        run = get_file_text(self.full_path / ".command.run")
         stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", run)
         if not stage: return []
         contents = stage[1]
@@ -97,7 +96,7 @@ class ProcessExecution:
         outputs = []
         if not self.path: return []
         inputs = self.input_data(include_path=False)
-        for f in get_directory_contents(self.full_path, self.execution.remote):
+        for f in os.listdir(self.full_path):
             full_path = Path(f"{self.full_path}/{f}")
             if not f.startswith(".command") and f != ".exitcode":
                 if f not in inputs:
