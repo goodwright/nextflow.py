@@ -22,7 +22,7 @@ def run_and_poll(*args, **kwargs):
         yield execution
 
 
-def _run(pipeline_path, poll=False, run_path=None, version=None, configs=None, params=None, profiles=None, sleep=2):
+def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, configs=None, params=None, profiles=None, sleep=1):
     """
     :param str run_location: the location to run the pipeline command from.
     """
@@ -30,10 +30,13 @@ def _run(pipeline_path, poll=False, run_path=None, version=None, configs=None, p
     nextflow_command = make_nextflow_command(
         run_path, pipeline_path, version, configs, params, profiles
     )
-    subprocess.Popen(
-        nextflow_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        universal_newlines=True, shell=True,
-    )
+    if runner:
+        runner(nextflow_command)
+    else:
+        subprocess.Popen(
+            nextflow_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, shell=True,
+        )
     execution = None
     while True:
         time.sleep(sleep)
