@@ -2,7 +2,7 @@ import os
 import re
 import time
 import subprocess
-from nextflow.io import get_file_text
+from nextflow.io import get_file_text, get_process_ids_to_paths
 from nextflow.models import Execution, ProcessExecution
 from nextflow.log import (
     get_started_from_log,
@@ -155,34 +155,6 @@ def get_process_executions(log, execution_path):
             process_id, path, log, execution_path
         ))
     return process_executions
-
-
-def get_process_ids_to_paths(process_ids, execution_path):
-    """Takes a list of nine character process IDs and maps them to the full
-    directories they represent.
-    
-    :param list process_ids: a list of nine character process IDs.
-    :param str execution_path: the path to the execution directory.
-    :rtype: ``dict``"""
-
-    process_ids_to_paths = {}
-    path = os.path.join(execution_path, "work")
-    command = f"find {path} -type d"
-    result = subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, shell=True
-    )
-    if result.returncode == 0:
-        subdirectories = result.stdout.strip().split('\n')
-        subdirectories = [
-            os.path.sep.join(s.split(os.path.sep)[-2:]) for s in subdirectories
-        ]
-        for process_id in process_ids:
-            for subdirectory in subdirectories:
-                if subdirectory.startswith(process_id):
-                    process_ids_to_paths[process_id] = subdirectory
-                    break
-    return process_ids_to_paths
 
 
 def get_process_execution(process_id, path, log, execution_path):

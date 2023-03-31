@@ -16,3 +16,19 @@ class FileTextTests(TestCase):
         mock_open.side_effect = FileNotFoundError
         self.assertEqual(get_file_text("/ex/file.txt"), "")
         mock_open.assert_called_with("/ex/file.txt", "r")
+
+
+
+class ProcessIdsToPathsTest(TestCase):
+
+    @patch("os.walk")
+    def test_can_get_paths(self, mock_walk):
+        process_ids = ["ab/123456", "cd/7890123"]
+        mock_walk.return_value = (
+            ("/ex/work", ["xx", "cd"], []),
+            ("/ex/work/xx", ["yyyyyyy"], []),
+            ("/ex/work/cd", ["789012345678"], []),
+        )
+        paths = get_process_ids_to_paths(process_ids, "/ex")
+        self.assertEqual(paths, {"cd/7890123": os.path.join("/ex", "work", "cd/789012345678")})
+        mock_walk.assert_called_with(os.path.join("/ex", "work"))

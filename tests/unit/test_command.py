@@ -107,35 +107,3 @@ class ProfilesStringTests(TestCase):
 
     def test_can_handle_profiles(self):
         self.assertEqual(make_nextflow_command_profiles_string(["docker", "test"]), "-profile docker,test")
-
-
-
-class ProcessIdsToPathsTest(TestCase):
-
-    @patch("subprocess.run")
-    def test_can_get_local_paths(self, mock_run):
-        process_ids = ["ab/123456", "cd/7890123"]
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = "/ex/work/xx\n/ex/work/xx/yyyyyyy\n/ex/work/cd\n/ex/work/cd/789012345678"
-        paths = get_process_ids_to_paths(process_ids, "/ex")
-        self.assertEqual(paths, {"cd/7890123": "cd/789012345678"})
-        mock_run.assert_called_with(
-            f"find {os.path.join('/ex', 'work')} -type d",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
-        )
-    
-
-    @patch("subprocess.run")
-    def test_can_handle_command_fail(self, mock_run):
-        process_ids = ["ab/123456", "cd/7890123"]
-        mock_run.return_value.returncode = 1
-        mock_run.return_value.stdout = "/ex/work/xx\n/ex/work/xx/yyyyyyy\n/ex/work/cd\n/ex/work/cd/789012345678"
-        paths = get_process_ids_to_paths(process_ids, "/ex")
-        self.assertEqual(paths, {})
-        mock_run.assert_called_with(
-            f"find {os.path.join('/ex', 'work')} -type d",
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True
-        )
-
-
-
