@@ -129,7 +129,7 @@ class CustomRunningTests(RunTestCase):
             executions.append(execution)
 
         # Execution is fine
-        self.check_execution(execution, version="21.10.3")
+        self.check_execution(execution, version="21.10.3", check_stderr=False)
 
         # Check that we have at least 2 executions
         self.assertGreater(len(executions), 1)

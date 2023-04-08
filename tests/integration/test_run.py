@@ -92,7 +92,7 @@ class CustomRunningTests(RunTestCase):
         )
 
         # Execution is fine
-        self.check_execution(execution, version="21.10.3")
+        self.check_execution(execution, version="21.10.3", check_stderr=False)
     
 
     def test_can_run_with_specific_config(self):

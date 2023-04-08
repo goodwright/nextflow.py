@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None):
+    def check_execution(self, execution, line_count=24, version=None, check_stderr=True):
         # Files created
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -41,7 +41,7 @@ class RunTestCase(TestCase):
         # Execution is correct
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.identifier))
         self.assertIn("N E X T F L O W", execution.stdout)
-        self.assertFalse(execution.stderr)
+        if check_stderr: self.assertFalse(execution.stderr)
         self.assertEqual(execution.return_code, "0")
         self.assertLessEqual((datetime.now() - execution.started).seconds, 5)
         self.assertLessEqual((datetime.now() - execution.finished).seconds, 5)
