@@ -26,11 +26,20 @@ class Execution:
 
     @property
     def duration(self):
+        """The duration of the execution, in seconds.
+        
+        :rtype: ``datetime.timedelta``"""
+
+        if self.finished is None: return None
         return self.finished - self.started
     
 
     @property
     def status(self):
+        """A string representing the status of the execution.
+        
+        :rtype: ``str``"""
+
         if self.return_code == "0": return "OK"
         if self.return_code == "": return "-"
         return "ERROR"
@@ -59,11 +68,20 @@ class ProcessExecution:
 
     @property
     def duration(self):
+        """The duration of the process execution, in seconds.
+        
+        :rtype: ``datetime.timedelta``"""
+
+        if self.finished is None: return None
         return self.finished - self.started
 
 
     @property
     def full_path(self):
+        """The full absolute path to the process execution.
+        
+        :rtype: ``pathlib.Path``"""
+
         if not self.path: return ""
         return Path(self.execution.path, "work", self.path)
     

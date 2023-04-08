@@ -14,19 +14,39 @@ from nextflow.log import (
 )
 
 def run(*args, **kwargs):
+    """Runs a pipeline and returns the execution.
+    
+    :param str pipeline_path: the absolute path to the pipeline .nf file.
+    :param str run_path: the location to run the pipeline in.
+    :param function runner: a function to run the pipeline command.
+    :param str version: the nextflow version to use.
+    :param list configs: any config files to be applied.
+    :param dict params: the parameters to pass.
+    :param list profiles: any profiles to be applied.
+    :rtype: ``nextflow.models.Execution``"""
+
     return list(_run(*args, poll=False, **kwargs))[0]
 
 
 def run_and_poll(*args, **kwargs):
+    """Runs a pipeline and polls it for updates. Yields the execution after each
+    update.
+    
+    :param str pipeline_path: the absolute path to the pipeline .nf file.
+    :param str run_path: the location to run the pipeline in.
+    :param function runner: a function to run the pipeline command.
+    :param str version: the nextflow version to use.
+    :param list configs: any config files to be applied.
+    :param dict params: the parameters to pass.
+    :param list profiles: any profiles to be applied.
+    :param int sleep: the number of seconds to wait between polls.
+    :rtype: ``nextflow.models.Execution``"""
+
     for execution in _run(*args, poll=True, **kwargs):
         yield execution
 
 
 def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, configs=None, params=None, profiles=None, sleep=1):
-    """
-    :param str run_location: the location to run the pipeline command from.
-    """
-
     nextflow_command = make_nextflow_command(
         run_path, pipeline_path, version, configs, params, profiles
     )
@@ -42,8 +62,9 @@ def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, co
         time.sleep(sleep)
         execution = get_execution(run_path, nextflow_command)
         if execution and poll: yield execution
-        if execution and execution.finished: break
-    yield execution
+        if execution and execution.finished:
+            if not poll: yield execution
+            break
 
 
 def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles):
@@ -117,7 +138,14 @@ def make_nextflow_command_profiles_string(profiles):
 
 
 def get_execution(execution_path, nextflow_command):
+    """Creates an execution object from a location.
+    
+    :param str execution_path: the location of the execution.
+    :param str nextflow_command: the command used to run the pipeline.
+    :rtype: ``nextflow.models.Execution``"""
+
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
+    if not log: return
     identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
     stdout = get_file_text(os.path.join(execution_path, "stdout.txt"))
     stderr = get_file_text(os.path.join(execution_path, "stderr.txt"))
@@ -129,15 +157,9 @@ def get_execution(execution_path, nextflow_command):
         ">stdout.txt 2>stderr.txt", ""
     ).strip()
     execution = Execution(
-        identifier=identifier,
-        stdout=stdout,
-        stderr=stderr,
-        return_code=return_code.strip(),
-        started=started,
-        finished=finished,
-        command=command,
-        log=log,
-        path=execution_path,
+        identifier=identifier, stdout=stdout, stderr=stderr,
+        return_code=return_code.strip(), started=started, finished=finished,
+        command=command, log=log, path=execution_path,
         process_executions=process_executions,
     )
     for process_execution in execution.process_executions:
@@ -146,6 +168,12 @@ def get_execution(execution_path, nextflow_command):
 
 
 def get_process_executions(log, execution_path):
+    """Creates a list of process executions from a log.
+    
+    :param str log: the log text.
+    :param str execution_path: the location of the execution.
+    :rtype: ``list`` of ``nextflow.models.ProcessExecution``"""
+
     process_ids = re.findall(
         r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
         log, flags=re.MULTILINE
@@ -161,6 +189,14 @@ def get_process_executions(log, execution_path):
 
 
 def get_process_execution(process_id, path, log, execution_path):
+    """Creates a process execution from a log and its ID.
+    
+    :param str process_id: the ID of the process.
+    :param str path: the path of the process.
+    :param str log: the log text.
+    :param str execution_path: the location of the execution.
+    :rtype: ``nextflow.models.ProcessExecution``"""
+    
     stdout, stderr, returncode, bash = "", "", "", ""
     if path:
         full_path = os.path.join(execution_path, "work", path)
@@ -170,13 +206,9 @@ def get_process_execution(process_id, path, log, execution_path):
         bash = get_file_text(os.path.join(full_path, ".command.sh"))
     name = get_process_name_from_log(log, process_id)
     return ProcessExecution(
-        identifier=process_id,
-        name=name,
+        identifier=process_id, name=name,
         process=name[:name.find("(") - 1] if "(" in name else name,
-        path=path,
-        stdout=stdout,
-        stderr=stderr,
-        return_code=returncode,
+        path=path, stdout=stdout, stderr=stderr, return_code=returncode,
         bash=bash,
         started=get_process_start_from_log(log, process_id),
         finished=get_process_end_from_log(log, process_id),
