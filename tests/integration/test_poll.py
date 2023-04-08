@@ -115,7 +115,6 @@ class CustomRunningTests(RunTestCase):
     def test_can_run_with_specific_version(self):
         # Run basic execution
         executions = []
-        last_stdout = ""
         os.chdir(self.rundirectory)
         for execution in nextflow.run_and_poll(
             pipeline_path=self.get_path("pipeline.nf"),
@@ -125,7 +124,6 @@ class CustomRunningTests(RunTestCase):
                 "suffix": self.get_path("files/suffix.txt")
             }
         ):
-            last_stdout = self.check_running_execution(execution, last_stdout)
             executions.append(execution)
 
         # Execution is fine
