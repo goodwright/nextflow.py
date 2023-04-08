@@ -11,13 +11,13 @@ class RunTests(TestCase):
     @patch("nextflow.command.get_execution")
     def test_can_run_with_default_values(self, mock_ex, mock_sleep, mock_run, mock_nc):
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(None, "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
         mock_run.assert_called_with(
-            mock_nc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            mock_nc.return_value,
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(None, mock_nc.return_value)
+        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value)
         self.assertEqual(executions, [mock_ex.return_value])
     
 
@@ -34,7 +34,7 @@ class RunTests(TestCase):
         ))
         mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
         mock_run.assert_called_with(
-            mock_nc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            mock_nc.return_value,
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(4)
@@ -49,17 +49,18 @@ class RunTests(TestCase):
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
     def test_can_run_and_poll(self, mock_ex, mock_sleep, mock_run, mock_nc):
+        mock_run.return_value.poll.side_effect = [None, None, 1]
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(None, "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
         mock_run.assert_called_with(
-            mock_nc.return_value, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            mock_nc.return_value,
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(1)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with(None, mock_nc.return_value)
+        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, mock_executions)
     
@@ -71,11 +72,11 @@ class RunTests(TestCase):
     def test_can_run_with_custom_runner(self, mock_ex, mock_sleep, mock_run, mock_nc):
         runner = MagicMock()
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(None, "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(None, mock_nc.return_value)
+        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value)
         self.assertEqual(executions, [mock_ex.return_value])
     
 

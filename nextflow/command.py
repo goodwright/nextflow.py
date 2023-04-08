@@ -47,22 +47,24 @@ def run_and_poll(*args, **kwargs):
 
 
 def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, configs=None, params=None, profiles=None, sleep=1):
+    if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
         run_path, pipeline_path, version, configs, params, profiles
     )
     if runner:
+        process = None
         runner(nextflow_command)
     else:
-        subprocess.Popen(
-            nextflow_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            universal_newlines=True, shell=True,
+        process = subprocess.Popen(
+            nextflow_command, universal_newlines=True, shell=True        
         )
     execution = None
     while True:
         time.sleep(sleep)
         execution = get_execution(run_path, nextflow_command)
         if execution and poll: yield execution
-        if execution and execution.finished:
+        process_finished = not process or process.poll() is not None
+        if execution and execution.finished and process_finished:
             if not poll: yield execution
             break
 
