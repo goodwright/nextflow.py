@@ -46,7 +46,10 @@ def run_and_poll(*args, **kwargs):
         yield execution
 
 
-def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, configs=None, params=None, profiles=None, sleep=1):
+def _run(
+        pipeline_path, poll=False, run_path=None, runner=None, version=None,
+        configs=None, params=None, profiles=None, sleep=1
+):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
         run_path, pipeline_path, version, configs, params, profiles
@@ -64,7 +67,7 @@ def _run(pipeline_path, poll=False, run_path=None, runner=None, version=None, co
         execution = get_execution(run_path, nextflow_command)
         if execution and poll: yield execution
         process_finished = not process or process.poll() is not None
-        if execution and execution.finished and process_finished:
+        if execution and execution.return_code and process_finished:
             if not poll: yield execution
             break
 

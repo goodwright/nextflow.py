@@ -26,7 +26,7 @@ class RunTests(TestCase):
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
     def test_can_run_with_custom_values(self, mock_ex, mock_sleep, mock_run, mock_nc):
-        mock_executions = [Mock(finished=False), Mock(finished=True)]
+        mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run(
             "main.nf", run_path="/exdir", version="21.10", configs=["conf1"],
