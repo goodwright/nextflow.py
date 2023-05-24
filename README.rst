@@ -85,8 +85,7 @@ Running
 To run a pipeline, the ``run`` function is used. The only required
 parameter is the path to the pipeline file:
 
-    >>> pipeline = nextflow.Pipeline("pipelines/my-pipeline.nf")
-    >>> execution = pipeline.run()
+    >>> pipeline = nextflow.run("pipelines/my-pipeline.nf")
 
 This will return an ``Execution`` object, which represents the pipeline
 execution that just took place (see below for details on this object). You can
