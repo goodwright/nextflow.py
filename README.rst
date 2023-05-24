@@ -39,6 +39,11 @@ nextflow.py can be installed using pip::
 
     $ pip install nextflowpy
 
+If you get permission errors, try using ``sudo``::
+
+    $ sudo pip install nextflowpy
+
+
 Development
 ~~~~~~~~~~~
 
@@ -229,7 +234,7 @@ Changelog
 Release 0.6.0
 ~~~~~~~~~~~~~
 
-`24th May 2023`
+`24th May, 2023`
 
 * Added ability to use custom runners for starting jobs.
 * Removed pipeline class to.

@@ -4,7 +4,7 @@ Changelog
 Release 0.6.0
 ~~~~~~~~~~~~~
 
-`24th May 2023`
+`24th May, 2023`
 
 * Added ability to use custom runners for starting jobs.
 * Removed pipeline class to.
