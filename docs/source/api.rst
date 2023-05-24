@@ -2,6 +2,7 @@ Full API
 --------
 
 .. toctree ::
-	api/pipeline
-	api/execution
-	api/utils
+	api/models
+	api/command
+	api/log
+	api/io
