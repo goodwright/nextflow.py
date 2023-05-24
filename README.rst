@@ -18,8 +18,6 @@ nextflow.py
 .. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue)
   :target: https://github.com/goodwright/nextflow.py/blob/master/LICENSE
 
-**IMPORTANT: The name of the package on PyPI has now changed from `nextflow` to `nextflowpy`.**
-
 nextflow.py is a Python wrapper around the Nextflow pipeline framework. It lets
 you run Nextflow pipelines from Python code.
 
@@ -40,11 +38,6 @@ pip
 nextflow.py can be installed using pip::
 
     $ pip install nextflowpy
-
-If you get permission errors, try using ``sudo``::
-
-    $ sudo pip install nextflowpy
-
 
 Development
 ~~~~~~~~~~~
@@ -81,45 +74,94 @@ You can opt to only run unit tests or integration tests::
 Overview
 --------
 
-The starting point for any nextflow.py pipeline is the ``Pipeline``
-object. This is initialised with a path to the file in question, and,
-optionally, the location of an accompanying config file:
-
-    >>> pipeline1 = nextflow.Pipeline("pipelines/my-pipeline.nf")
-    >>> pipeline2 = nextflow.Pipeline("main.nf", config="nextflow.config")
-
 Running
 ~~~~~~~
 
-To actually execute the pipeline, the ``run`` method is used:
+To run a pipeline, the ``run`` function is used. The only required
+parameter is the path to the pipeline file:
 
+    >>> pipeline = nextflow.Pipeline("pipelines/my-pipeline.nf")
     >>> execution = pipeline.run()
 
 This will return an ``Execution`` object, which represents the pipeline
-execution that just took place. You can customise the execution with various
-options:
+execution that just took place (see below for details on this object). You can
+customise the execution with various options:
 
-    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1", config=["env.config"])
+    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"])
 
-This sets the execution to take place in a different location, passes
-``--param1=123`` as a command line argument when the pipeline is run, uses the
-Nextflow profiles 'docker' and 'test', runs with Nextflow version 22.0.1
-(regardless of what version of Nextflow is installed), and passes in an extra
-config file to use on the run.
+* ``location`` - The location to run the pipeline from, which by default is just
+    the current working directory.
+
+* ``params`` - A dictionary of parameters to pass to the pipeline as command.
+    In the above example, this would run the pipeline with ``--param1=123``.
+
+* ``profiles`` - A list of Nextflow profiles to use when running the pipeline.
+    These are defined in the ``nextflow.config`` file, and can be used to
+    configure things like the executor to use, or the container engine to use.
+    In the above example, this would run the pipeline with ``-profile docker,test``.
+
+* ``version`` - The version of Nextflow to use when running the pipeline. By
+    default, the version of Nextflow installed on the system is used, but this
+    can be overridden with this parameter.
+
+* ``configs`` - A list of config files to use when running the pipeline. These
+    are merged with the config files specified in the pipeline itself, and can
+    be used to override any of the settings in the pipeline config.
+
+Custom Runners
+~~~~~~~~~~~~~~
+
+When you run a pipeline with nextflow.py, it will generate the command string
+that you would use at the command line if you were running the pipeline
+manually. This will be some variant of ``nextflow run some-pipeline.nf``, and
+will include any parameters, profiles, versions, and config files that you
+passed in.
+
+By default, nextflow.py will then run this command using the standard Python
+``subprocess`` module. However, you can customise this behaviour by passing in
+a custom 'runner' function. This is a function which takes the command string
+and submits the job in some other way. For example, you could use a custom
+runner to submit the job to a cluster, or to a cloud platform.
+
+This runner function is passed to the ``run`` method as the
+``runner`` parameter:
+
+    >>> execution = pipeline.run("my-pipeline.nf", runner=my_custom_runner)
+
+Once the run command string has been passed to the runner, nextflow.py will
+wait for the pipeline to complete by watching the execution directory, and then
+return the ``Execution`` object as normal.
+
+Polling
+~~~~~~~
+
+The function described above will run the pipeline and wait while it does, with
+the completed ``Execution`` being returned only at the end.
+
+An alternate method is to use ``run_and_poll``, which returns an
+``Execution`` object every few seconds representing the state of the
+pipeline execution at that moment in time, as a generator::
+
+    for execution in pipeline.run_and_poll(sleep=2, location="./rundir", params={"param1": "123"}):
+        print("Processing intermediate execution")
+
+By default, an ``Execution`` will be returned every second, but you can
+adjust this as required with the ``sleep`` paramater. This is useful if you want
+to get information about the progress of the pipeline execution as it proceeds.
 
 Executions
-##########
+~~~~~~~~~~
 
-An ``Execution`` represents a single execution of a
-``Pipeline``. It has properties for:
+An ``Execution`` represents a single execution of a pipeline. It has
+properties for:
 
-* ``id`` - The unique ID of that run, generated by Nextflow.
+* ``identifier`` - The unique ID of that run, generated by Nextflow.
 
-* ``started`` - When the pipeline ran (as a UNIX timestamp).
+* ``started`` - When the pipeline ran (as a Python datetime).
 
-* ``started_dt`` - When the pipeline ran (as a Python datetime).
+* ``finished`` - When the pipeline completed (as a Python datetime).
 
-* ``duration`` - how long the execution took in seconds.
+* ``duration`` - how long the pipeline ran for (if finished).
 
 * ``status`` - the status Nextflow reports on completion.
 
@@ -131,9 +173,9 @@ An ``Execution`` represents a single execution of a
 
 * ``log`` - the full text of the log file produced.
 
-* ``returncode`` - the exit code of the run - usually 0 or 1.
+* ``return_code`` - the exit code of the run - usually 0 or 1.
 
-* ``pipeline`` - the ``Pipeline`` that created the execution.
+* ``path`` - the path to the execution directory.
 
 It also has a ``process_executions`` property, which is a list of
 ``ProcessExecution`` objects. Nextflow processes data by chaining
@@ -141,7 +183,7 @@ together isolated 'processes', and each of these has a
 ``ProcessExecution`` object representing its execution. These have the
 following properties:
 
-* ``hash`` - The unique ID generated by Nextflow, of the form ``xx/xxxxxx``.
+* ``identifier`` - The unique ID generated by Nextflow, of the form ``xx/xxxxxx``.
 
 * ``process`` - The name of the process that spawned the process execution.
 
@@ -153,13 +195,19 @@ following properties:
 
 * ``stderr`` - the stderr of the process execution.
 
-* ``started`` - When the process execution ran (as a UNIX timestamp).
+* ``started`` - When the process execution ran (as a Python datetime).
 
-* ``started_dt`` - When the process execution ran (as a Python datetime).
+* ``started`` - When the process execution completed (as a Python datetime).
 
 * ``duration`` - how long the process execution took in seconds.
 
-* ``returncode`` - the exit code of the process execution - usually 0 or 1.
+* ``return_code`` - the exit code of the process execution - usually 0 or 1.
+
+* ``path`` - the local path to the process execution directory.
+
+* ``full_path`` - the absolute path to the process execution directory.
+
+* ``bash`` - the bash file contents generated for the process execution.
 
 Process executions can have various files passed to them, and will create files
 during their execution too. These can be obtained as follows:
@@ -175,37 +223,18 @@ during their execution too. These can be obtained as follows:
    distinguish these once execution is complete, so nextflow.py reports all
    output files, not just those which are 'published'.
 
-Polling
-~~~~~~~
-
-The method described above will run the pipeline and wait while it does, with
-the completed ``Execution`` being returned only at the end.
-
-An alternate method is to use ``run_and_poll``, which returns an
-``Execution`` object every few seconds representing the state of the
-pipeline execution at that moment in time, as a generator::
-
-    for execution in pipeline.run_and_poll(sleep=2, location="./rundir", params={"param1": "123"}, profile=["docker", "test"], version="22.0.1"):
-        print("Processing intermediate execution")
-
-By default, an ``Execution`` will be returned every 5 seconds, but you
-can adjust this as required with the ``sleep`` paramater. This is useful if you
-want to get information about the progress of the pipeline execution as it
-proceeds.
-
-Direct Running
-~~~~~~~~~~~~~~
-
-If you just want to run a single pipeline without initialising a
-``Pipeline`` object first, you can ``run`` or
-``run_and_poll`` directly, without needing to create a
-``Pipeline``:
-
-    >>> import nextflow
-    >>> execution = nextflow.run(path="pipeline.nf", config=["settings.config"], params={"param1": "123"})
-
 Changelog
 ---------
+
+Release 0.6.0
+~~~~~~~~~~~~~
+
+`24th May 2023`
+
+* Added ability to use custom runners for starting jobs.
+* Removed pipeline class to.
+* Overhauled architecture.
+
 
 Release 0.5.0
 ~~~~~~~~~~~~~

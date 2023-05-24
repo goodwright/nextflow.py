@@ -6,11 +6,11 @@ pip
 
 nextflow.py can be installed using pip::
 
-    $ pip install nextflow
+    $ pip install nextflowpy
 
 If you get permission errors, try using ``sudo``::
 
-    $ sudo pip install nextflow
+    $ sudo pip install nextflowpy
 
 
 Development
