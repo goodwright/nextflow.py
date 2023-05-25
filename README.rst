@@ -25,7 +25,7 @@ Example
 -------
 
    >>> import nextflow
-   >>> execution = nextflow.run(path="main.nf", params={"param1": "123"})
+   >>> execution = nextflow.run("main.nf", params={"param1": "123"})
    >>> print(execution.status)
 
 
