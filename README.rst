@@ -91,26 +91,17 @@ This will return an ``Execution`` object, which represents the pipeline
 execution that just took place (see below for details on this object). You can
 customise the execution with various options:
 
-    >>> execution = pipeline.run(location="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"])
+    >>> execution = pipeline.run(run_path="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"])
 
-* ``location`` - The location to run the pipeline from, which by default is just
-    the current working directory.
+* ``run_path`` - The location to run the pipeline from, which by default is just the current working directory.
 
-* ``params`` - A dictionary of parameters to pass to the pipeline as command.
-    In the above example, this would run the pipeline with ``--param1=123``.
+* ``params`` - A dictionary of parameters to pass to the pipeline as command. In the above example, this would run the pipeline with ``--param1=123``.
 
-* ``profiles`` - A list of Nextflow profiles to use when running the pipeline.
-    These are defined in the ``nextflow.config`` file, and can be used to
-    configure things like the executor to use, or the container engine to use.
-    In the above example, this would run the pipeline with ``-profile docker,test``.
+* ``profiles`` - A list of Nextflow profiles to use when running the pipeline. These are defined in the ``nextflow.config`` file, and can be used to configure things like the executor to use, or the container engine to use. In the above example, this would run the pipeline with ``-profile docker,test``.
 
-* ``version`` - The version of Nextflow to use when running the pipeline. By
-    default, the version of Nextflow installed on the system is used, but this
-    can be overridden with this parameter.
+* ``version`` - The version of Nextflow to use when running the pipeline. By default, the version of Nextflow installed on the system is used, but this can be overridden with this parameter.
 
-* ``configs`` - A list of config files to use when running the pipeline. These
-    are merged with the config files specified in the pipeline itself, and can
-    be used to override any of the settings in the pipeline config.
+* ``configs`` - A list of config files to use when running the pipeline. These are merged with the config files specified in the pipeline itself, and can be used to override any of the settings in the pipeline config.
 
 Custom Runners
 ~~~~~~~~~~~~~~
@@ -146,7 +137,7 @@ An alternate method is to use ``run_and_poll``, which returns an
 ``Execution`` object every few seconds representing the state of the
 pipeline execution at that moment in time, as a generator::
 
-    for execution in pipeline.run_and_poll(sleep=2, location="./rundir", params={"param1": "123"}):
+    for execution in pipeline.run_and_poll(sleep=2, run_path="./rundir", params={"param1": "123"}):
         print("Processing intermediate execution")
 
 By default, an ``Execution`` will be returned every second, but you can
