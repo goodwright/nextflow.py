@@ -1,6 +1,14 @@
 Changelog
 ---------
 
+Release 0.6.1
+~~~~~~~~~~~~~
+
+`7 July, 2023`
+
+* Added option to specify timezone to Nextflow.
+
+
 Release 0.6.0
 ~~~~~~~~~~~~~
 
