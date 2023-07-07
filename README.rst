@@ -103,6 +103,9 @@ customise the execution with various options:
 
 * ``configs`` - A list of config files to use when running the pipeline. These are merged with the config files specified in the pipeline itself, and can be used to override any of the settings in the pipeline config.
 
+* ``timezone`` - A timezone to pass to Nextflow - this determines the timestamps used in the log file.
+
+
 Custom Runners
 ~~~~~~~~~~~~~~
 
@@ -220,6 +223,14 @@ during their execution too. These can be obtained as follows:
 
 Changelog
 ---------
+
+Release 0.6.1
+~~~~~~~~~~~~~
+
+`7 July, 2023`
+
+* Added option to specify timezone to Nextflow.
+
 
 Release 0.6.0
 ~~~~~~~~~~~~~
