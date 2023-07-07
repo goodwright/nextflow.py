@@ -23,6 +23,7 @@ def run(*args, **kwargs):
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
+    :param str timezone: the timezone to use for the log.
     :rtype: ``nextflow.models.Execution``"""
 
     return list(_run(*args, poll=False, **kwargs))[0]
@@ -102,7 +103,8 @@ def make_nextflow_command_env_string(version, timezone):
     """Creates the environment variable setting portion of the nextflow run
     command string.
     
-    :param list configs: any config files to be applied.
+    :param str version: the nextflow version to use.
+    :param str timezone: the timezone to use.
     :rtype: ``str``"""
 
     env = {"NXF_ANSI_LOG": "false"}
