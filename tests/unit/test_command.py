@@ -11,7 +11,7 @@ class RunTests(TestCase):
     @patch("nextflow.command.get_execution")
     def test_can_run_with_default_values(self, mock_ex, mock_sleep, mock_run, mock_nc):
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -30,9 +30,9 @@ class RunTests(TestCase):
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run(
             "main.nf", run_path="/exdir", version="21.10", configs=["conf1"],
-            params={"param": "2"}, profiles=["docker"], sleep=4
+            params={"param": "2"}, profiles=["docker"], timezone="UTC", sleep=4
         ))
-        mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
+        mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC")
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -53,7 +53,7 @@ class RunTests(TestCase):
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -72,7 +72,7 @@ class RunTests(TestCase):
     def test_can_run_with_custom_runner(self, mock_ex, mock_sleep, mock_run, mock_nc):
         runner = MagicMock()
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
@@ -108,8 +108,8 @@ class NextflowCommandTests(TestCase):
         mock_conf.return_value = "-c conf1 -c conf2"
         mock_params.return_value = "--p1=10 --p2=20"
         mock_prof.return_value = "-profile docker,test"
-        command = make_nextflow_command("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
-        mock_env.assert_called_with("21.10")
+        command = make_nextflow_command("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC")
+        mock_env.assert_called_with("21.10", "UTC")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
@@ -125,8 +125,8 @@ class NextflowCommandTests(TestCase):
         mock_conf.return_value = ""
         mock_params.return_value = ""
         mock_prof.return_value = ""
-        command = make_nextflow_command(None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"])
-        mock_env.assert_called_with("21.10")
+        command = make_nextflow_command(None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None)
+        mock_env.assert_called_with("21.10", None)
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
@@ -136,12 +136,16 @@ class NextflowCommandTests(TestCase):
 
 class EnvStringTests(TestCase):
 
-    def test_can_get_env_without_version(self):
-        self.assertEqual(make_nextflow_command_env_string(None), "NXF_ANSI_LOG=false")
+    def test_can_get_env_without_args(self):
+        self.assertEqual(make_nextflow_command_env_string(None, None), "NXF_ANSI_LOG=false")
 
 
     def test_can_get_env_with_version(self):
-        self.assertEqual(make_nextflow_command_env_string("22.1"), "NXF_ANSI_LOG=false NXF_VER=22.1")
+        self.assertEqual(make_nextflow_command_env_string("22.1", None), "NXF_ANSI_LOG=false NXF_VER=22.1")
+    
+
+    def test_can_get_env_with_timezone(self):
+        self.assertEqual(make_nextflow_command_env_string(None, "UTC"), "NXF_ANSI_LOG=false TZ=UTC")
 
 
 

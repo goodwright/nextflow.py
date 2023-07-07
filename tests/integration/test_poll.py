@@ -192,3 +192,30 @@ class CustomRunningTests(RunTestCase):
         # First execution is ongoing
         self.assertEqual(executions[0].return_code, "")
         self.assertIsNone(executions[0].finished)
+    
+
+    def test_can_run_with_specific_timezone(self):
+        # Run basic execution
+        executions = []
+        last_stdout = ""
+        os.chdir(self.rundirectory)
+        for execution in nextflow.run_and_poll(
+            pipeline_path=self.get_path("pipeline.nf"),
+            timezone="UTC",
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        ):
+            last_stdout = self.check_running_execution(execution, last_stdout)
+            executions.append(execution)
+
+        # Execution is fine
+        self.check_execution(execution, timezone="UTC")
+
+        # Check that we have at least 2 executions
+        self.assertGreater(len(executions), 1)
+
+        # First execution is ongoing
+        self.assertEqual(executions[0].return_code, "")
+        self.assertIsNone(executions[0].finished)

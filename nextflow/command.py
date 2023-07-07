@@ -39,6 +39,7 @@ def run_and_poll(*args, **kwargs):
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
+    :param str timezone: the timezone to use for the log.
     :param int sleep: the number of seconds to wait between polls.
     :rtype: ``nextflow.models.Execution``"""
 
@@ -48,11 +49,11 @@ def run_and_poll(*args, **kwargs):
 
 def _run(
         pipeline_path, poll=False, run_path=None, runner=None, version=None,
-        configs=None, params=None, profiles=None, sleep=1
+        configs=None, params=None, profiles=None, timezone=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
-        run_path, pipeline_path, version, configs, params, profiles
+        run_path, pipeline_path, version, configs, params, profiles, timezone
     )
     if runner:
         process = None
@@ -72,7 +73,7 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles):
+def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles, timezone):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
@@ -81,9 +82,10 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
+    :param str timezone: the timezone to use.
     :rtype: ``str``"""
 
-    env = make_nextflow_command_env_string(version)
+    env = make_nextflow_command_env_string(version, timezone)
     if env: env += " "
     nf = "nextflow -Duser.country=US"
     configs = make_nextflow_command_config_string(configs)
@@ -96,7 +98,7 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     return command
 
 
-def make_nextflow_command_env_string(version):
+def make_nextflow_command_env_string(version, timezone):
     """Creates the environment variable setting portion of the nextflow run
     command string.
     
@@ -105,6 +107,7 @@ def make_nextflow_command_env_string(version):
 
     env = {"NXF_ANSI_LOG": "false"}
     if version: env["NXF_VER"] = version
+    if timezone: env["TZ"] = timezone
     return " ".join([f"{k}={v}" for k, v in env.items()])
 
 

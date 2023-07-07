@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, version=None, timezone=None, check_stderr=True):
         # Files created
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -43,11 +43,14 @@ class RunTestCase(TestCase):
         self.assertIn("N E X T F L O W", execution.stdout)
         if check_stderr: self.assertFalse(execution.stderr)
         self.assertEqual(execution.return_code, "0")
-        self.assertLessEqual((datetime.now() - execution.started).seconds, 5)
-        self.assertLessEqual((datetime.now() - execution.finished).seconds, 5)
+        if not timezone:
+            self.assertLessEqual((datetime.now() - execution.started).seconds, 5)
+            self.assertLessEqual((datetime.now() - execution.finished).seconds, 5)
         self.assertGreater(execution.finished, execution.started)
         if version:
             self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false NXF_VER={version} nextflow -Duser.country=US"))
+        elif timezone:
+            self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false TZ={timezone} nextflow -Duser.country=US"))
         else:
             self.assertTrue(execution.command.startswith("NXF_ANSI_LOG=false nextflow -Duser.country=US"))
         self.assertIn("Starting process", execution.log)
@@ -59,7 +62,7 @@ class RunTestCase(TestCase):
 
         # Process executions are fine
         proc_ex = self.get_process_execution(execution, "SPLIT_FILE")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "Splitting...\n")
         self.assertEqual(proc_ex.stderr, "")
         self.assertTrue(proc_ex.bash.startswith, "#!/usr/bin/env")
@@ -73,7 +76,7 @@ class RunTestCase(TestCase):
         self.assertIn(proc_ex.identifier, proc_ex.all_output_data()[0])
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
@@ -89,7 +92,7 @@ class RunTestCase(TestCase):
             self.assertEqual(len(f.read().splitlines()), line_count)
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE")
@@ -103,7 +106,7 @@ class RunTestCase(TestCase):
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
@@ -117,7 +120,7 @@ class RunTestCase(TestCase):
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER")
@@ -131,7 +134,7 @@ class RunTestCase(TestCase):
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_abc.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
@@ -141,7 +144,7 @@ class RunTestCase(TestCase):
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_xyz.dat)")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
@@ -151,7 +154,7 @@ class RunTestCase(TestCase):
         )
 
         proc_ex = self.get_process_execution(execution, "JOIN:COMBINE_FILES")
-        self.check_process_execution(proc_ex, execution, False)
+        self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.process, "JOIN:COMBINE_FILES")
@@ -168,10 +171,11 @@ class RunTestCase(TestCase):
         return [e for e in execution.process_executions if e.name == name][0]
 
 
-    def check_process_execution(self, process_execution, execution, long):
+    def check_process_execution(self, process_execution, execution, long, check_time=True):
         self.assertEqual(process_execution.started.year, datetime.now().year)
-        self.assertLessEqual((datetime.now() - execution.started).seconds, 30 if long else 5)
-        self.assertLessEqual((datetime.now() - execution.finished).seconds, 30 if long else 5)
+        if check_time:
+            self.assertLessEqual((datetime.now() - execution.started).seconds, 30 if long else 5)
+            self.assertLessEqual((datetime.now() - execution.finished).seconds, 30 if long else 5)
         self.assertEqual(process_execution.return_code, "0")
         self.assertEqual(process_execution.status, "COMPLETED")
         self.assertIs(process_execution.execution, execution)

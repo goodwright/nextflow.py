@@ -128,3 +128,19 @@ class CustomRunningTests(RunTestCase):
         # Execution is fine
         self.check_execution(execution)
         self.assertIn("Applying config profile: `special`", execution.log)
+    
+
+    def test_can_run_with_specific_timezone(self):
+        # Run basic execution
+        os.chdir(self.rundirectory)
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            timezone="UTC",
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+
+        # Execution is fine
+        self.check_execution(execution, timezone="UTC")
