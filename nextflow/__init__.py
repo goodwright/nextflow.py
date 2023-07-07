@@ -3,7 +3,7 @@ from .exceptions import NextflowNotInstalledError
 from .command import run, run_and_poll
 
 __author__ = "Sam Ireland"
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 if not which("nextflow"):
     raise NextflowNotInstalledError(
