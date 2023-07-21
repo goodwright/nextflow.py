@@ -93,6 +93,7 @@ class ProcessExecution:
         :type: ``list``"""
         
         inputs = []
+        if not self.path: return []
         run = get_file_text(self.full_path / ".command.run")
         stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", run)
         if not stage: return []

@@ -135,6 +135,14 @@ class InputDataTests(ProcessExecutionTest):
             self.process_execution.input_data(include_path=False), []
         )
         mock_text.assert_called_with(Path("/loc/.command.run"))
+    
+
+    @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
+    def test_can_handle_no_path(self, mock_path):
+        mock_path.return_value = None
+        self.assertEqual(
+            self.make_process_execution(path="").input_data(), []
+        )
 
 
 
