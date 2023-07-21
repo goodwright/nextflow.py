@@ -58,7 +58,7 @@ class ProcessExecutionFullPathTests(ProcessExecutionTest):
 
     def test_can_get_full_path_from_no_path(self):
         process_execution = self.make_process_execution(path="")
-        self.assertEqual(process_execution.full_path, "")
+        self.assertEqual(process_execution.full_path, None)
     
 
     def test_can_get_full_path_from_path(self):

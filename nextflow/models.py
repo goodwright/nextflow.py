@@ -82,7 +82,7 @@ class ProcessExecution:
         
         :rtype: ``pathlib.Path``"""
 
-        if not self.path: return ""
+        if not self.path: return None
         return Path(self.execution.path, "work", self.path)
     
 
