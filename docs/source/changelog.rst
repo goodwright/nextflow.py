@@ -1,6 +1,14 @@
 Changelog
 ---------
 
+Release 0.6.2
+~~~~~~~~~~~~~
+
+`21st July, 2023`
+
+* Fixed issue in handling no path for process execution input data.
+
+
 Release 0.6.1
 ~~~~~~~~~~~~~
 
