@@ -12,10 +12,10 @@ nextflow.py
 .. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflowpy.svg
   :target: https://pypi.org/project/nextflowpy/
 
-.. |nextfow| image:: https://img.shields.io/badge/Nextflow-23.04%20%7C%2022.04%20%7C%2021.10%20%7C%20-orange
+.. |nextfow| image:: https://img.shields.io/badge/Nextflow-23.04%20%7C%2022.04%20%7C%2021.10-orange
   :target: https://www.nextflow.io/
 
-.. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue)
+.. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue
   :target: https://github.com/goodwright/nextflow.py/blob/master/LICENSE
 
 nextflow.py is a Python wrapper around the Nextflow pipeline framework. It lets
