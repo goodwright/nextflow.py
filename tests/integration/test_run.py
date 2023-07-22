@@ -151,7 +151,7 @@ class CustomRunningTests(RunTestCase):
         os.chdir(self.rundirectory)
         execution = nextflow.run(
             pipeline_path=self.get_path("pipeline.nf"),
-            dag="dag.html",
+            timeline="time.html", dag="dag.html",
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -159,4 +159,4 @@ class CustomRunningTests(RunTestCase):
         )
 
         # Execution is fine
-        self.check_execution(execution, dag="dag.html")
+        self.check_execution(execution, timeline="time.html", dag="dag.html")

@@ -228,7 +228,7 @@ class CustomRunningTests(RunTestCase):
         os.chdir(self.rundirectory)
         for execution in nextflow.run_and_poll(
             pipeline_path=self.get_path("pipeline.nf"),
-            dag="dag.html",
+            timeline="time.html", dag="dag.html",
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -238,7 +238,7 @@ class CustomRunningTests(RunTestCase):
             executions.append(execution)
 
         # Execution is fine
-        self.check_execution(execution, dag="dag.html")
+        self.check_execution(execution, timeline="time.html", dag="dag.html")
 
         # Check that we have at least 2 executions
         self.assertGreater(len(executions), 1)

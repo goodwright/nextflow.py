@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None, timezone=None, dag=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, version=None, timezone=None, timeline=None, dag=None, check_stderr=True):
         # Files created
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -67,6 +67,12 @@ class RunTestCase(TestCase):
                 self.assertIn("Cytoscape.js with Dagre", f.read())
         else:
             self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
+        if timeline:
+            self.assertIn(timeline, os.listdir(self.get_path("rundirectory")))
+            with open(os.path.join(self.get_path("rundirectory"), timeline)) as f:
+                self.assertIn("<h3>Processes execution timeline</h3>", f.read())
+        else:
+            self.assertNotIn(timeline, os.listdir(self.get_path("rundirectory")))
 
         # Process executions are fine
         proc_ex = self.get_process_execution(execution, "SPLIT_FILE")
