@@ -224,6 +224,17 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.7.0
+~~~~~~~~~~~~~
+
+`22nd July, 2023`
+
+* An execution report can now be published with the `report` parameter.
+* A timeline report can now be published with the `timeline` parameter.
+* A DAG report can now be published with the `dag` parameter.
+
+
+
 Release 0.6.2
 ~~~~~~~~~~~~~
 
