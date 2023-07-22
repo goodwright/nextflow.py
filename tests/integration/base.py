@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None, timezone=None, timeline=None, dag=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, version=None, timezone=None, report=None, timeline=None, dag=None, check_stderr=True):
         # Files created
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -61,18 +61,24 @@ class RunTestCase(TestCase):
         self.assertEqual(execution.status, "OK")
 
         # Reports
-        if dag:
-            self.assertIn(dag, os.listdir(self.get_path("rundirectory")))
-            with open(os.path.join(self.get_path("rundirectory"), dag)) as f:
-                self.assertIn("Cytoscape.js with Dagre", f.read())
+        if report:
+            self.assertIn(report, os.listdir(self.get_path("rundirectory")))
+            with open(os.path.join(self.get_path("rundirectory"), report)) as f:
+                self.assertIn("Nextflow Workflow Report", f.read())
         else:
-            self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
+            self.assertNotIn(report, os.listdir(self.get_path("rundirectory")))
         if timeline:
             self.assertIn(timeline, os.listdir(self.get_path("rundirectory")))
             with open(os.path.join(self.get_path("rundirectory"), timeline)) as f:
                 self.assertIn("<h3>Processes execution timeline</h3>", f.read())
         else:
             self.assertNotIn(timeline, os.listdir(self.get_path("rundirectory")))
+        if dag:
+            self.assertIn(dag, os.listdir(self.get_path("rundirectory")))
+            with open(os.path.join(self.get_path("rundirectory"), dag)) as f:
+                self.assertIn("Cytoscape.js with Dagre", f.read())
+        else:
+            self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
 
         # Process executions are fine
         proc_ex = self.get_process_execution(execution, "SPLIT_FILE")
