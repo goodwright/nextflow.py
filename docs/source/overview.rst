@@ -13,7 +13,7 @@ This will return an :py:class:`.Execution` object, which represents the pipeline
 execution that just took place (see below for details on this object). You can
 customise the execution with various options:
 
-    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"])
+    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"], timezone="UTC", report="report.html", timeline="timeline.html", dag="dag.html")
 
 * ``run_path`` - The location to run the pipeline from, which by default is just the current working directory.
 
@@ -26,6 +26,12 @@ customise the execution with various options:
 * ``configs`` - A list of config files to use when running the pipeline. These are merged with the config files specified in the pipeline itself, and can be used to override any of the settings in the pipeline config.
 
 * ``timezone`` - A timezone to pass to Nextflow - this determines the timestamps used in the log file.
+
+* ``report`` - A filename for a report file to generate. This will be an HTML file containing information about the pipeline execution.
+
+* ``timeline`` - A filename for a timeline file to generate. This will be an HTML file containing a timeline of the pipeline execution.
+
+* ``dag`` - A filename for a DAG file to generate. This will be an HTML file containing a DAG diagram of the pipeline execution.
 
 
 Custom Runners
