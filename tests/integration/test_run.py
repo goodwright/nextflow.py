@@ -144,3 +144,19 @@ class CustomRunningTests(RunTestCase):
 
         # Execution is fine
         self.check_execution(execution, timezone="UTC")
+    
+
+    def test_can_run_with_reports(self):
+        # Run basic execution
+        os.chdir(self.rundirectory)
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            dag="dag.html",
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+
+        # Execution is fine
+        self.check_execution(execution, dag="dag.html")

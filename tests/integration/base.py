@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None, timezone=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, version=None, timezone=None, dag=None, check_stderr=True):
         # Files created
         self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
@@ -59,6 +59,14 @@ class RunTestCase(TestCase):
         self.assertEqual(len(execution.process_executions), 8)
         self.assertLessEqual(execution.duration.seconds, 5)
         self.assertEqual(execution.status, "OK")
+
+        # Reports
+        if dag:
+            self.assertIn(dag, os.listdir(self.get_path("rundirectory")))
+            with open(os.path.join(self.get_path("rundirectory"), dag)) as f:
+                self.assertIn("Cytoscape.js with Dagre", f.read())
+        else:
+            self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
 
         # Process executions are fine
         proc_ex = self.get_process_execution(execution, "SPLIT_FILE")

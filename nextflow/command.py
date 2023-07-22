@@ -24,6 +24,7 @@ def run(*args, **kwargs):
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
     :param str timezone: the timezone to use for the log.
+    :param str dag: the filename to use for the DAG report.
     :rtype: ``nextflow.models.Execution``"""
 
     return list(_run(*args, poll=False, **kwargs))[0]
@@ -41,6 +42,7 @@ def run_and_poll(*args, **kwargs):
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
     :param str timezone: the timezone to use for the log.
+    :param str dag: the filename to use for the DAG report.
     :param int sleep: the number of seconds to wait between polls.
     :rtype: ``nextflow.models.Execution``"""
 
@@ -50,11 +52,11 @@ def run_and_poll(*args, **kwargs):
 
 def _run(
         pipeline_path, poll=False, run_path=None, runner=None, version=None,
-        configs=None, params=None, profiles=None, timezone=None, sleep=1
+        configs=None, params=None, profiles=None, timezone=None, dag=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
-        run_path, pipeline_path, version, configs, params, profiles, timezone
+        run_path, pipeline_path, version, configs, params, profiles, timezone, dag
     )
     if runner:
         process = None
@@ -74,7 +76,7 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles, timezone):
+def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles, timezone, dag):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
@@ -84,6 +86,7 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
     :param str timezone: the timezone to use.
+    :param str dag: the filename to use for the DAG report.
     :rtype: ``str``"""
 
     env = make_nextflow_command_env_string(version, timezone)
@@ -93,7 +96,8 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     if configs: configs += " "
     params = make_nextflow_command_params_string(params)
     profiles = make_nextflow_command_profiles_string(profiles)
-    command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles}"
+    reports = make_reports_string(dag)
+    command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles} {reports}"
     if run_path: command = f"cd {run_path}; {command}"
     command = command.rstrip() + " >stdout.txt 2>stderr.txt; echo $? >rc.txt"
     return command
@@ -145,6 +149,16 @@ def make_nextflow_command_profiles_string(profiles):
 
     if not profiles: return ""
     return ("-profile " + ",".join(profiles))
+
+
+def make_reports_string(dag):
+    """Creates the report setting portion of the nextflow run command string.
+    
+    :param str dag: the filename to use for the DAG report.
+    :rtype: ``str``"""
+
+    if not dag: return ""
+    return f"-with-dag {dag}"
 
 
 def get_execution(execution_path, nextflow_command):

@@ -11,7 +11,7 @@ class RunTests(TestCase):
     @patch("nextflow.command.get_execution")
     def test_can_run_with_default_values(self, mock_ex, mock_sleep, mock_run, mock_nc):
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -30,9 +30,9 @@ class RunTests(TestCase):
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run(
             "main.nf", run_path="/exdir", version="21.10", configs=["conf1"],
-            params={"param": "2"}, profiles=["docker"], timezone="UTC", sleep=4
+            params={"param": "2"}, profiles=["docker"], timezone="UTC", dag="dag.html", sleep=4
         ))
-        mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC")
+        mock_nc.assert_called_with("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "dag.html")
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -53,7 +53,7 @@ class RunTests(TestCase):
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [None, *mock_executions]
         executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -72,7 +72,7 @@ class RunTests(TestCase):
     def test_can_run_with_custom_runner(self, mock_ex, mock_sleep, mock_run, mock_nc):
         runner = MagicMock()
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), "main.nf", None, None, None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
@@ -103,33 +103,39 @@ class NextflowCommandTests(TestCase):
     @patch("nextflow.command.make_nextflow_command_config_string")
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
-    def test_can_get_full_nextflow_command(self, mock_prof, mock_params, mock_conf, mock_env):
+    @patch("nextflow.command.make_reports_string")
+    def test_can_get_full_nextflow_command(self, mock_report, mock_prof, mock_params, mock_conf, mock_env):
         mock_env.return_value = "A=B C=D"
         mock_conf.return_value = "-c conf1 -c conf2"
         mock_params.return_value = "--p1=10 --p2=20"
         mock_prof.return_value = "-profile docker,test"
-        command = make_nextflow_command("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC")
+        mock_report.return_value = "--dag.html"
+        command = make_nextflow_command("/exdir", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "dag.html")
         mock_env.assert_called_with("21.10", "UTC")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test >stdout.txt 2>stderr.txt; echo $? >rc.txt")
+        mock_report.assert_called_with("dag.html")
+        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test --dag.html >stdout.txt 2>stderr.txt; echo $? >rc.txt")
     
 
     @patch("nextflow.command.make_nextflow_command_env_string")
     @patch("nextflow.command.make_nextflow_command_config_string")
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
-    def test_can_get_minimal_nextflow_command(self, mock_prof, mock_params, mock_conf, mock_env):
+    @patch("nextflow.command.make_reports_string")
+    def test_can_get_minimal_nextflow_command(self, mock_report, mock_prof, mock_params, mock_conf, mock_env):
         mock_env.return_value = ""
         mock_conf.return_value = ""
         mock_params.return_value = ""
         mock_prof.return_value = ""
-        command = make_nextflow_command(None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None)
+        mock_report.return_value = ""
+        command = make_nextflow_command(None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None)
         mock_env.assert_called_with("21.10", None)
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
+        mock_report.assert_called_with(None)
         self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
 
 
@@ -185,6 +191,17 @@ class ProfilesStringTests(TestCase):
 
     def test_can_handle_profiles(self):
         self.assertEqual(make_nextflow_command_profiles_string(["docker", "test"]), "-profile docker,test")
+
+
+
+class ReportsStringTests(TestCase):
+
+    def test_can_handle_no_reports(self):
+        self.assertEqual(make_reports_string(None), "")
+    
+
+    def test_can_make_dag_report(self):
+        self.assertEqual(make_reports_string("dag.html"), "-with-dag dag.html")
 
 
 
