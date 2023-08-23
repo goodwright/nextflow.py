@@ -180,6 +180,13 @@ class ParamsStringTests(TestCase):
             {"param": "2", "param2": "'3'", "param3": '"7"'}
         ), "--param='2' --param2='3' --param3=\"7\""
     )
+        
+
+    def test_can_handle_params_with_empty_values(self):
+        self.assertEqual(make_nextflow_command_params_string(
+            {"param": "2", "param2": "",}
+        ), "--param='2' --param2="
+    )
 
 
 

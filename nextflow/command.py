@@ -143,10 +143,15 @@ def make_nextflow_command_params_string(params):
     :rtype: ``str``"""
 
     if not params: return ""
-    return " ".join([
-        f"--{param[0]}='{param[1]}'" if param[1][0] not in "'\""
-        else f"--{param[0]}={param[1]}" for param in params.items()
-    ])
+    param_list = []
+    for key, value in params.items():
+        if not value:
+            param_list.append(f"--{key}=")
+        elif value[0] in "'\"": 
+            param_list.append(f"--{key}={value}")
+        else:
+            param_list.append(f"--{key}='{value}'")
+    return " ".join(param_list)
 
 
 def make_nextflow_command_profiles_string(profiles):
