@@ -230,6 +230,14 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.7.1
+~~~~~~~~~~~~~
+
+`22nd August, 2023`
+
+* Fixed bug in handling empty param values.
+
+
 Release 0.7.0
 ~~~~~~~~~~~~~
 
