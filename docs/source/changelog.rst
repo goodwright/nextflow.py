@@ -1,6 +1,14 @@
 Changelog
 ---------
 
+Release 0.8.0
+~~~~~~~~~~~~~
+
+`5th September, 2023`
+
+* You can use `output_path` to specify where the execution contents go.
+
+
 Release 0.7.1
 ~~~~~~~~~~~~~
 

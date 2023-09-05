@@ -13,9 +13,11 @@ This will return an :py:class:`.Execution` object, which represents the pipeline
 execution that just took place (see below for details on this object). You can
 customise the execution with various options:
 
-    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"], timezone="UTC", report="report.html", timeline="timeline.html", dag="dag.html")
+    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", output_path="./outputs", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"], timezone="UTC", report="report.html", timeline="timeline.html", dag="dag.html")
 
 * ``run_path`` - The location to run the pipeline from, which by default is just the current working directory.
+
+* ``output_path`` - The location to store the execution outputs (``work`` etc.), which by default is the ``run_path``.
 
 * ``params`` - A dictionary of parameters to pass to the pipeline as command. In the above example, this would run the pipeline with ``--param1=123``.
 
