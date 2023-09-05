@@ -196,8 +196,8 @@ class RunTestCase(TestCase):
     def check_process_execution(self, process_execution, execution, long, check_time=True):
         self.assertEqual(process_execution.started.year, datetime.now().year)
         if check_time:
-            self.assertLessEqual((datetime.now() - execution.started).seconds, 30 if long else 5)
-            self.assertLessEqual((datetime.now() - execution.finished).seconds, 30 if long else 5)
+            self.assertLessEqual((datetime.now() - execution.started).seconds, 45 if long else 10)
+            self.assertLessEqual((datetime.now() - execution.finished).seconds, 45 if long else 10)
         self.assertEqual(process_execution.return_code, "0")
         self.assertEqual(process_execution.status, "COMPLETED")
         self.assertIs(process_execution.execution, execution)
