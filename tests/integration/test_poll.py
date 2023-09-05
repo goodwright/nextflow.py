@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import nextflow
 from .base import RunTestCase
@@ -85,6 +86,75 @@ class CustomRunningTests(RunTestCase):
         # First execution is ongoing
         self.assertEqual(executions[0].return_code, "")
         self.assertIsNone(executions[0].finished)
+    
+
+    def test_can_run_with_specific_output_location(self):
+        # Make location for outputs
+        outputs_path = os.path.sep + os.path.join(*self.rundirectory.split(os.path.sep)[:-1], "outputs")
+        os.mkdir(outputs_path)
+        try:
+            # Run basic execution
+            executions = []
+            last_stdout = ""
+            for execution in nextflow.run_and_poll(
+                pipeline_path=self.get_path("pipeline.nf"),
+                output_path=str(outputs_path),
+                params={
+                    "input": self.get_path("files/data.txt"), "count": "12",
+                    "suffix": self.get_path("files/suffix.txt")
+                }
+            ):
+                last_stdout = self.check_running_execution(execution, last_stdout, str(outputs_path))
+                executions.append(execution)
+
+            # Execution is fine
+            self.check_execution(execution, output_path=str(outputs_path))
+
+            # Check that we have at least 2 executions
+            self.assertGreater(len(executions), 1)
+
+            # First execution is ongoing
+            self.assertEqual(executions[0].return_code, "")
+            self.assertIsNone(executions[0].finished)
+        
+        finally:
+            # Remove outputs
+            shutil.rmtree(outputs_path)
+    
+
+    def test_can_run_with_specific_output_location_and_run_location(self):
+        # Make location for outputs
+        outputs_path = os.path.sep + os.path.join(*self.rundirectory.split(os.path.sep)[:-1], "outputs")
+        os.mkdir(outputs_path)
+        try:
+            # Run basic execution
+            executions = []
+            last_stdout = ""
+            for execution in nextflow.run_and_poll(
+                pipeline_path=self.get_path("pipeline.nf"),
+                output_path=str(outputs_path),
+                run_path=str(self.rundirectory),
+                params={
+                    "input": self.get_path("files/data.txt"), "count": "12",
+                    "suffix": self.get_path("files/suffix.txt")
+                }
+            ):
+                last_stdout = self.check_running_execution(execution, last_stdout, str(outputs_path))
+                executions.append(execution)
+
+            # Execution is fine
+            self.check_execution(execution, output_path=str(outputs_path))
+
+            # Check that we have at least 2 executions
+            self.assertGreater(len(executions), 1)
+
+            # First execution is ongoing
+            self.assertEqual(executions[0].return_code, "")
+            self.assertIsNone(executions[0].finished)
+        
+        finally:
+            # Remove outputs
+            shutil.rmtree(outputs_path)
     
 
     def test_can_run_with_runner(self):

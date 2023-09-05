@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import nextflow
 from .base import RunTestCase
@@ -43,7 +44,7 @@ class BasicRunningTests(RunTestCase):
 
 class CustomRunningTests(RunTestCase):
 
-    def test_can_run_with_specific_location(self):
+    def test_can_run_with_specific_run_location(self):
         # Run basic execution
         execution = nextflow.run(
             pipeline_path=self.get_path("pipeline.nf"),
@@ -56,6 +57,53 @@ class CustomRunningTests(RunTestCase):
 
         # Execution is fine
         self.check_execution(execution)
+    
+
+    def test_can_run_with_specific_output_location(self):
+        # Make location for outputs
+        outputs_path = os.path.sep + os.path.join(*self.rundirectory.split(os.path.sep)[:-1], "outputs")
+        os.mkdir(outputs_path)
+
+        try:
+            # Run basic execution
+            execution = nextflow.run(
+                pipeline_path=self.get_path("pipeline.nf"),
+                output_path=str(outputs_path),
+                params={
+                    "input": self.get_path("files/data.txt"), "count": "12",
+                    "suffix": self.get_path("files/suffix.txt")
+                }
+            )
+
+            # Execution is fine
+            self.check_execution(execution, output_path=str(outputs_path))
+        finally:
+            # Remove outputs
+            shutil.rmtree(outputs_path)
+    
+
+    def test_can_run_with_specific_run_location_and_output_location(self):
+        # Make location for outputs
+        outputs_path = os.path.sep + os.path.join(*self.rundirectory.split(os.path.sep)[:-1], "outputs")
+        os.mkdir(outputs_path)
+
+        try:
+            # Run basic execution
+            execution = nextflow.run(
+                pipeline_path=self.get_path("pipeline.nf"),
+                run_path=str(self.rundirectory),
+                output_path=str(outputs_path),
+                params={
+                    "input": self.get_path("files/data.txt"), "count": "12",
+                    "suffix": self.get_path("files/suffix.txt")
+                }
+            )
+
+            # Execution is fine
+            self.check_execution(execution, output_path=str(outputs_path))
+        finally:
+            # Remove outputs
+            shutil.rmtree(outputs_path)
     
 
     def test_can_run_with_runner(self):

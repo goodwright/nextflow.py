@@ -26,17 +26,17 @@ class RunTestCase(TestCase):
         )
 
 
-    def check_running_execution(self, execution, last_stdout):
-        self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
-        self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
+    def check_running_execution(self, execution, last_stdout, output_path=None):
+        if not output_path: self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
+        self.assertIn(".nextflow.log", os.listdir(output_path or self.get_path("rundirectory")))
         self.assertGreaterEqual(len(execution.stdout), len(last_stdout))
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, version=None, timezone=None, report=None, timeline=None, dag=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, output_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, check_stderr=True):
         # Files created
-        self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
-        self.assertIn(".nextflow.log", os.listdir(self.get_path("rundirectory")))
+        if not output_path: self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
+        self.assertIn(".nextflow.log", os.listdir(output_path or self.get_path("rundirectory")))
 
         # Execution is correct
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.identifier))
@@ -51,11 +51,13 @@ class RunTestCase(TestCase):
             self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false NXF_VER={version} nextflow -Duser.country=US"))
         elif timezone:
             self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false TZ={timezone} nextflow -Duser.country=US"))
+        elif output_path:
+            self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false NXF_WORK={output_path}/work nextflow -Duser.country=US"))
         else:
             self.assertTrue(execution.command.startswith("NXF_ANSI_LOG=false nextflow -Duser.country=US"))
         self.assertIn("Starting process", execution.log)
         self.assertIn("Execution complete -- Goodbye", execution.log)
-        self.assertEqual(execution.path, self.get_path("rundirectory"))
+        self.assertEqual(execution.path, output_path or self.get_path("rundirectory"))
         self.assertEqual(len(execution.process_executions), 8)
         self.assertLessEqual(execution.duration.seconds, 5)
         self.assertEqual(execution.status, "OK")

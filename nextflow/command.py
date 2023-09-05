@@ -18,6 +18,7 @@ def run(*args, **kwargs):
     
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in.
+    :param str output_path: the location to store the output in.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
@@ -38,6 +39,7 @@ def run_and_poll(*args, **kwargs):
     
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in.
+    :param str output_path: the location to store the output in.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
@@ -55,14 +57,14 @@ def run_and_poll(*args, **kwargs):
 
 
 def _run(
-        pipeline_path, poll=False, run_path=None, runner=None, version=None,
-        configs=None, params=None, profiles=None, timezone=None, report=None,
-        timeline=None, dag=None, sleep=1
+        pipeline_path, poll=False, run_path=None, output_path=None, runner=None,
+        version=None, configs=None, params=None, profiles=None, timezone=None,
+        report=None, timeline=None, dag=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
-        run_path, pipeline_path, version, configs, params, profiles, timezone,
-        report, timeline, dag
+        run_path, output_path, pipeline_path, version, configs, params,
+        profiles, timezone, report, timeline, dag
     )
     if runner:
         process = None
@@ -74,7 +76,7 @@ def _run(
     execution = None
     while True:
         time.sleep(sleep)
-        execution = get_execution(run_path, nextflow_command)
+        execution = get_execution(output_path or run_path, nextflow_command)
         if execution and poll: yield execution
         process_finished = not process or process.poll() is not None
         if execution and execution.return_code and process_finished:
@@ -82,10 +84,11 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, pipeline_path, version, configs, params, profiles, timezone, report, timeline, dag):
+def make_nextflow_command(run_path, output_path, pipeline_path, version, configs, params, profiles, timezone, report, timeline, dag):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
+    :param str output_path: the location to store the output in.
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
@@ -97,32 +100,49 @@ def make_nextflow_command(run_path, pipeline_path, version, configs, params, pro
     :param str dag: the filename to use for the DAG report.
     :rtype: ``str``"""
 
-    env = make_nextflow_command_env_string(version, timezone)
+    env = make_nextflow_command_env_string(version, timezone, output_path)
     if env: env += " "
     nf = "nextflow -Duser.country=US"
+    log = make_nextflow_command_log_string(output_path)
+    if log: log += " "
     configs = make_nextflow_command_config_string(configs)
     if configs: configs += " "
     params = make_nextflow_command_params_string(params)
     profiles = make_nextflow_command_profiles_string(profiles)
-    reports = make_reports_string(report, timeline, dag)
-    command = f"{env}{nf} {configs}run {pipeline_path} {params} {profiles} {reports}"
+    reports = make_reports_string(output_path, report, timeline, dag)
+    command = f"{env}{nf} {log}{configs}run {pipeline_path} {params} {profiles} {reports}"
     if run_path: command = f"cd {run_path}; {command}"
-    command = command.rstrip() + " >stdout.txt 2>stderr.txt; echo $? >rc.txt"
+    prefix = (str(output_path) + os.path.sep) if output_path else ""
+    command = command.rstrip() + f" >{prefix}"
+    command += f"stdout.txt 2>{prefix}"
+    command += f"stderr.txt; echo $? >{prefix}rc.txt"
     return command
 
 
-def make_nextflow_command_env_string(version, timezone):
+def make_nextflow_command_env_string(version, timezone, output_path):
     """Creates the environment variable setting portion of the nextflow run
     command string.
     
     :param str version: the nextflow version to use.
     :param str timezone: the timezone to use.
+    :param str output_path: the location to store the output in.
     :rtype: ``str``"""
 
     env = {"NXF_ANSI_LOG": "false"}
     if version: env["NXF_VER"] = version
     if timezone: env["TZ"] = timezone
+    if output_path: env["NXF_WORK"] = os.path.join(output_path, "work")
     return " ".join([f"{k}={v}" for k, v in env.items()])
+
+
+def make_nextflow_command_log_string(output_path):
+    """Creates the log setting portion of the nextflow run command string.
+    
+    :param str output_path: the location to store the output in.
+    :rtype: ``str``"""
+
+    if not output_path: return ""
+    return f"-log '{os.path.join(output_path, '.nextflow.log')}'"
 
 
 def make_nextflow_command_config_string(configs):
@@ -164,9 +184,10 @@ def make_nextflow_command_profiles_string(profiles):
     return ("-profile " + ",".join(profiles))
 
 
-def make_reports_string(report, timeline, dag):
+def make_reports_string(output_path, report, timeline, dag):
     """Creates the report setting portion of the nextflow run command string.
     
+    :param str output_path: the location to store the output in.
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
     :param str dag: the filename to use for the DAG report.
@@ -176,6 +197,11 @@ def make_reports_string(report, timeline, dag):
     if report: params.append(f"-with-report {report}")
     if timeline: params.append(f"-with-timeline {timeline}")
     if dag: params.append(f"-with-dag {dag}")
+    if output_path:
+        for i, param in enumerate(params):
+            words = param.split(" ")
+            words[1] = os.path.join(output_path, words[1])
+            params[i] = " ".join(words)
     return " ".join(params)
 
 
