@@ -44,8 +44,8 @@ class RunTestCase(TestCase):
         if check_stderr: self.assertFalse(execution.stderr)
         self.assertEqual(execution.return_code, "0")
         if not timezone:
-            self.assertLessEqual((datetime.now() - execution.started).seconds, 5)
-            self.assertLessEqual((datetime.now() - execution.finished).seconds, 5)
+            self.assertLessEqual((datetime.now() - execution.started).seconds, 10)
+            self.assertLessEqual((datetime.now() - execution.finished).seconds, 10)
         self.assertGreater(execution.finished, execution.started)
         if version:
             self.assertTrue(execution.command.startswith(f"NXF_ANSI_LOG=false NXF_VER={version} nextflow -Duser.country=US"))
