@@ -221,9 +221,9 @@ def get_execution(execution_path, nextflow_command):
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
     process_executions = get_process_executions(log, execution_path)
-    command = sorted(nextflow_command.split(";"), key=len)[-1].replace(
-        ">stdout.txt 2>stderr.txt", ""
-    ).strip()
+    command = sorted(nextflow_command.split(";"), key=len)[-1]
+    command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
+    command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
     execution = Execution(
         identifier=identifier, stdout=stdout, stderr=stderr,
         return_code=return_code.strip(), started=started, finished=finished,

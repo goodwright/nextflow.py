@@ -266,7 +266,7 @@ class GetExecutionTests(TestCase):
             "log text [xx_yy]", "ok", "bad", "9"
         ]
         mock_ex.return_value = Mock(process_executions=[Mock(execution=None), Mock(execution=None)])
-        execution = get_execution("/ex", "a=b; nf run >stdout.txt 2>stderr.txt")
+        execution = get_execution("/ex", "a=b; nf run >/out/stdout.txt 2>/out/xxx/stderr.txt")
         self.assertEqual([c[0] for c in mock_file.call_args_list], [
             (os.path.join("/ex", ".nextflow.log"),),
             (os.path.join("/ex", "stdout.txt"),),
