@@ -1,6 +1,14 @@
 Changelog
 ---------
 
+Release 0.8.1
+~~~~~~~~~~~~~
+
+`14th November, 2023`
+
+* Handle pure nextflow process statuses better.
+
+
 Release 0.8.0
 ~~~~~~~~~~~~~
 
