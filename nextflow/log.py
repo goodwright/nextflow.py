@@ -110,6 +110,8 @@ def get_process_status_from_log(log, process_id):
 
     escaped_id = process_id.replace('/', '\\/')
     match = re.search(
-        f".+Task completed.+status: ([A-Z]+).+exit: (\d+).+{escaped_id}", log
+        f".+Task completed.+status: ([A-Z]+).+exit: (.+?);.+{escaped_id}", log
     )
-    return ("FAILED" if match[2] != "0" else match[1]) if match else "-"
+    if not match: return "-"
+    if match[2].isdigit() and match[2] != "0": return "FAILED"
+    return match[1]
