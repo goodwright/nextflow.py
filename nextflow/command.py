@@ -11,6 +11,7 @@ from nextflow.log import (
     get_process_start_from_log,
     get_process_end_from_log,
     get_process_status_from_log,
+    collect_process_info_from_logs,
 )
 
 
@@ -319,6 +320,7 @@ def get_process_executions(log, execution_path):
     print(f"Process ids {process_ids}")
     process_executions = []
     process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path)
+    process_info = collect_process_info_from_logs(log, process_ids)
     for process_id in process_ids:
         path = process_ids_to_paths.get(process_id, "")
         process_executions.append(
@@ -327,37 +329,35 @@ def get_process_executions(log, execution_path):
     return process_executions
 
 
-def get_process_execution(process_id, path, log, execution_path):
+def get_process_execution(process_id, path, process_info, execution_path):
     """Creates a process execution from a log and its ID.
 
     :param str process_id: the ID of the process.
     :param str path: the path of the process.
-    :param str log: the log text.
+    :param str process_info: dictionary of process_id information from the log file
     :param str execution_path: the location of the execution.
     :rtype: ``nextflow.models.ProcessExecution``"""
 
     stdout, stderr, returncode, bash = "", "", "", ""
 
-    start_time = time.time()
     if path:
         full_path = os.path.join(execution_path, "work", path)
         stdout = get_file_text(os.path.join(full_path, ".command.out"))
         stderr = get_file_text(os.path.join(full_path, ".command.err"))
         returncode = get_file_text(os.path.join(full_path, ".exitcode"))
         bash = get_file_text(os.path.join(full_path, ".command.sh"))
-    print(
-        f"Got stdout stderr returncode for {process_id} in {time.time() - start_time:.3f}s"
-    )
 
-    start_time = time.time()
-    name = get_process_name_from_log(log, process_id)
-    started = (get_process_start_from_log(log, process_id),)
-    finished = (get_process_end_from_log(log, process_id),)
-    status = (get_process_status_from_log(log, process_id),)
+    # name = get_process_name_from_log(log, process_id)
+    # started = (get_process_start_from_log(log, process_id),)
+    # finished = (get_process_end_from_log(log, process_id),)
+    # status = (get_process_status_from_log(log, process_id),)
+    name = process_info[process_id]["name"]
+    started = (process_info[process_id]["start"],)
+    finished = (process_info[process_id]["end"],)
+    status = (process_info[process_id]["status"],)
     print(
         f"PID {process_id} {name} started: {started} finished: {finished} status: {status}"
     )
-    print(f"Parsed logs for {process_id} in {time.time() - start_time:.3f}s")
     return ProcessExecution(
         identifier=process_id,
         name=name,
