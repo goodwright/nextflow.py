@@ -98,11 +98,8 @@ def _run(
         )
     execution = None
     while True:
-        print("Sleeping")
         time.sleep(sleep)
-        print("Get Execution")
         execution = get_execution(output_path or run_path, nextflow_command)
-        print("Finished Get Execution")
         if execution and poll:
             yield execution
         process_finished = not process or process.poll() is not None
@@ -267,9 +264,6 @@ def get_execution(execution_path, nextflow_command):
     :param str execution_path: the location of the execution.
     :param str nextflow_command: the command used to run the pipeline.
     :rtype: ``nextflow.models.Execution``"""
-
-    print("Starting Get Execution...")
-    start_time = time.time()
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
     if not log:
         return
@@ -279,11 +273,8 @@ def get_execution(execution_path, nextflow_command):
     return_code = get_file_text(os.path.join(execution_path, "rc.txt"))
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
-    print(f"Processed logs in {time.time() - start_time:.3f}s")
 
-    start_time = time.time()
     process_executions = get_process_executions(log, execution_path)
-    print(f"Got process executions in {time.time() - start_time:.3f}s")
     command = sorted(nextflow_command.split(";"), key=len)[-1]
     command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
     command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
@@ -303,7 +294,6 @@ def get_execution(execution_path, nextflow_command):
     start_time = time.time()
     for process_execution in execution.process_executions:
         process_execution.execution = execution
-    print(f"Associated process executions in {time.time() - start_time:.3f}s")
     return execution
 
 
@@ -317,7 +307,6 @@ def get_process_executions(log, execution_path):
     process_ids = re.findall(
         r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process", log, flags=re.MULTILINE
     )
-    print(f"Process ids {process_ids}")
     process_executions = []
     process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path)
     process_info = collect_process_info_from_logs(log, process_ids)
@@ -347,17 +336,10 @@ def get_process_execution(process_id, path, process_info, execution_path):
         returncode = get_file_text(os.path.join(full_path, ".exitcode"))
         bash = get_file_text(os.path.join(full_path, ".command.sh"))
 
-    # name = get_process_name_from_log(log, process_id)
-    # started = (get_process_start_from_log(log, process_id),)
-    # finished = (get_process_end_from_log(log, process_id),)
-    # status = (get_process_status_from_log(log, process_id),)
     name = process_info[process_id]["name"]
     started = (process_info[process_id]["start"],)
     finished = (process_info[process_id]["end"],)
     status = (process_info[process_id]["status"],)
-    print(
-        f"PID {process_id} {name} started: {started} finished: {finished} status: {status}"
-    )
     return ProcessExecution(
         identifier=process_id,
         name=name,
