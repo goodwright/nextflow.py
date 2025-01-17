@@ -354,6 +354,9 @@ def get_process_execution(process_id, path, log, execution_path):
     started = (get_process_start_from_log(log, process_id),)
     finished = (get_process_end_from_log(log, process_id),)
     status = (get_process_status_from_log(log, process_id),)
+    print(
+        f"PID {process_id} {name} started: {started} finished: {finished} status: {status}"
+    )
     print(f"Parsed logs for {process_id} in {time.time() - start_time:.3f}s")
     return ProcessExecution(
         identifier=process_id,
