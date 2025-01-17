@@ -278,11 +278,11 @@ def get_execution(execution_path, nextflow_command):
     return_code = get_file_text(os.path.join(execution_path, "rc.txt"))
     started = get_started_from_log(log)
     finished = get_finished_from_log(log)
-    print(f"Processed logs in {time.time() - start_time}s")
+    print(f"Processed logs in {time.time() - start_time:.3f}s")
 
     start_time = time.time()
     process_executions = get_process_executions(log, execution_path)
-    print(f"Got process executions in {time.time() - start_time}s")
+    print(f"Got process executions in {time.time() - start_time:.3f}s")
     command = sorted(nextflow_command.split(";"), key=len)[-1]
     command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
     command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
@@ -302,7 +302,7 @@ def get_execution(execution_path, nextflow_command):
     start_time = time.time()
     for process_execution in execution.process_executions:
         process_execution.execution = execution
-    print(f"Associated process executions in {time.time() - start_time}s")
+    print(f"Associated process executions in {time.time() - start_time:.3f}s")
     return execution
 
 
@@ -346,7 +346,7 @@ def get_process_execution(process_id, path, log, execution_path):
         returncode = get_file_text(os.path.join(full_path, ".exitcode"))
         bash = get_file_text(os.path.join(full_path, ".command.sh"))
     print(
-        f"Got stdout stderr returncode for {process_id} in {time.time() - start_time}s"
+        f"Got stdout stderr returncode for {process_id} in {time.time() - start_time:.3f}s"
     )
 
     start_time = time.time()
@@ -354,7 +354,7 @@ def get_process_execution(process_id, path, log, execution_path):
     started = (get_process_start_from_log(log, process_id),)
     finished = (get_process_end_from_log(log, process_id),)
     status = (get_process_status_from_log(log, process_id),)
-    print(f"Parsed logs for {process_id} in {time.time() - start_time}s")
+    print(f"Parsed logs for {process_id} in {time.time() - start_time:.3f}s")
     return ProcessExecution(
         identifier=process_id,
         name=name,
