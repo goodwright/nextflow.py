@@ -101,6 +101,7 @@ def _run(
         time.sleep(sleep)
         print("Get Execution")
         execution = get_execution(output_path or run_path, nextflow_command)
+        print("Finished Get Execution")
         if execution and poll:
             yield execution
         process_finished = not process or process.poll() is not None
@@ -267,6 +268,7 @@ def get_execution(execution_path, nextflow_command):
     :rtype: ``nextflow.models.Execution``"""
 
     print("Doing get execution stuff")
+    print("Getting log, stdout, stderr, return code")
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
     if not log:
         return
@@ -293,6 +295,7 @@ def get_execution(execution_path, nextflow_command):
         process_executions=process_executions,
     )
     for process_execution in execution.process_executions:
+        print("I'm in another loop. Confused what this does.")
         process_execution.execution = execution
     return execution
 
@@ -304,12 +307,15 @@ def get_process_executions(log, execution_path):
     :param str execution_path: the location of the execution.
     :rtype: ``list`` of ``nextflow.models.ProcessExecution``"""
 
+    print("Getting list of process executions")
     process_ids = re.findall(
         r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process", log, flags=re.MULTILINE
     )
+    print(f"Process ids {process_ids}")
     process_executions = []
     process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path)
     for process_id in process_ids:
+        print("I'm in a loop, creating a list... suspicious")
         path = process_ids_to_paths.get(process_id, "")
         process_executions.append(
             get_process_execution(process_id, path, log, execution_path)
