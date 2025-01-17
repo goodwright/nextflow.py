@@ -324,7 +324,7 @@ def get_process_executions(log, execution_path):
     for process_id in process_ids:
         path = process_ids_to_paths.get(process_id, "")
         process_executions.append(
-            get_process_execution(process_id, path, log, execution_path)
+            get_process_execution(process_id, path, process_info, execution_path)
         )
     return process_executions
 
@@ -334,7 +334,7 @@ def get_process_execution(process_id, path, process_info, execution_path):
 
     :param str process_id: the ID of the process.
     :param str path: the path of the process.
-    :param str process_info: dictionary of process_id information from the log file
+    :param dict process_info: dictionary of process_id information from the log file
     :param str execution_path: the location of the execution.
     :rtype: ``nextflow.models.ProcessExecution``"""
 
