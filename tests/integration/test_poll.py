@@ -1,4 +1,5 @@
 import os
+import copy
 import shutil
 import subprocess
 import nextflow
@@ -21,7 +22,7 @@ class BasicRunAndPollTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Last execution is fine
         self.check_execution(executions[-1])
@@ -46,7 +47,7 @@ class BasicRunAndPollTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         self.assertEqual(executions[-1].status, "ERROR")
         self.assertEqual(executions[-1].return_code, "1")
@@ -75,7 +76,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution)
@@ -105,7 +106,7 @@ class CustomRunningTests(RunTestCase):
                 }
             ):
                 last_stdout = self.check_running_execution(execution, last_stdout, str(outputs_path))
-                executions.append(execution)
+                executions.append(copy.deepcopy(execution))
 
             # Execution is fine
             self.check_execution(execution, output_path=str(outputs_path))
@@ -140,7 +141,7 @@ class CustomRunningTests(RunTestCase):
                 }
             ):
                 last_stdout = self.check_running_execution(execution, last_stdout, str(outputs_path))
-                executions.append(execution)
+                executions.append(copy.deepcopy(execution))
 
             # Execution is fine
             self.check_execution(execution, output_path=str(outputs_path))
@@ -176,7 +177,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution, line_count=10)
@@ -194,7 +195,7 @@ class CustomRunningTests(RunTestCase):
                 "suffix": self.get_path("files/suffix.txt")
             }
         ):
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution, version="21.10.3", check_stderr=False)
@@ -221,7 +222,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution)
@@ -250,7 +251,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution)
@@ -278,7 +279,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution, timezone="UTC")
@@ -305,7 +306,7 @@ class CustomRunningTests(RunTestCase):
             }
         ):
             last_stdout = self.check_running_execution(execution, last_stdout)
-            executions.append(execution)
+            executions.append(copy.deepcopy(execution))
 
         # Execution is fine
         self.check_execution(execution, report="report.html", timeline="time.html", dag="dag.html")

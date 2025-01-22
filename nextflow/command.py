@@ -8,10 +8,9 @@ from nextflow.models import Execution, ProcessExecution
 from nextflow.log import (
     get_started_from_log,
     get_finished_from_log,
-    get_process_name_from_log,
-    get_process_start_from_log,
-    get_process_end_from_log,
-    get_process_status_from_log
+    get_identifier_from_log,
+    parse_submitted_line,
+    parse_completed_line,
 )
 
 def run(*args, **kwargs):
@@ -74,10 +73,13 @@ def _run(
         process = subprocess.Popen(
             nextflow_command, universal_newlines=True, shell=True        
         )
-    execution = None
+    execution, log_start = None, 0
     while True:
         time.sleep(sleep)
-        execution = get_execution(output_path or run_path, nextflow_command)
+        execution, diff = get_execution(
+            output_path or run_path, nextflow_command, execution, log_start
+        )
+        log_start += diff
         if execution and poll: yield execution
         process_finished = not process or process.poll() is not None
         if execution and execution.return_code and process_finished:
@@ -206,7 +208,7 @@ def make_reports_string(output_path, report, timeline, dag):
     return " ".join(params)
 
 
-def get_execution(execution_path, nextflow_command):
+def get_execution(execution_path, nextflow_command, execution=None, log_start=0):
     """Creates an execution object from a location.
     
     :param str execution_path: the location of the execution.
@@ -214,111 +216,78 @@ def get_execution(execution_path, nextflow_command):
     :rtype: ``nextflow.models.Execution``"""
 
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
-    if not log: return
-    lines = log.splitlines()
-    execution = make_execution_from_log(log, execution_path, nextflow_command)
-    process_executions = get_initial_process_executions_from_log(lines, execution)
-    process_ids_to_paths = get_process_ids_to_paths(list(process_executions.keys()), execution_path)
+    if not log: return None, 0
+    log = log[log_start:]
+    execution = make_or_update_execution(log, execution_path, nextflow_command, execution)
+    process_executions, changed = get_initial_process_executions(log, execution)
+    to_check = [k for k, v in process_executions.items() if not v.path]
+    process_ids_to_paths = get_process_ids_to_paths(to_check, execution_path)
     for process_id, path in process_ids_to_paths.items():
         process_executions[process_id].path = path
     for process_execution in process_executions.values():
-        update_process_execution_from_path(process_execution, execution_path)
+        if not process_execution.finished or process_execution.identifier in changed:
+            update_process_execution_from_path(process_execution, execution_path)
     execution.process_executions = list(process_executions.values())
+    return execution, len(log)
+
+
+def make_or_update_execution(log, execution_path, nextflow_command, execution):
+    if not execution:
+        command = sorted(nextflow_command.split(";"), key=len)[-1]
+        command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
+        command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
+        execution = Execution(
+            identifier="", stdout="", stderr="", return_code="",
+            started=None, finished=None, command=command, log=log,
+            path=execution_path, process_executions=[],
+        )
+    if not execution.identifier: execution.identifier = get_identifier_from_log(log)
+    if not execution.started: execution.started = get_started_from_log(log)
+    if not execution.finished: execution.finished = get_finished_from_log(log)
+    execution.log += log
+    execution.stdout = get_file_text(os.path.join(execution_path, "stdout.txt"))
+    execution.stderr = get_file_text(os.path.join(execution_path, "stderr.txt"))
+    execution.return_code = get_file_text(os.path.join(execution_path, "rc.txt")).rstrip()
     return execution
 
 
-def make_execution_from_log(log, execution_path, nextflow_command):
-    identifier = m[1] if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)) else ""
-    stdout = get_file_text(os.path.join(execution_path, "stdout.txt"))
-    stderr = get_file_text(os.path.join(execution_path, "stderr.txt"))
-    return_code = get_file_text(os.path.join(execution_path, "rc.txt"))
-    started = get_started_from_log(log)
-    finished = get_finished_from_log(log)
-    command = sorted(nextflow_command.split(";"), key=len)[-1]
-    command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
-    command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
-    return Execution(
-        identifier=identifier, stdout=stdout, stderr=stderr,
-        return_code=return_code.strip(), started=started, finished=finished,
-        command=command, log=log, path=execution_path,
-        process_executions=[],
-    )
-
-
-def get_initial_process_executions_from_log(lines, execution):
-    process_executions = {}
+def get_initial_process_executions(log, execution):
+    lines = log.splitlines()
+    process_executions = {p.identifier: p for p in execution.process_executions}
+    just_updated= []
     for line in lines:
         if "Submitted process" in line:
             proc_ex = create_process_execution_from_line(line)
             if not proc_ex: continue
             proc_ex.execution = execution
             process_executions[proc_ex.identifier] = proc_ex
+            just_updated.append(proc_ex.identifier)
         elif "Task completed" in line:
-            update_process_execution_from_line(process_executions, line)
-    return process_executions
+            just_updated.append(
+                update_process_execution_from_line(process_executions, line)
+            )
+    return process_executions, just_updated
 
 
 def create_process_execution_from_line(line):
-    # Parse line
-    log_pattern = r"(?P<timestamp>\w{3}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[.*?\] INFO  nextflow\.Session - \[(?P<id>[\w/]+)\] Submitted process > (?P<name>.+)"
-    match = re.match(log_pattern, line)
-    if not match: return
-
-    # Get identifier
-    identifier = match.group("id")
-
-    # Get name and process
-    name = match.group("name")
-    process = name[:name.find("(") - 1] if "(" in name else name
-
-    # Get started
-    year = datetime.now().year
-    started = datetime.strptime(
-        f"{year}-{match.group('timestamp')}", "%Y-%b-%d %H:%M:%S.%f"
-    )
-
-    # Create process execution
+    identifier, name, process, started = parse_submitted_line(line)
+    if not identifier: return
     return ProcessExecution(
-        identifier=identifier,
-        name=name,
-        process=process,
-        path="",
-        stdout="",
-        stderr="",
-        return_code=None,
-        bash="",
-        started=started,
-        finished=None,
+        identifier=identifier, name=name, process=process, started=started,
+        path="", stdout="", stderr="", return_code="", bash="", finished=None,
         status="-",
     )
 
 
 def update_process_execution_from_line(process_executions, line):
-    # Parse line
-    log_pattern = r"(?P<timestamp>\w{3}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) .*?" r"Task completed > TaskHandler\[.*?name: (?P<name>.+); status: (?P<status>\w+); " r"exit: (?P<exit_code>\d+); .*?workDir: .*?/work/(?P<id>[\w/]{9})"
-    match = re.match(log_pattern, line)
-    if not match: return
-
-    # Get identifier
-    identifier = match.group("id")
-
-    # Get process execution
+    identifier, finished, return_code, status = parse_completed_line(line)
+    if not identifier: return
     process_execution = process_executions.get(identifier)
     if not process_execution: return
-
-    # Get finished
-    year = datetime.now().year
-    process_execution.finished = datetime.strptime(
-        f"{year}-{match.group('timestamp')}", "%Y-%b-%d %H:%M:%S.%f"
-    )
-
-    # Get return code
-    process_execution.return_code = match.group("exit_code")
-
-    # Get status
-    status = match.group("status") or "-"
-    if process_execution.return_code == "1": status = "FAILED"
+    process_execution.finished = finished
+    process_execution.return_code = return_code
     process_execution.status = status
+    return identifier
 
 
 def update_process_execution_from_path(process_execution, execution_path):
@@ -326,59 +295,7 @@ def update_process_execution_from_path(process_execution, execution_path):
     full_path = os.path.join(execution_path, "work", process_execution.path)
     process_execution.stdout = get_file_text(os.path.join(full_path, ".command.out"))
     process_execution.stderr = get_file_text(os.path.join(full_path, ".command.err"))
-    process_execution.bash = get_file_text(os.path.join(full_path, ".command.sh"))
-
-
-
-
-
-
-
-
-def get_process_executions(log, execution_path):
-    """Creates a list of process executions from a log.
-    
-    :param str log: the log text.
-    :param str execution_path: the location of the execution.
-    :rtype: ``list`` of ``nextflow.models.ProcessExecution``"""
-
-    process_ids = re.findall(
-        r"\[([a-f,0-9]{2}/[a-f,0-9]{6})\] Submitted process",
-        log, flags=re.MULTILINE
-    )
-    process_executions = []
-    process_ids_to_paths = get_process_ids_to_paths(process_ids, execution_path)
-    for process_id in process_ids:
-        path = process_ids_to_paths.get(process_id, "")
-        process_executions.append(get_process_execution(
-            process_id, path, log, execution_path
-        ))
-    return process_executions
-
-
-def get_process_execution(process_id, path, log, execution_path):
-    """Creates a process execution from a log and its ID.
-    
-    :param str process_id: the ID of the process.
-    :param str path: the path of the process.
-    :param str log: the log text.
-    :param str execution_path: the location of the execution.
-    :rtype: ``nextflow.models.ProcessExecution``"""
-    
-    stdout, stderr, returncode, bash = "", "", "", ""
-    if path:
-        full_path = os.path.join(execution_path, "work", path)
-        stdout = get_file_text(os.path.join(full_path, ".command.out"))
-        stderr = get_file_text(os.path.join(full_path, ".command.err"))
-        returncode = get_file_text(os.path.join(full_path, ".exitcode"))
-        bash = get_file_text(os.path.join(full_path, ".command.sh"))
-    name = get_process_name_from_log(log, process_id)
-    return ProcessExecution(
-        identifier=process_id, name=name,
-        process=name[:name.find("(") - 1] if "(" in name else name,
-        path=path, stdout=stdout, stderr=stderr, return_code=returncode,
-        bash=bash,
-        started=get_process_start_from_log(log, process_id),
-        finished=get_process_end_from_log(log, process_id),
-        status=get_process_status_from_log(log, process_id),
-    )
+    if not process_execution.bash:
+        process_execution.bash = get_file_text(os.path.join(full_path, ".command.sh"))
+    if process_execution.execution.finished and not process_execution.return_code:
+        process_execution.return_code = process_execution.execution.return_code
