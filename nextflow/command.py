@@ -2,7 +2,6 @@ import os
 import re
 import time
 import subprocess
-from datetime import datetime
 from nextflow.io import get_file_text, get_process_ids_to_paths
 from nextflow.models import Execution, ProcessExecution
 from nextflow.log import (
@@ -209,7 +208,8 @@ def make_reports_string(output_path, report, timeline, dag):
 
 
 def get_execution(execution_path, nextflow_command, execution=None, log_start=0):
-    """Creates an execution object from a location.
+    """Creates an execution object from a location. If you are polling, you can
+    pass in the previous execution to update it with new information.
     
     :param str execution_path: the location of the execution.
     :param str nextflow_command: the command used to run the pipeline.
@@ -232,13 +232,22 @@ def get_execution(execution_path, nextflow_command, execution=None, log_start=0)
 
 
 def make_or_update_execution(log, execution_path, nextflow_command, execution):
+    """Creates an Execution object from a log file, or updates an existing one
+    from a previous poll.
+
+    :param str log: a section of the log file.
+    :param str execution_path: the location of the execution.
+    :param str nextflow_command: the command used to run the pipeline.
+    :param nextflow.models.Execution execution: the existing execution.
+    :rtype: ``nextflow.models.Execution``"""
+
     if not execution:
         command = sorted(nextflow_command.split(";"), key=len)[-1]
         command = re.sub(r">[a-zA-Z0-9\/-]+?stdout\.txt", "", command)
         command = re.sub(r"2>[a-zA-Z0-9\/-]+?stderr\.txt", "", command).strip()
         execution = Execution(
             identifier="", stdout="", stderr="", return_code="",
-            started=None, finished=None, command=command, log=log,
+            started=None, finished=None, command=command, log="",
             path=execution_path, process_executions=[],
         )
     if not execution.identifier: execution.identifier = get_identifier_from_log(log)
@@ -252,6 +261,16 @@ def make_or_update_execution(log, execution_path, nextflow_command, execution):
 
 
 def get_initial_process_executions(log, execution):
+    """Parses a section of a log file and looks for new process executions not
+    currently in the list, or uncompleted ones which can now be completed. Some
+    attributes are not yet filled in.
+
+    The identifiers of the proccess executions seen are returned.
+    
+    :param str log: a section of the log file.
+    :param nextflow.models.Execution execution: the containing execution.
+    :rtype: ``tuple``"""
+
     lines = log.splitlines()
     process_executions = {p.identifier: p for p in execution.process_executions}
     just_updated= []
@@ -270,6 +289,12 @@ def get_initial_process_executions(log, execution):
 
 
 def create_process_execution_from_line(line):
+    """Creates a process execution from a line of the log file in which its
+    submission is reported.
+    
+    :param str line: a line from the log file.
+    :rtype: ``nextflow.models.ProcessExecution``"""
+
     identifier, name, process, started = parse_submitted_line(line)
     if not identifier: return
     return ProcessExecution(
@@ -280,6 +305,14 @@ def create_process_execution_from_line(line):
 
 
 def update_process_execution_from_line(process_executions, line):
+    """Updates a process execution with information from a line of the log file
+    in which its completion is reported. The identifier of the process execution
+    is returned.
+    
+    :param dict process_executions: a dictionary of process executions.
+    :param str line: a line from the log file.
+    :rtype: ``str``"""
+
     identifier, finished, return_code, status = parse_completed_line(line)
     if not identifier: return
     process_execution = process_executions.get(identifier)
@@ -291,6 +324,12 @@ def update_process_execution_from_line(process_executions, line):
 
 
 def update_process_execution_from_path(process_execution, execution_path):
+    """Some attributes of a process execution need to be obtained from files on
+    disk. This function updates the process execution with these values.
+    
+    :param nextflow.models.ProcessExecution process_execution: the process execution.
+    :param str execution_path: the location of the containing execution."""
+
     if not process_execution.path: return
     full_path = os.path.join(execution_path, "work", process_execution.path)
     process_execution.stdout = get_file_text(os.path.join(full_path, ".command.out"))

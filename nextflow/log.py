@@ -42,8 +42,12 @@ def log_is_finished(log):
     return False
 
 
-
 def get_identifier_from_log(log):
+    """Gets the nextflow adjective_name identifier from the log file.
+    
+    :param str log: the contents of the log file.
+    :rtype: ``str``"""
+
     if not log: return ""
     if (m := re.search(r"\[([a-z]+_[a-z]+)\]", log)): return m[1]
     return ""
@@ -62,13 +66,19 @@ def get_datetime_from_line(line):
 
 
 def parse_submitted_line(line):
+    """Parses a line from the log file that indicates a process has been
+    submitted, to get its xx/yyyyyy identifier, name, process, and start time.
+
+    :param str line: a line from the log file.
+    :rtype: ``tuple``"""
+
     log_pattern = (
         r"(?P<timestamp>\w{3}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[.*?\] INFO  "
         r"nextflow\.Session - \[(?P<id>[\w/]+)\] "
         r"Submitted process > (?P<name>.+)"
     )
     match = re.match(log_pattern, line)
-    if not match: return
+    if not match: return "", "", "", None
     identifier = match.group("id")
     name = match.group("name")
     process = name[:name.find("(") - 1] if "(" in name else name
@@ -80,6 +90,12 @@ def parse_submitted_line(line):
 
 
 def parse_completed_line(line):
+    """Parses a line from the log file that indicates a process has completed,
+    to get its xx/yyyyyy identifier, finish time, return code, and status.
+
+    :param str line: a line from the log file.
+    :rtype: ``tuple``"""
+
     log_pattern = (
         r"(?P<timestamp>\w{3}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) .*?"
         r"Task completed > TaskHandler\[.*?"
@@ -87,7 +103,7 @@ def parse_completed_line(line):
         r"exit: (?P<exit_code>\d+); .*?workDir: .*?/work/(?P<id>[\w/]{9})"
     )
     match = re.match(log_pattern, line)
-    if not match: return
+    if not match: return "", None, "", ""
     identifier = match.group("id")
     year = datetime.now().year
     finished = datetime.strptime(

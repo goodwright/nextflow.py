@@ -41,6 +41,7 @@ class LogFinishedTests(TestCase):
         mock_datetime.assert_any_call("line2")
 
 
+
 class LogIsFinishedTests(TestCase):
 
     def test_can_handle_no_log_text(self):
@@ -66,6 +67,24 @@ class LogIsFinishedTests(TestCase):
 
 
 
+class LogIdentifierTests(TestCase):
+
+    def test_can_handle_no_log_text(self):
+        self.assertEqual(get_identifier_from_log(""), "")
+    
+
+    def test_can_handle_no_identifier(self):
+        self.assertEqual(get_identifier_from_log("log text\nok\nbad\n9"), "")
+    
+
+    def test_can_get_identifier_from_log(self):
+        self.assertEqual(
+            get_identifier_from_log("log text [xx_yy]\nok\nbad\n9"),
+            "xx_yy"
+        )
+
+
+
 class DatetimeFromLineTests(TestCase):
 
     def test_can_get_datetime_from_line(self):
@@ -80,106 +99,69 @@ class DatetimeFromLineTests(TestCase):
 
 
 
-class ProcessNameFromLogTests(TestCase):
+class SubmittedLineTests(TestCase):
 
-    def setUp(self):
-        self.log = (
-            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
-            "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)\n"
-            "Jun-01 16:46:08.965 [Task submitter] INFO  nextflow.Session - [99/6165a9] Submitted process > DEMULTIPLEX:FASTQC (sample)\n"
-            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
-        )
-
-    def test_can_get_process_name(self):
-        self.assertEqual(
-            get_process_name_from_log(self.log, "99/6165a9"),
-            "DEMULTIPLEX:FASTQC (sample)"
-        )
+    def test_can_parse_line(self):
+        line = "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)"
+        identifier, name, process, started = parse_submitted_line(line)
+        self.assertEqual(identifier, "d6/31d530")
+        self.assertEqual(name, "DEMULTIPLEX:CSV_TO_BARCODE (file.csv)")
+        self.assertEqual(process, "DEMULTIPLEX:CSV_TO_BARCODE")
+        self.assertEqual(started, datetime(datetime.now().year, 6, 1, 16, 45, 57, 48000))
     
 
-    def test_can_get_no_process_name(self):
-        self.assertIsNone(get_process_name_from_log(self.log, "88/6165a9"))
-
-
-
-class ProcessStartFromLogTests(TestCase):
-    
-    def setUp(self):
-        self.log = (
-            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
-            "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE (file.csv)\n"
-            "Jun-01 16:46:08.965 [Task submitter] INFO  nextflow.Session - [99/6165a9] Submitted process > DEMULTIPLEX:FASTQC (sample)\n"
-            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
-        )
+    def test_can_parse_line_with_no_process_arg(self):
+        line = "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d6/31d530] Submitted process > DEMULTIPLEX:CSV_TO_BARCODE"
+        identifier, name, process, started = parse_submitted_line(line)
+        self.assertEqual(identifier, "d6/31d530")
+        self.assertEqual(name, "DEMULTIPLEX:CSV_TO_BARCODE")
+        self.assertEqual(process, "DEMULTIPLEX:CSV_TO_BARCODE")
+        self.assertEqual(started, datetime(datetime.now().year, 6, 1, 16, 45, 57, 48000))
     
 
-    def test_can_get_process_start_from_log(self):
-        self.assertEqual(
-            get_process_start_from_log(self.log, "99/6165a9"),
-            datetime(datetime.now().year, 6, 1, 16, 46, 8, 965000)
-        )
+    def test_can_handle_no_match(self):
+        line = "Jun-01 16:45:57.048 [Task submitter] INFO  nextflow.Session - [d63Z1d530 Submitted process > DEMULTIPLEX:CSV_TO_BARCODE"
+        identifier, name, process, started = parse_submitted_line(line)
+        self.assertEqual(identifier, "")
+        self.assertEqual(name, "")
+        self.assertEqual(process, "")
+        self.assertIsNone(started)
+
+
+
+class CompletedLineTests(TestCase):
+
+    def test_can_parse_line(self):
+        line = "Jun-01 16:46:00.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DEMULTIPLEX:CSV_TO_BARCODE (file.csv); status: COMPLETED; exit: 0; error: -; workDir: /work/d6/31d530a65ef23d1cb302940a782909]"
+        identifier, finished, return_code, status = parse_completed_line(line)
+        self.assertEqual(identifier, "d6/31d530")
+        self.assertEqual(finished, datetime(datetime.now().year, 6, 1, 16, 46, 0, 365000))
+        self.assertEqual(return_code, "0")
+        self.assertEqual(status, "COMPLETED")
     
 
-    def test_can_get_no_process_start(self):
-        self.assertIsNone(get_process_start_from_log(self.log, "88/6165a9"))
-
-
-
-class ProcessEndFromLogTests(TestCase):
-    
-    def setUp(self):
-        self.log = (
-            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
-            "Jun-01 16:46:00.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DEMULTIPLEX:CSV_TO_BARCODE (file.csv); status: COMPLETED; exit: 0; error: -; workDir: /work/d6/31d530a65ef23d1cb302940a782909]\n"
-            "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file.fastq); status: COMPLETED; exit: 0; error: -; workDir: /work/8a/c2a4dc996d54cad136abeb4e4e309a]\n"
-            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
-        )
+    def test_can_parse_failing_line(self):
+        line = "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file.fastq); status: FAILED; exit: 1; error: -; workDir: /work/8a/c2a4dc996d54cad136abeb4e4e309a]"
+        identifier, finished, return_code, status = parse_completed_line(line)
+        self.assertEqual(identifier, "8a/c2a4dc")
+        self.assertEqual(finished, datetime(datetime.now().year, 6, 1, 16, 46, 8, 878000))
+        self.assertEqual(return_code, "1")
+        self.assertEqual(status, "FAILED")
     
 
-    def test_can_get_process_end_from_log(self):
-        self.assertEqual(
-            get_process_end_from_log(self.log, "8a/c2a4dc"),
-            datetime(datetime.now().year, 6, 1, 16, 46, 8, 878000)
-        )
+    def test_return_code_1_always_failure(self):
+        line = "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 1; error: -; workDir: /work/4b/302940a782909c996d54cad31d53d45]"
+        identifier, finished, return_code, status = parse_completed_line(line)
+        self.assertEqual(identifier, "4b/302940")
+        self.assertEqual(finished, datetime(datetime.now().year, 6, 1, 16, 46, 8, 878000))
+        self.assertEqual(return_code, "1")
+        self.assertEqual(status, "FAILED")
     
 
-    def test_can_get_no_process_end_from_log(self):
-        self.assertIsNone(get_process_end_from_log(self.log, "1a/c2a4dc"))
-
-
-
-class ProcessStatusFromLogTests(TestCase):
-    
-    def setUp(self):
-        self.log = (
-            "Jun-02 19:39:54.493 [main] DEBUG nextflow.cli.CmdRun -\n"
-            "Jun-01 16:46:00.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DEMULTIPLEX:CSV_TO_BARCODE (file.csv); status: COMPLETED; exit: 0; error: -; workDir: /work/d6/31d530a65ef23d1cb302940a782909]\n"
-            "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file.fastq); status: COMPLETED; exit: 0; error: -; workDir: /work/8a/c2a4dc996d54cad136abeb4e4e309a]\n"
-            "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 1; error: -; workDir: /work/4b/302940a782909c996d54cad31d53d45]\n"
-            "Nov-14 14:09:42.634 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 20; name: NFCORE_FETCHNGS:SRA:SRA_TO_SAMPLESHEET (ERX1234253_ERR1160846); status: COMPLETED; exit: -; error: -; workDir: /Users/sam/Dropbox/Code/flow-api/local/executions/123951903246975190/work/c8/dfda38334147580b403fbf9da01d25]\n"
-            "Jun-01 16:46:13.434 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye"
-        )
-    
-    
-    def test_can_get_completed_process_status_from_log(self):
-        self.assertEqual(
-            get_process_status_from_log(self.log, "8a/c2a4dc"), "COMPLETED"
-        )
-    
-
-    def test_can_get_fail_process_status_from_log(self):
-        self.assertEqual(
-            get_process_status_from_log(self.log, "4b/302940"), "FAILED"
-        )
-    
-
-    def test_can_handle_missing_exit_code(self):
-        self.assertEqual(
-            get_process_status_from_log(self.log, "c8/dfda38"), "COMPLETED"
-        )
-    
-
-    def test_can_get_no_process_status_from_log(self):
-        self.assertEqual(
-            get_process_status_from_log(self.log, "1a/c2a4dc"), "-"
-        )
+    def test_can_handle_no_match(self):
+        line = "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 1; error: -; wrkDir: /work/4b/302940a782909c996d54cad31d53d45"
+        identifier, finished, return_code, status = parse_completed_line(line)
+        self.assertEqual(identifier, "")
+        self.assertIsNone(finished)
+        self.assertEqual(return_code, "")
+        self.assertEqual(status, "")
