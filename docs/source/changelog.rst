@@ -1,6 +1,13 @@
 Changelog
 ---------
 
+Release 0.8.2
+~~~~~~~~~~~~~
+
+`24th January, 2025`
+
+* Optimise log parsing when polling executions.
+
 Release 0.8.1
 ~~~~~~~~~~~~~
 
