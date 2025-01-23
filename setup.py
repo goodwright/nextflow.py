@@ -5,7 +5,7 @@ with open("README.rst") as f:
 
 setup(
     name="nextflowpy",
-    version="0.8.1",
+    version="0.8.2",
     description="A Python wrapper around Nextflow.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -24,6 +24,9 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+
     ],
     keywords="nextflow bioinformatics pipeline",
     packages=["nextflow"],
