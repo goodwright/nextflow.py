@@ -80,7 +80,8 @@ class RunTestCase(TestCase):
         if dag:
             self.assertIn(dag, os.listdir(self.get_path("rundirectory")))
             with open(os.path.join(self.get_path("rundirectory"), dag)) as f:
-                self.assertIn("Cytoscape.js with Dagre", f.read())
+                html = f.read()
+                self.assertTrue("Cytoscape.js with Dagre" in html or "import mermaid" in html)
         else:
             self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
 
