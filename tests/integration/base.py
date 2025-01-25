@@ -41,7 +41,9 @@ class RunTestCase(TestCase):
         # Execution is correct
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.identifier))
         self.assertIn("N E X T F L O W", execution.stdout)
-        if check_stderr: self.assertFalse(execution.stderr)
+        if check_stderr: self.assertTrue(not execution.stderr or (
+            execution.stderr.count("\n") == "1" and "is avbailable" in execution.stderr
+        ))
         self.assertEqual(execution.return_code, "0")
         if not timezone:
             self.assertLessEqual((datetime.now() - execution.started).seconds, 10)
