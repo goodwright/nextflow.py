@@ -234,6 +234,15 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.8.3
+~~~~~~~~~~~~~
+
+`2nd February, 2025`
+
+* Trace reports can now be produced with the `trace` parameter.
+* All non-zero exit codes are now treated as errors.
+
+
 Release 0.8.2
 ~~~~~~~~~~~~~
 
