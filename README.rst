@@ -91,7 +91,7 @@ This will return an ``Execution`` object, which represents the pipeline
 execution that just took place (see below for details on this object). You can
 customise the execution with various options:
 
-    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", output_path="./outputs", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"], timezone="UTC", report="report.html", timeline="timeline.html", dag="dag.html")
+    >>> execution = pipeline.run("my-pipeline.nf", run_path="./rundir", output_path="./outputs", params={"param1": "123"}, profiles=["docker", "test"], version="22.0.1", configs=["env.config"], timezone="UTC", report="report.html", timeline="timeline.html", dag="dag.html", trace="trace.txt")
 
 * ``run_path`` - The location to run the pipeline from, which by default is just the current working directory.
 
@@ -112,6 +112,8 @@ customise the execution with various options:
 * ``timeline`` - A filename for a timeline file to generate. This will be an HTML file containing a timeline of the pipeline execution.
 
 * ``dag`` - A filename for a DAG file to generate. This will be an HTML file containing a DAG diagram of the pipeline execution.
+
+* ``trace`` - A filename for a trace file to generate. This will be an TSV file containing runtime information about the pipeline execution.
 
 
 Custom Runners

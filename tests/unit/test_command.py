@@ -13,7 +13,7 @@ class RunTests(TestCase):
         execution = Mock()
         mock_ex.return_value = execution, 20
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -33,9 +33,9 @@ class RunTests(TestCase):
         executions = list(_run(
             "main.nf", run_path="/exdir", output_path="/out", version="21.10", configs=["conf1"],
             params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
-            timeline="time.html", dag="dag.html", sleep=4
+            timeline="time.html", dag="dag.html", trace="trace.html", sleep=4
         ))
-        mock_nc.assert_called_with("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html")
+        mock_nc.assert_called_with("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -56,7 +56,7 @@ class RunTests(TestCase):
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -76,7 +76,7 @@ class RunTests(TestCase):
         runner = MagicMock()
         mock_ex.return_value = [Mock(finished=True), 0]
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
@@ -116,12 +116,12 @@ class NextflowCommandTests(TestCase):
         mock_params.return_value = "--p1=10 --p2=20"
         mock_prof.return_value = "-profile docker,test"
         mock_report.return_value = "--dag.html"
-        command = make_nextflow_command("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html")
+        command = make_nextflow_command("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
         mock_env.assert_called_with("21.10", "UTC", "/out")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        mock_report.assert_called_with("/out", "report.html", "time.html", "dag.html")
+        mock_report.assert_called_with("/out", "report.html", "time.html", "dag.html", "trace.html")
         self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -log '.nextflow.log' -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test --dag.html >/out/stdout.txt 2>/out/stderr.txt; echo $? >/out/rc.txt")
     
 
@@ -138,12 +138,12 @@ class NextflowCommandTests(TestCase):
         mock_params.return_value = ""
         mock_prof.return_value = ""
         mock_report.return_value = ""
-        command = make_nextflow_command(None, None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None)
+        command = make_nextflow_command(None, None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None)
         mock_env.assert_called_with("21.10", None, None)
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        mock_report.assert_called_with(None, None, None, None)
+        mock_report.assert_called_with(None, None, None, None, None)
         self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
 
 
@@ -227,32 +227,36 @@ class ProfilesStringTests(TestCase):
 class ReportsStringTests(TestCase):
 
     def test_can_handle_no_reports(self):
-        self.assertEqual(make_reports_string(None, None, None, None), "")
+        self.assertEqual(make_reports_string(None, None, None, None, None), "")
     
 
     def test_can_make_execution_report(self):
-        self.assertEqual(make_reports_string(None, "report.html", None, None), "-with-report report.html")
+        self.assertEqual(make_reports_string(None, "report.html", None, None, None), "-with-report report.html")
     
 
     def test_can_make_timeline_report(self):
-        self.assertEqual(make_reports_string(None, None, "time.html", None), "-with-timeline time.html")
+        self.assertEqual(make_reports_string(None, None, "time.html", None, None), "-with-timeline time.html")
     
 
     def test_can_make_dag_report(self):
-        self.assertEqual(make_reports_string(None, None, None, "dag.html"), "-with-dag dag.html")
+        self.assertEqual(make_reports_string(None, None, None, "dag.html", None), "-with-dag dag.html")
+    
+
+    def test_can_make_trace_file(self):
+        self.assertEqual(make_reports_string(None, None, None, None, "trace.txt"), "-with-trace trace.txt")
     
 
     def test_can_make_full_report(self):
         self.assertEqual(
-            make_reports_string(None, "report.html", "time.html", "dag.html"),
-            "-with-report report.html -with-timeline time.html -with-dag dag.html"
+            make_reports_string(None, "report.html", "time.html", "dag.html", "trace.txt"),
+            "-with-report report.html -with-timeline time.html -with-dag dag.html -with-trace trace.txt"
         )
     
 
     def test_can_make_full_report_with_custom_location(self):
         self.assertEqual(
-            make_reports_string("/out", "report.html", "time.html", "dag.html"),
-            "-with-report /out/report.html -with-timeline /out/time.html -with-dag /out/dag.html"
+            make_reports_string("/out", "report.html", "time.html", "dag.html", "trace.txt"),
+            "-with-report /out/report.html -with-timeline /out/time.html -with-dag /out/dag.html -with-trace /out/trace.txt"
         )
 
 

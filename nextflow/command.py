@@ -27,6 +27,7 @@ def run(*args, **kwargs):
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
     :param str dag: the filename to use for the DAG report.
+    :param str trace: the filename to use for the trace report.
     :rtype: ``nextflow.models.Execution``"""
 
     return list(_run(*args, poll=False, **kwargs))[0]
@@ -48,6 +49,7 @@ def run_and_poll(*args, **kwargs):
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
     :param str dag: the filename to use for the DAG report.
+    :param str trace: the filename to use for the trace report.
     :param int sleep: the number of seconds to wait between polls.
     :rtype: ``nextflow.models.Execution``"""
 
@@ -58,12 +60,12 @@ def run_and_poll(*args, **kwargs):
 def _run(
         pipeline_path, poll=False, run_path=None, output_path=None, runner=None,
         version=None, configs=None, params=None, profiles=None, timezone=None,
-        report=None, timeline=None, dag=None, sleep=1
+        report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
         run_path, output_path, pipeline_path, version, configs, params,
-        profiles, timezone, report, timeline, dag
+        profiles, timezone, report, timeline, dag, trace
     )
     if runner:
         process = None
@@ -86,7 +88,7 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, output_path, pipeline_path, version, configs, params, profiles, timezone, report, timeline, dag):
+def make_nextflow_command(run_path, output_path, pipeline_path, version, configs, params, profiles, timezone, report, timeline, dag, trace):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
@@ -100,6 +102,7 @@ def make_nextflow_command(run_path, output_path, pipeline_path, version, configs
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
     :param str dag: the filename to use for the DAG report.
+    :param str trace: the filename to use for the trace report.
     :rtype: ``str``"""
 
     env = make_nextflow_command_env_string(version, timezone, output_path)
@@ -111,7 +114,7 @@ def make_nextflow_command(run_path, output_path, pipeline_path, version, configs
     if configs: configs += " "
     params = make_nextflow_command_params_string(params)
     profiles = make_nextflow_command_profiles_string(profiles)
-    reports = make_reports_string(output_path, report, timeline, dag)
+    reports = make_reports_string(output_path, report, timeline, dag, trace)
     command = f"{env}{nf} {log}{configs}run {pipeline_path} {params} {profiles} {reports}"
     if run_path: command = f"cd {run_path}; {command}"
     prefix = (str(output_path) + os.path.sep) if output_path else ""
@@ -186,19 +189,21 @@ def make_nextflow_command_profiles_string(profiles):
     return ("-profile " + ",".join(profiles))
 
 
-def make_reports_string(output_path, report, timeline, dag):
+def make_reports_string(output_path, report, timeline, dag, trace):
     """Creates the report setting portion of the nextflow run command string.
     
     :param str output_path: the location to store the output in.
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
     :param str dag: the filename to use for the DAG report.
+    :param str trace: the filename to use for the trace report.
     :rtype: ``str``"""
 
     params = []
     if report: params.append(f"-with-report {report}")
     if timeline: params.append(f"-with-timeline {timeline}")
     if dag: params.append(f"-with-dag {dag}")
+    if trace: params.append(f"-with-trace {trace}")
     if output_path:
         for i, param in enumerate(params):
             words = param.split(" ")

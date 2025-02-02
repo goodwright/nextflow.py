@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, output_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, output_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, trace=None, check_stderr=True):
         # Files created
         if not output_path: self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(output_path or self.get_path("rundirectory")))
@@ -84,6 +84,12 @@ class RunTestCase(TestCase):
                 self.assertTrue("Cytoscape.js with Dagre" in html or "import mermaid" in html)
         else:
             self.assertNotIn(dag, os.listdir(self.get_path("rundirectory")))
+        if trace:
+            self.assertIn(trace, os.listdir(self.get_path("rundirectory")))
+            with open(os.path.join(self.get_path("rundirectory"), trace)) as f:
+                self.assertIn("peak_rss", f.read())
+        else:
+            self.assertNotIn(trace, os.listdir(self.get_path("rundirectory")))
 
         # Process executions are fine
         proc_ex = self.get_process_execution(execution, "SPLIT_FILE")

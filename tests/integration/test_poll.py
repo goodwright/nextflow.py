@@ -299,7 +299,7 @@ class CustomRunningTests(RunTestCase):
         os.chdir(self.rundirectory)
         for execution in nextflow.run_and_poll(
             pipeline_path=self.get_path("pipeline.nf"),
-            report="report.html", timeline="time.html", dag="dag.html",
+            report="report.html", timeline="time.html", dag="dag.html", trace="trace.txt",
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -309,7 +309,7 @@ class CustomRunningTests(RunTestCase):
             executions.append(copy.deepcopy(execution))
 
         # Execution is fine
-        self.check_execution(execution, report="report.html", timeline="time.html", dag="dag.html")
+        self.check_execution(execution, report="report.html", timeline="time.html", dag="dag.html", trace="trace.txt")
 
         # Check that we have at least 2 executions
         self.assertGreater(len(executions), 1)
