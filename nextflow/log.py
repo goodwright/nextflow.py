@@ -109,7 +109,7 @@ def parse_completed_line(line):
     finished = datetime.strptime(
         f"{year}-{match.group('timestamp')}", "%Y-%b-%d %H:%M:%S.%f"
     )
-    return_code = match.group("exit_code")
+    exit_code = match.group("exit_code")
     status = match.group("status") or "-"
-    if return_code == "1": status = "FAILED"
-    return identifier, finished, return_code, status
+    if exit_code != "0": status = "FAILED"
+    return identifier, finished, exit_code, status

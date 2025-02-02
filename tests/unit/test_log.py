@@ -149,12 +149,12 @@ class CompletedLineTests(TestCase):
         self.assertEqual(status, "FAILED")
     
 
-    def test_return_code_1_always_failure(self):
-        line = "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 1; error: -; workDir: /work/4b/302940a782909c996d54cad31d53d45]"
+    def test_return_code_non_zero_always_failure(self):
+        line = "Jun-01 16:46:08.878 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DEMULTIPLEX:ULTRAPLEX (file2.fastq); status: COMPLETED; exit: 25; error: -; workDir: /work/4b/302940a782909c996d54cad31d53d45]"
         identifier, finished, return_code, status = parse_completed_line(line)
         self.assertEqual(identifier, "4b/302940")
         self.assertEqual(finished, datetime(datetime.now().year, 6, 1, 16, 46, 8, 878000))
-        self.assertEqual(return_code, "1")
+        self.assertEqual(return_code, "25")
         self.assertEqual(status, "FAILED")
     
 
