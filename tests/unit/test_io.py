@@ -19,6 +19,23 @@ class FileTextTests(TestCase):
 
 
 
+class FileCreationTimeTests(TestCase):
+
+    @patch("os.path.getctime")
+    def test_can_get_creation_time(self, mock_getctime):
+        mock_getctime.return_value = 123456
+        self.assertEqual(get_file_creation_time("/ex/file.txt"), datetime.fromtimestamp(123456))
+        mock_getctime.assert_called_with("/ex/file.txt")
+    
+
+    @patch("os.path.getctime")
+    def test_can_handle_no_file(self, mock_getctime):
+        mock_getctime.side_effect = FileNotFoundError
+        self.assertEqual(get_file_creation_time("/ex/file.txt"), None)
+        mock_getctime.assert_called_with("/ex/file.txt")
+
+
+
 class ProcessIdsToPathsTest(TestCase):
 
     @patch("os.walk")

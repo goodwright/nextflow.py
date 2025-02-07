@@ -314,11 +314,11 @@ class GetExecutionTests(TestCase):
         mock_make.return_value = mock_execution
         process_executions = {
             "aa/bb": Mock(identifier="aa/bb", path="/ex/aa/bb", finished=None),
-            "cc/dd": Mock(identifier="cc/dd", path=None, finished="Y"),
+            "cc/dd": Mock(identifier="cc/dd", path=None, finished="Y", started="S"),
             "ee/ff": Mock(identifier="ee/ff", path="/ex/ee/ff", finished=None),
-            "gg/hh": Mock(identifier="gg/hh", path=None, finished="Y"),
+            "gg/hh": Mock(identifier="gg/hh", path=None, finished="Y", started=None),
         }
-        mock_init.return_value = (process_executions, ["ee/ff", "gg/hh"])
+        mock_init.return_value = (process_executions, ["ee/ff"])
         mock_paths.return_value = {
             "cc/dd": "/ex/cc/dd",
             "gg/hh": "/ex/gg/hh",
@@ -463,7 +463,8 @@ class CreateProcessExecutionFromLineTests(TestCase):
         self.assertEqual(proc_ex.identifier, "aa/bb")
         self.assertEqual(proc_ex.name, "PROC (123)")
         self.assertEqual(proc_ex.process, "PROC")
-        self.assertEqual(proc_ex.started, "NOW")
+        self.assertEqual(proc_ex.submitted, "NOW")
+        self.assertEqual(proc_ex.started, None)
         self.assertEqual(proc_ex.stdout, "")
         self.assertEqual(proc_ex.stderr, "")
         self.assertEqual(proc_ex.return_code, "")
@@ -528,17 +529,36 @@ class UpdateProcessExecutionFromPathTests(TestCase):
 
     @patch("nextflow.command.get_file_text")
     def test_can_update_values(self, mock_text):
-        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", execution=Mock(finished=None))
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started="2020-01-01", execution=Mock(finished=None))
         mock_text.side_effect = ["ok", "bad"]
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, "ok")
         self.assertEqual(proc_ex.stderr, "bad")
         self.assertEqual(proc_ex.bash, ".")
+        self.assertEqual(proc_ex.started, "2020-01-01")
         self.assertEqual(proc_ex.return_code, "")
         self.assertEqual(mock_text.call_args_list, [
             call(os.path.join("/ex", "work", "aa/bb", ".command.out"),),
             call(os.path.join("/ex", "work", "aa/bb", ".command.err"),),
         ])
+    
+
+    @patch("nextflow.command.get_file_text")
+    @patch("nextflow.command.get_file_creation_time")
+    def test_can_update_values_with_started(self, mock_time, mock_text):
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started=None, execution=Mock(finished=None))
+        mock_text.side_effect = ["ok", "bad"]
+        update_process_execution_from_path(proc_ex, "/ex")
+        self.assertEqual(proc_ex.stdout, "ok")
+        self.assertEqual(proc_ex.stderr, "bad")
+        self.assertEqual(proc_ex.bash, ".")
+        self.assertEqual(proc_ex.started, mock_time.return_value)
+        self.assertEqual(proc_ex.return_code, "")
+        self.assertEqual(mock_text.call_args_list, [
+            call(os.path.join("/ex", "work", "aa/bb", ".command.out"),),
+            call(os.path.join("/ex", "work", "aa/bb", ".command.err"),),
+        ])
+        mock_time.assert_called_with(os.path.join("/ex", "work", "aa/bb", ".command.begin"))
     
 
     @patch("nextflow.command.get_file_text")

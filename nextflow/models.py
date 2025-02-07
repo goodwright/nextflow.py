@@ -58,6 +58,7 @@ class ProcessExecution:
     stderr: str
     return_code: str
     bash: str
+    submitted: datetime
     started: datetime
     finished: datetime
     status: str
@@ -73,6 +74,7 @@ class ProcessExecution:
         :rtype: ``datetime.timedelta``"""
 
         if self.finished is None: return None
+        if self.started is None: return None
         return self.finished - self.started
 
 

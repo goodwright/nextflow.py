@@ -203,6 +203,7 @@ class RunTestCase(TestCase):
 
 
     def check_process_execution(self, process_execution, execution, long, check_time=True):
+        self.assertEqual(process_execution.submitted.year, datetime.now().year)
         self.assertEqual(process_execution.started.year, datetime.now().year)
         if check_time:
             self.assertLessEqual((datetime.now() - execution.started).seconds, 45 if long else 10)

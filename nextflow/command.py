@@ -2,7 +2,7 @@ import os
 import re
 import time
 import subprocess
-from nextflow.io import get_file_text, get_process_ids_to_paths
+from nextflow.io import get_file_text, get_process_ids_to_paths, get_file_creation_time
 from nextflow.models import Execution, ProcessExecution
 from nextflow.log import (
     get_started_from_log,
@@ -225,12 +225,13 @@ def get_execution(execution_path, nextflow_command, execution=None, log_start=0)
     log = log[log_start:]
     execution = make_or_update_execution(log, execution_path, nextflow_command, execution)
     process_executions, changed = get_initial_process_executions(log, execution)
-    to_check = [k for k, v in process_executions.items() if not v.path]
-    process_ids_to_paths = get_process_ids_to_paths(to_check, execution_path)
+    no_path = [k for k, v in process_executions.items() if not v.path]
+    process_ids_to_paths = get_process_ids_to_paths(no_path, execution_path)
     for process_id, path in process_ids_to_paths.items():
         process_executions[process_id].path = path
     for process_execution in process_executions.values():
-        if not process_execution.finished or process_execution.identifier in changed:
+        if not process_execution.finished or not process_execution.started or \
+         process_execution.identifier in changed:
             update_process_execution_from_path(process_execution, execution_path)
     execution.process_executions = list(process_executions.values())
     return execution, len(log)
@@ -300,12 +301,12 @@ def create_process_execution_from_line(line):
     :param str line: a line from the log file.
     :rtype: ``nextflow.models.ProcessExecution``"""
 
-    identifier, name, process, started = parse_submitted_line(line)
+    identifier, name, process, submitted = parse_submitted_line(line)
     if not identifier: return
     return ProcessExecution(
-        identifier=identifier, name=name, process=process, started=started,
+        identifier=identifier, name=name, process=process, submitted=submitted,
         path="", stdout="", stderr="", return_code="", bash="", finished=None,
-        status="-",
+        status="-", started=None,
     )
 
 
@@ -339,6 +340,8 @@ def update_process_execution_from_path(process_execution, execution_path):
     full_path = os.path.join(execution_path, "work", process_execution.path)
     process_execution.stdout = get_file_text(os.path.join(full_path, ".command.out"))
     process_execution.stderr = get_file_text(os.path.join(full_path, ".command.err"))
+    if not process_execution.started:
+        process_execution.started = get_file_creation_time(os.path.join(full_path, ".command.begin"))
     if not process_execution.bash:
         process_execution.bash = get_file_text(os.path.join(full_path, ".command.sh"))
     if process_execution.execution.finished and not process_execution.return_code:

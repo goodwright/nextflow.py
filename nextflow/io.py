@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 def get_file_text(path):
     """Gets the contents of a text file, if it exists.
@@ -10,6 +11,18 @@ def get_file_text(path):
         with open(path, "r") as f: return f.read()
     except FileNotFoundError:
         return ""
+
+
+def get_file_creation_time(path):
+    """Gets the creation time of a file.
+    
+    :param str path: the location of the file.
+    :rtype: ``datetime.datetime``"""
+
+    try:
+        return datetime.fromtimestamp(os.path.getctime(path))
+    except FileNotFoundError:
+        return None
 
 
 def get_process_ids_to_paths(process_ids, execution_path):

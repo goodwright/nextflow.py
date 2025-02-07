@@ -8,7 +8,7 @@ class ProcessExecutionTest(TestCase):
 
     def make_process_execution(self, **kwargs):
         kwargs = {
-            "identifier": "12/3456", "name": "FASTQC (1)",
+            "identifier": "12/3456", "name": "FASTQC (1)", "submitted": datetime(2021, 7, 4),
             "process": "FASTQC", "path": "12/34567890", "stdout": "good", "stderr": "bad",
             "return_code": "0", "bash": "$", "started": datetime(2021, 7, 5),
             "finished": datetime(2021, 7, 6), "status": "COMPLETED",  **kwargs
@@ -21,7 +21,7 @@ class ProcessExecutionCreationTests(TestCase):
 
     def test_can_make_process_execution(self):
         process_execution = ProcessExecution(
-            identifier="12/3456", name="FASTQC (1)",
+            identifier="12/3456", name="FASTQC (1)", submitted=datetime(2021, 7, 4),
             process="FASTQC", path="12/34567890", stdout="good", stderr="bad",
             return_code="0", bash="$", started=datetime(2021, 7, 5),
             finished=datetime(2021, 7, 6), status="COMPLETED"
@@ -34,6 +34,7 @@ class ProcessExecutionCreationTests(TestCase):
         self.assertEqual(process_execution.stderr, "bad")
         self.assertEqual(process_execution.return_code, "0")
         self.assertEqual(process_execution.bash, "$")
+        self.assertEqual(process_execution.submitted, datetime(2021, 7, 4))
         self.assertEqual(process_execution.started, datetime(2021, 7, 5))
         self.assertEqual(process_execution.finished, datetime(2021, 7, 6))
         self.assertEqual(process_execution.status, "COMPLETED")
@@ -46,6 +47,11 @@ class ExecutionDurationTests(ProcessExecutionTest):
     def test_can_get_duration(self):
         process_execution = self.make_process_execution(started=datetime(2020, 1, 1, 12, 2, 1), finished=datetime(2020, 1, 2, 12, 8, 10))
         self.assertEqual(process_execution.duration, timedelta(days=1, seconds=369))
+    
+
+    def test_can_handle_not_started(self):
+        process_execution = self.make_process_execution(started=None, finished=datetime(2020, 1, 2, 12, 8, 10))
+        self.assertIsNone(process_execution.duration)
     
 
     def test_can_handle_not_finished(self):

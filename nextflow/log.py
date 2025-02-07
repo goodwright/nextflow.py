@@ -67,7 +67,8 @@ def get_datetime_from_line(line):
 
 def parse_submitted_line(line):
     """Parses a line from the log file that indicates a process has been
-    submitted, to get its xx/yyyyyy identifier, name, process, and start time.
+    submitted, to get its xx/yyyyyy identifier, name, process, and submission
+    time.
 
     :param str line: a line from the log file.
     :rtype: ``tuple``"""
@@ -83,10 +84,10 @@ def parse_submitted_line(line):
     name = match.group("name")
     process = name[:name.find("(") - 1] if "(" in name else name
     year = datetime.now().year
-    started = datetime.strptime(
+    submitted = datetime.strptime(
         f"{year}-{match.group('timestamp')}", "%Y-%b-%d %H:%M:%S.%f"
     )
-    return identifier, name, process, started
+    return identifier, name, process, submitted
 
 
 def parse_completed_line(line):
