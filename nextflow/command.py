@@ -218,6 +218,8 @@ def get_execution(execution_path, nextflow_command, execution=None, log_start=0)
     
     :param str execution_path: the location of the execution.
     :param str nextflow_command: the command used to run the pipeline.
+    :param nextflow.models.Execution execution: the existing execution, if any.
+    :param int log_start: the number of lines already read from the log.
     :rtype: ``nextflow.models.Execution``"""
 
     log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
