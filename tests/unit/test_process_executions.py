@@ -149,6 +149,35 @@ class InputDataTests(ProcessExecutionTest):
         self.assertEqual(
             self.make_process_execution(path="").input_data(), []
         )
+    
+
+    @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
+    @patch("nextflow.models.get_file_text")
+    def test_can_handle_staging_by_copying(self, mock_text, mock_path):
+        self.text = """
+        nxf_launch() {
+            /usr/bin/env python /work/
+        }
+
+        nxf_stage() {
+            true
+            # stage input files
+            rm -f suffix_lowered_duplicated_abc.dat
+            rm -f suffix_lowered_duplicated_xyz.dat
+            cp -fRL /work/25/7eaa7786ca/file1.dat file1.dat
+            cp -fRL /work/fe/3b80569ba5/file2.dat file2.dat
+        }
+
+        nxf_unstage() {
+            true
+        """
+        mock_text.return_value = self.text
+        mock_path.return_value = Path("/loc")
+        self.assertEqual(
+            self.process_execution.input_data(),
+            ["/work/25/7eaa7786ca/file1.dat", "/work/fe/3b80569ba5/file2.dat"]
+        )
+        mock_text.assert_called_with(Path("/loc/.command.run"))
 
 
 

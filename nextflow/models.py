@@ -101,6 +101,7 @@ class ProcessExecution:
         if not stage: return []
         contents = stage[1]
         inputs = re.findall(r"ln -s (.+?) ", contents)
+        if not inputs: inputs = re.findall(r"cp -fRL (.+?) ", contents)
         if include_path:
             return inputs
         else:

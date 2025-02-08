@@ -160,6 +160,23 @@ class CustomRunningTests(RunTestCase):
         self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))
     
 
+    def test_can_run_with_stage_by_copy_config(self):
+        # Run basic execution
+        os.chdir(self.rundirectory)
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            configs=[self.get_path("pipeline.config"), self.get_path("copy.config")],
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+
+        # Execution is fine
+        self.check_execution(execution)
+        self.assertIn("split_file", os.listdir(self.get_path("rundirectory/results")))
+    
+
     def test_can_run_with_specific_profile(self):
         # Run basic execution
         os.chdir(self.rundirectory)
