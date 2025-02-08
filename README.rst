@@ -12,7 +12,7 @@ nextflow.py
 .. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflowpy.svg
   :target: https://pypi.org/project/nextflowpy/
 
-.. |nextfow| image:: https://img.shields.io/badge/Nextflow-23.10%20|22.10%20|21.10%20-orange
+.. |nextfow| image:: https://img.shields.io/badge/Nextflow-24.10%20|23.10%20|22.10%20-orange
   :target: https://www.nextflow.io/
 
 .. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue

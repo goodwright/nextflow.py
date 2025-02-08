@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, output_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, trace=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, output_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, trace=None):
         # Files created
         if not output_path: self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         self.assertIn(".nextflow.log", os.listdir(output_path or self.get_path("rundirectory")))
@@ -41,7 +41,7 @@ class RunTestCase(TestCase):
         # Execution is correct
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.identifier))
         self.assertIn("N E X T F L O W", execution.stdout)
-        if check_stderr: self.assertTrue(not execution.stderr or (
+        self.assertTrue(not execution.stderr or (
             execution.stderr.count("\n") == 1 and "is available" in execution.stderr
         ))
         self.assertEqual(execution.return_code, "0")

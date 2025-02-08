@@ -132,7 +132,7 @@ class CustomRunningTests(RunTestCase):
         os.chdir(self.rundirectory)
         execution = nextflow.run(
             pipeline_path=self.get_path("pipeline.nf"),
-            version="21.10.3",
+            version="24.10.4",
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -140,7 +140,7 @@ class CustomRunningTests(RunTestCase):
         )
 
         # Execution is fine
-        self.check_execution(execution, version="21.10.3", check_stderr=False)
+        self.check_execution(execution, version="24.10.4")
     
 
     def test_can_run_with_specific_config(self):
