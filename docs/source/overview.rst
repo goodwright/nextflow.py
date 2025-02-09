@@ -125,9 +125,11 @@ following properties:
 
 * ``stderr`` - the stderr of the process execution.
 
-* ``started`` - When the process execution ran (as a Python datetime).
+* ``submitted`` - When the process execution was submitted (as a Python datetime).
 
-* ``started`` - When the process execution completed (as a Python datetime).
+* ``started`` - When the process execution started (as a Python datetime).
+
+* ``finished`` - When the process execution completed (as a Python datetime).
 
 * ``duration`` - how long the process execution took in seconds.
 

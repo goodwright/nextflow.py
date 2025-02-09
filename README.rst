@@ -12,7 +12,7 @@ nextflow.py
 .. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflowpy.svg
   :target: https://pypi.org/project/nextflowpy/
 
-.. |nextfow| image:: https://img.shields.io/badge/Nextflow-24.10%20|23.10%20|22.10%20-orange
+.. |nextfow| image:: https://img.shields.io/badge/Nextflow-22.10%20|23.10%20|24.10%20-orange
   :target: https://www.nextflow.io/
 
 .. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue
@@ -203,9 +203,11 @@ following properties:
 
 * ``stderr`` - the stderr of the process execution.
 
-* ``started`` - When the process execution ran (as a Python datetime).
+* ``submitted`` - When the process execution was submitted (as a Python datetime).
 
-* ``started`` - When the process execution completed (as a Python datetime).
+* ``started`` - When the process execution started (as a Python datetime).
+
+* ``finished`` - When the process execution completed (as a Python datetime).
 
 * ``duration`` - how long the process execution took in seconds.
 
@@ -233,6 +235,16 @@ during their execution too. These can be obtained as follows:
 
 Changelog
 ---------
+
+Release 0.9.0
+~~~~~~~~~~~~~
+
+`8th February, 2025`
+
+* Process submission time now distinguished from start time.
+* Added support for staging inputs by copy.
+* Added utilities for predicting all process names for a pipeline.
+
 
 Release 0.8.3
 ~~~~~~~~~~~~~

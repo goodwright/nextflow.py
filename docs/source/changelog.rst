@@ -1,6 +1,16 @@
 Changelog
 ---------
 
+Release 0.9.0
+~~~~~~~~~~~~~
+
+`8th February, 2025`
+
+* Process submission time now distinguished from start time.
+* Added support for staging inputs by copy.
+* Added utilities for predicting all process names for a pipeline.
+
+
 Release 0.8.3
 ~~~~~~~~~~~~~
 
