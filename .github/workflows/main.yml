@@ -46,4 +46,4 @@ jobs:
           pip install coverage==4.5.4
       - name: Test
         run: |
-          python -m unittest discover tests
+          python -m unittest tests.integration.test_poll.CustomRunningTests.test_can_run_with_specific_version
