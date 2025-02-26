@@ -8,6 +8,7 @@ from nextflow.log import (
     get_started_from_log,
     get_finished_from_log,
     get_identifier_from_log,
+    get_session_uuid_from_log,
     parse_submitted_line,
     parse_completed_line,
 )
@@ -256,11 +257,12 @@ def make_or_update_execution(log, execution_path, nextflow_command, execution):
         execution = Execution(
             identifier="", stdout="", stderr="", return_code="",
             started=None, finished=None, command=command, log="",
-            path=execution_path, process_executions=[],
+            session_uuid="", path=execution_path, process_executions=[],
         )
     if not execution.identifier: execution.identifier = get_identifier_from_log(log)
     if not execution.started: execution.started = get_started_from_log(log)
     if not execution.finished: execution.finished = get_finished_from_log(log)
+    if not execution.session_uuid: execution.session_uuid = get_session_uuid_from_log(log)
     execution.log += log
     execution.stdout = get_file_text(os.path.join(execution_path, "stdout.txt"))
     execution.stderr = get_file_text(os.path.join(execution_path, "stderr.txt"))

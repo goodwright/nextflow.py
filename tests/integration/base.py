@@ -40,6 +40,7 @@ class RunTestCase(TestCase):
 
         # Execution is correct
         self.assertTrue(re.match(r"[a-z]+_[a-z]+", execution.identifier))
+        self.assertTrue(re.match(r"^[\w-]+$", execution.session_uuid))
         self.assertIn("N E X T F L O W", execution.stdout)
         if check_stderr: self.assertTrue(not execution.stderr or (
             execution.stderr.count("\n") == 1 and "is available" in execution.stderr

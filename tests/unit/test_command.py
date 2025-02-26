@@ -358,8 +358,9 @@ class MakeOrUpdateExecutionTests(TestCase):
     @patch("nextflow.command.get_identifier_from_log")
     @patch("nextflow.command.get_started_from_log")
     @patch("nextflow.command.get_finished_from_log")
+    @patch("nextflow.command.get_session_uuid_from_log")
     @patch("nextflow.command.get_file_text")
-    def test_can_create_execution(self, mock_text, mock_fin, mock_start, mock_id):
+    def test_can_create_execution(self, mock_text, mock_uuid, mock_fin, mock_start, mock_id):
         command = "nf run >stdout.txt 2>stderr.txt"
         mock_text.side_effect = ["ok", "bad", "9"]
         execution = make_or_update_execution("LOG", "/path", command, None)
@@ -369,6 +370,7 @@ class MakeOrUpdateExecutionTests(TestCase):
         self.assertEqual(execution.return_code, "9")
         self.assertEqual(execution.started, mock_start.return_value)
         self.assertEqual(execution.finished, mock_fin.return_value)
+        self.assertEqual(execution.session_uuid, mock_uuid.return_value)
         self.assertEqual(execution.command, command)
         self.assertEqual(execution.log, "LOG")
         self.assertEqual(execution.path, "/path")
@@ -376,6 +378,7 @@ class MakeOrUpdateExecutionTests(TestCase):
         mock_id.assert_called_with("LOG")
         mock_start.assert_called_with("LOG")
         mock_fin.assert_called_with("LOG")
+        mock_uuid.assert_called_with("LOG")
         self.assertEqual([c[0] for c in mock_text.call_args_list], [
             (os.path.join("/path", "stdout.txt"),),
             (os.path.join("/path", "stderr.txt"),),
@@ -386,9 +389,10 @@ class MakeOrUpdateExecutionTests(TestCase):
     @patch("nextflow.command.get_identifier_from_log")
     @patch("nextflow.command.get_started_from_log")
     @patch("nextflow.command.get_finished_from_log")
+    @patch("nextflow.command.get_session_uuid_from_log")
     @patch("nextflow.command.get_file_text")
-    def test_can_update_execution_with_values(self, mock_text, mock_fin, mock_start, mock_id):
-        old_execution = Mock(identifier="xx/yy", started="MON", finished="TUE", log="LOG1", stdout=".", stderr=".", return_code="", command="nf")
+    def test_can_update_execution_with_values(self, mock_text, mock_uuid, mock_fin, mock_start, mock_id):
+        old_execution = Mock(identifier="xx/yy", started="MON", finished="TUE", log="LOG1", stdout=".", stderr=".", return_code="", command="nf", session_uuid="a-1-2-3")
         command = "nf run >stdout.txt 2>stderr.txt"
         mock_text.side_effect = ["ok", "bad", "9"]
         execution = make_or_update_execution("LOG", "/path", command, old_execution)
@@ -404,6 +408,7 @@ class MakeOrUpdateExecutionTests(TestCase):
         self.assertFalse(mock_id.called)
         self.assertFalse(mock_start.called)
         self.assertFalse(mock_fin.called)
+        self.assertFalse(mock_uuid.called)
         self.assertEqual([c[0] for c in mock_text.call_args_list], [
             (os.path.join("/path", "stdout.txt"),),
             (os.path.join("/path", "stderr.txt"),),

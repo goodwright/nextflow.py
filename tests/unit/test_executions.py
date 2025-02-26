@@ -9,7 +9,7 @@ class ExecutionTest(TestCase):
         kwargs = {
             "identifier": "xxx_yyy", "stdout": "ok", "stderr": "bad", "return_code": "1",
             "started": datetime(2020, 1, 1), "finished": datetime(2020, 1, 2),
-            "command": "nf run", "log": "N E", "path": "/ex/1",
+            "command": "nf run", "log": "N E", "path": "/ex/1", "session_uuid": "a-1-2-3",
             "process_executions": [Mock(), Mock()], **kwargs
         }
         return Execution(**kwargs)
@@ -22,7 +22,8 @@ class ExecutionCreationTests(TestCase):
         execution = Execution(
             identifier="xxx_yyy", stdout="ok", stderr="bad", return_code="1",
             started=datetime(2020, 1, 1), finished=datetime(2020, 1, 2),
-            command="nf run", log="N E", path="/ex/1", process_executions=process_executions
+            command="nf run", log="N E", path="/ex/1", process_executions=process_executions,
+            session_uuid="a-a-a-a"
         )
         self.assertEqual(execution.identifier, "xxx_yyy")
         self.assertEqual(execution.stdout, "ok")
@@ -33,6 +34,7 @@ class ExecutionCreationTests(TestCase):
         self.assertEqual(execution.command, "nf run")
         self.assertEqual(execution.log, "N E")
         self.assertEqual(execution.path, "/ex/1")
+        self.assertEqual(execution.session_uuid, "a-a-a-a")
         self.assertEqual(execution.process_executions, process_executions)
         self.assertEqual(str(execution), "<Execution: xxx_yyy>")
 

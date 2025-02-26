@@ -18,6 +18,7 @@ class Execution:
     command: str
     log: str
     path: str
+    session_uuid: str
     process_executions: list
 
     def __repr__(self):

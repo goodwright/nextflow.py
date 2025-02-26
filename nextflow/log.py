@@ -53,6 +53,17 @@ def get_identifier_from_log(log):
     return ""
 
 
+def get_session_uuid_from_log(log):
+    """Gets the session uuid from the log file.
+    
+    :param str log: the contents of the log file.
+    :rtype: ``str``"""
+
+    if not log: return ""
+    if (m := re.search(r"Session UUID: ([\w-]+)", log)): return m[1]
+    return ""
+
+
 def get_datetime_from_line(line):
     """Gets the datetime from a line of the log file.
     

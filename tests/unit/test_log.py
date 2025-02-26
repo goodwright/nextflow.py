@@ -99,6 +99,21 @@ class DatetimeFromLineTests(TestCase):
 
 
 
+class SessionUuidFromLineTests(TestCase):
+
+    def test_can_handle_no_log_text(self):
+        self.assertEqual(get_session_uuid_from_log(""), "")
+
+
+    def test_can_handle_no_session_uuid(self):
+        self.assertEqual(get_session_uuid_from_log("Feb-03 18:12:26.098 [main] DEBUG nextflow.Session - Session UUI\n"), "")
+    
+
+    def test_can_get_session_uuid_from_line(self):
+        self.assertEqual(get_session_uuid_from_log("Feb-03 18:12:26.098 [main] DEBUG nextflow.Session - Session UUID: a8a84db5-20d0-4862-8db5-addc8ca10c8a\n"), "a8a84db5-20d0-4862-8db5-addc8ca10c8a")
+
+
+
 class SubmittedLineTests(TestCase):
 
     def test_can_parse_line(self):
