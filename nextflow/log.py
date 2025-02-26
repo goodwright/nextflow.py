@@ -76,6 +76,26 @@ def get_datetime_from_line(line):
     return None
 
 
+def parse_cached_line(line):
+    """Parses a line from the log file that indicates a process has been
+    cached, to get its xx/yyyyyy identifier, name, and process.
+
+    :param str line: a line from the log file.
+    :rtype: ``tuple``"""
+
+    log_pattern = (
+        r"(?P<timestamp>\w{3}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[.*?\] INFO  "
+        r"nextflow\.processor\.TaskProcessor - \[(?P<id>[\w/]+)\] "
+        r"Cached process > (?P<name>.+)"
+    )
+    match = re.match(log_pattern, line)
+    if not match: return "", "", ""
+    identifier = match.group("id")
+    name = match.group("name")
+    process = name[:name.find("(") - 1] if "(" in name else name
+    return identifier, name, process
+
+
 def parse_submitted_line(line):
     """Parses a line from the log file that indicates a process has been
     submitted, to get its xx/yyyyyy identifier, name, process, and submission

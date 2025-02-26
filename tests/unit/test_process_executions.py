@@ -10,7 +10,7 @@ class ProcessExecutionTest(TestCase):
         kwargs = {
             "identifier": "12/3456", "name": "FASTQC (1)", "submitted": datetime(2021, 7, 4),
             "process": "FASTQC", "path": "12/34567890", "stdout": "good", "stderr": "bad",
-            "return_code": "0", "bash": "$", "started": datetime(2021, 7, 5),
+            "return_code": "0", "bash": "$", "started": datetime(2021, 7, 5), "cached": False,
             "finished": datetime(2021, 7, 6), "status": "COMPLETED",  **kwargs
         }
         return ProcessExecution(**kwargs)
@@ -23,7 +23,7 @@ class ProcessExecutionCreationTests(TestCase):
         process_execution = ProcessExecution(
             identifier="12/3456", name="FASTQC (1)", submitted=datetime(2021, 7, 4),
             process="FASTQC", path="12/34567890", stdout="good", stderr="bad",
-            return_code="0", bash="$", started=datetime(2021, 7, 5),
+            return_code="0", bash="$", started=datetime(2021, 7, 5), cached=True,
             finished=datetime(2021, 7, 6), status="COMPLETED"
         )
         self.assertEqual(process_execution.identifier, "12/3456")
@@ -38,6 +38,7 @@ class ProcessExecutionCreationTests(TestCase):
         self.assertEqual(process_execution.started, datetime(2021, 7, 5))
         self.assertEqual(process_execution.finished, datetime(2021, 7, 6))
         self.assertEqual(process_execution.status, "COMPLETED")
+        self.assertTrue(process_execution.cached)
         self.assertEqual(str(process_execution), "<ProcessExecution: 12/3456>")
 
 

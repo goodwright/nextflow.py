@@ -114,6 +114,33 @@ class SessionUuidFromLineTests(TestCase):
 
 
 
+class CachedLineTests(TestCase):
+
+    def test_can_parse_line(self):
+        line = "Feb-26 20:52:39.165 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [29/af9070] Cached process > SPLIT_FILE (file.csv)"
+        identifier, name, process = parse_cached_line(line)
+        self.assertEqual(identifier, "29/af9070")
+        self.assertEqual(name, "SPLIT_FILE (file.csv)")
+        self.assertEqual(process, "SPLIT_FILE")
+    
+
+    def test_can_parse_line_with_no_process_arg(self):
+        line = "Feb-26 20:52:39.165 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [29/af9070] Cached process > SPLIT_FILE"
+        identifier, name, process = parse_cached_line(line)
+        self.assertEqual(identifier, "29/af9070")
+        self.assertEqual(name, "SPLIT_FILE")
+        self.assertEqual(process, "SPLIT_FILE")
+    
+
+    def test_can_handle_no_match(self):
+        line = "Feb-26 20:52:39.165 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [29/af9070] Cached process SPLIT_FILE (file.csv)"
+        identifier, name, process = parse_cached_line(line)
+        self.assertEqual(identifier, "")
+        self.assertEqual(name, "")
+        self.assertEqual(process, "")
+
+
+
 class SubmittedLineTests(TestCase):
 
     def test_can_parse_line(self):

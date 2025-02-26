@@ -14,6 +14,9 @@ process LOWER {
     with open("$file") as f:
         text = f.read()
     
+    if "$params.flag" == "xxx":
+        raise Exception("Error")
+    
     with open("lowered_$file", "w") as f:
         f.write(text.lower())
     """

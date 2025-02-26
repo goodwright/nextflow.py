@@ -13,7 +13,7 @@ class RunTests(TestCase):
         execution = Mock()
         mock_ex.return_value = execution, 20
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -31,11 +31,11 @@ class RunTests(TestCase):
         mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [[None, 0], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run(
-            "main.nf", run_path="/exdir", output_path="/out", version="21.10", configs=["conf1"],
+            "main.nf", run_path="/exdir", output_path="/out", resume="a_b", version="21.10", configs=["conf1"],
             params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
             timeline="time.html", dag="dag.html", trace="trace.html", sleep=4
         ))
-        mock_nc.assert_called_with("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
+        mock_nc.assert_called_with("/exdir", "/out", "main.nf", "a_b", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -56,7 +56,7 @@ class RunTests(TestCase):
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -76,7 +76,7 @@ class RunTests(TestCase):
         runner = MagicMock()
         mock_ex.return_value = [Mock(finished=True), 0]
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
@@ -106,41 +106,46 @@ class NextflowCommandTests(TestCase):
     @patch("nextflow.command.make_nextflow_command_env_string")
     @patch("nextflow.command.make_nextflow_command_log_string")
     @patch("nextflow.command.make_nextflow_command_config_string")
+    @patch("nextflow.command.make_nextflow_command_resume_string")
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
     @patch("nextflow.command.make_reports_string")
-    def test_can_get_full_nextflow_command(self, mock_report, mock_prof, mock_params, mock_conf, mock_log, mock_env):
+    def test_can_get_full_nextflow_command(self, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
         mock_env.return_value = "A=B C=D"
         mock_log.return_value = "-log '.nextflow.log'"
         mock_conf.return_value = "-c conf1 -c conf2"
         mock_params.return_value = "--p1=10 --p2=20"
+        mock_resume.return_value = "-resume X"
         mock_prof.return_value = "-profile docker,test"
         mock_report.return_value = "--dag.html"
-        command = make_nextflow_command("/exdir", "/out", "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
+        command = make_nextflow_command("/exdir", "/out", "main.nf", True, "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
         mock_env.assert_called_with("21.10", "UTC", "/out")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
         mock_report.assert_called_with("/out", "report.html", "time.html", "dag.html", "trace.html")
-        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -log '.nextflow.log' -c conf1 -c conf2 run main.nf --p1=10 --p2=20 -profile docker,test --dag.html >/out/stdout.txt 2>/out/stderr.txt; echo $? >/out/rc.txt")
+        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -log '.nextflow.log' -c conf1 -c conf2 run main.nf -resume X --p1=10 --p2=20 -profile docker,test --dag.html >/out/stdout.txt 2>/out/stderr.txt; echo $? >/out/rc.txt")
     
 
     @patch("nextflow.command.make_nextflow_command_env_string")
     @patch("nextflow.command.make_nextflow_command_log_string")
     @patch("nextflow.command.make_nextflow_command_config_string")
+    @patch("nextflow.command.make_nextflow_command_resume_string")
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
     @patch("nextflow.command.make_reports_string")
-    def test_can_get_minimal_nextflow_command(self, mock_report, mock_prof, mock_params, mock_conf, mock_log, mock_env):
+    def test_can_get_minimal_nextflow_command(self, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
         mock_env.return_value = ""
         mock_log.return_value = ""
         mock_conf.return_value = ""
+        mock_resume.return_value = ""
         mock_params.return_value = ""
         mock_prof.return_value = ""
         mock_report.return_value = ""
-        command = make_nextflow_command(None, None, "main.nf", "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None)
+        command = make_nextflow_command(None, None, "main.nf", False, "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None)
         mock_env.assert_called_with("21.10", None, None)
         mock_conf.assert_called_with(["conf1"])
+        mock_resume.assert_called_with(False)
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
         mock_report.assert_called_with(None, None, None, None, None)
@@ -187,6 +192,22 @@ class ConfigStringTests(TestCase):
 
     def test_can_handle_config(self):
         self.assertEqual(make_nextflow_command_config_string(["conf1", "conf2"]), '-c "conf1" -c "conf2"')
+
+
+
+class ResumeStringTests(TestCase):
+
+    def test_can_handle_no_resume(self):
+        self.assertEqual(make_nextflow_command_resume_string(None), "")
+        self.assertEqual(make_nextflow_command_resume_string(False), "")
+
+
+    def test_can_handle_resume(self):
+        self.assertEqual(make_nextflow_command_resume_string(True), "-resume")
+    
+
+    def test_can_handle_resume_with_uuid(self):
+        self.assertEqual(make_nextflow_command_resume_string("aa-bb-11"), "-resume aa-bb-11")
 
 
 
@@ -431,9 +452,28 @@ class InitialProcessExecutionTests(TestCase):
         self.assertEqual(process_executions, {"aa/bb": p1, "xx/yy": p2})
         self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
         self.assertEqual([c[0] for c in mock_create.call_args_list], [
-            ("Submitted process a/bb",),
-            ("[cd/789012] Submitted process",),
-            ("Submitted process",),
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Submitted process", False),
+            ("Submitted process", False),
+        ])
+        mock_update.assert_called_with({"aa/bb": p1, "xx/yy": p2}, "Task completed")
+    
+
+    @patch("nextflow.command.create_process_execution_from_line")
+    @patch("nextflow.command.update_process_execution_from_line")
+    def test_can_create_first_pass_cached(self, mock_update, mock_create):
+        execution = Mock(process_executions=[])
+        p1, p2 = Mock(identifier="aa/bb"), Mock(identifier="xx/yy")
+        mock_create.side_effect = [p1, p2, None]
+        mock_update.return_value = "cc/dd"
+        log = "line1\nSubmitted process a/bb\n..[ab/123456]\n[cd/789012] Cached process\nTask completed\nSubmitted process"
+        process_executions, updated = get_initial_process_executions(log, execution)
+        self.assertEqual(process_executions, {"aa/bb": p1, "xx/yy": p2})
+        self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
+        self.assertEqual([c[0] for c in mock_create.call_args_list], [
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Cached process", True),
+            ("Submitted process", False),
         ])
         mock_update.assert_called_with({"aa/bb": p1, "xx/yy": p2}, "Task completed")
     
@@ -451,9 +491,9 @@ class InitialProcessExecutionTests(TestCase):
         self.assertEqual(process_executions, {"aa/bb": p1, "cc/dd": p3, "xx/yy": p2})
         self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
         self.assertEqual([c[0] for c in mock_create.call_args_list], [
-            ("Submitted process a/bb",),
-            ("[cd/789012] Submitted process",),
-            ("Submitted process",),
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Submitted process", False),
+            ("Submitted process", False),
         ])
         mock_update.assert_called_with({"aa/bb": p1, "cc/dd": p3, "xx/yy": p2}, "Task completed")
 
@@ -477,7 +517,27 @@ class CreateProcessExecutionFromLineTests(TestCase):
         self.assertEqual(proc_ex.finished, None)
         self.assertEqual(proc_ex.status, "-")
         self.assertEqual(proc_ex.path, "")
+        self.assertFalse(proc_ex.cached)
     
+
+    @patch("nextflow.command.parse_cached_line")
+    def test_can_create_cached_process_execution(self, mock_parse):
+        mock_parse.return_value = ("aa/bb", "PROC (123)", "PROC")
+        proc_ex = create_process_execution_from_line("line1", cached=True)
+        self.assertEqual(proc_ex.identifier, "aa/bb")
+        self.assertEqual(proc_ex.name, "PROC (123)")
+        self.assertEqual(proc_ex.process, "PROC")
+        self.assertEqual(proc_ex.submitted, None)
+        self.assertEqual(proc_ex.started, None)
+        self.assertEqual(proc_ex.stdout, "")
+        self.assertEqual(proc_ex.stderr, "")
+        self.assertEqual(proc_ex.return_code, "0")
+        self.assertEqual(proc_ex.bash, "")
+        self.assertEqual(proc_ex.finished, None)
+        self.assertEqual(proc_ex.status, "COMPLETED")
+        self.assertEqual(proc_ex.path, "")
+        self.assertTrue(proc_ex.cached)
+
 
     @patch("nextflow.command.parse_submitted_line")
     def test_can_handle_no_identifier(self, mock_parse):
@@ -534,7 +594,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
 
     @patch("nextflow.command.get_file_text")
     def test_can_update_values(self, mock_text):
-        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started="2020-01-01", execution=Mock(finished=None))
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started="2020-01-01", execution=Mock(finished=None), cached=False)
         mock_text.side_effect = ["ok", "bad"]
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, "ok")
@@ -551,7 +611,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
     @patch("nextflow.command.get_file_text")
     @patch("nextflow.command.get_file_creation_time")
     def test_can_update_values_with_started(self, mock_time, mock_text):
-        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started=None, execution=Mock(finished=None))
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started=None, execution=Mock(finished=None), cached=False)
         mock_text.side_effect = ["ok", "bad"]
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, "ok")
@@ -567,8 +627,26 @@ class UpdateProcessExecutionFromPathTests(TestCase):
     
 
     @patch("nextflow.command.get_file_text")
+    @patch("nextflow.command.get_file_creation_time")
+    def test_doesnt_update_values_with_started_if_cached(self, mock_time, mock_text):
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started=None, execution=Mock(finished=None), cached=True)
+        mock_text.side_effect = ["ok", "bad"]
+        update_process_execution_from_path(proc_ex, "/ex")
+        self.assertEqual(proc_ex.stdout, "ok")
+        self.assertEqual(proc_ex.stderr, "bad")
+        self.assertEqual(proc_ex.bash, ".")
+        self.assertEqual(proc_ex.started, None)
+        self.assertEqual(proc_ex.return_code, "")
+        self.assertEqual(mock_text.call_args_list, [
+            call(os.path.join("/ex", "work", "aa/bb", ".command.out"),),
+            call(os.path.join("/ex", "work", "aa/bb", ".command.err"),),
+        ])
+        self.assertFalse(mock_time.called)
+
+
+    @patch("nextflow.command.get_file_text")
     def test_can_update_values_with_bash(self, mock_text):
-        proc_ex = Mock(stdout=".", stderr=".", bash="", return_code="0", path="aa/bb", execution=Mock(finished="FFF"))
+        proc_ex = Mock(stdout=".", stderr=".", bash="", return_code="0", path="aa/bb", execution=Mock(finished="FFF"), cached=False)
         mock_text.side_effect = ["ok", "bad", "$$"]
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, "ok")
@@ -584,7 +662,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
 
     @patch("nextflow.command.get_file_text")
     def test_can_add_exit_code(self, mock_text):
-        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", execution=Mock(finished="FFF", return_code="9"))
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", execution=Mock(finished="FFF", return_code="9"), cached=False)
         mock_text.side_effect = ["ok", "bad"]
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, "ok")
@@ -598,7 +676,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
     
 
     def test_can_handle_no_path(self):
-        proc_ex = Mock(stdout=".", stderr=".", bash=".", path="", finished=None, return_code="", execution=Mock(finished="FFF", return_code="9"))
+        proc_ex = Mock(stdout=".", stderr=".", bash=".", path="", finished=None, return_code="", execution=Mock(finished="FFF", return_code="9"), cached=False)
         update_process_execution_from_path(proc_ex, "/ex")
         self.assertEqual(proc_ex.stdout, ".")
         self.assertEqual(proc_ex.stderr, ".")

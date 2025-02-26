@@ -63,6 +63,7 @@ class ProcessExecution:
     started: datetime
     finished: datetime
     status: str
+    cached: bool
 
     def __repr__(self):
         return f"<ProcessExecution: {self.identifier}>"

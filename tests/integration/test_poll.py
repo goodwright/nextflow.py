@@ -59,6 +59,24 @@ class BasicRunAndPollTests(RunTestCase):
         self.assertIn(proc_ex.status, ["FAILED", "-"])
         self.assertEqual(proc_ex.return_code, "1")
 
+        # Retry
+        executions = []
+        last_stdout = ""
+        for execution in nextflow.run_and_poll(
+            pipeline_path=self.get_path("pipeline.nf"),
+            resume=True,
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        ):
+            last_stdout = self.check_running_execution(execution, last_stdout)
+            executions.append(copy.deepcopy(execution))
+        
+        self.assertEqual(executions[-1].status, "OK")
+        self.assertEqual(executions[-1].return_code, "0")
+        self.assertIn("Cached process > SPLIT_FILE", executions[-1].stdout)
+
 
 
 class CustomRunningTests(RunTestCase):

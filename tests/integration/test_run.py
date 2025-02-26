@@ -22,6 +22,7 @@ class BasicRunningTests(RunTestCase):
 
         
     def test_can_handle_pipeline_error(self):
+        # Run with error
         os.chdir(self.rundirectory)
         execution = nextflow.run(
             pipeline_path=self.get_path("pipeline.nf"),
@@ -33,12 +34,107 @@ class BasicRunningTests(RunTestCase):
         self.assertEqual(execution.status, "ERROR")
         self.assertEqual(execution.return_code, "1")
         self.assertIn("Error executing process", execution.stdout)
+        self.assertEqual(len(execution.process_executions), 3)
+        proc_ex = self.get_process_execution(execution, "SPLIT_FILE")
+        self.assertEqual(proc_ex.status, "COMPLETED")
+        self.assertEqual(proc_ex.return_code, "0")
+        passed_identifier = proc_ex.identifier
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
         self.assertIn(proc_ex.status, ["FAILED", "-"])
         self.assertEqual(proc_ex.return_code, "1")
+        duplicate_identifier = proc_ex.identifier
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
         self.assertIn(proc_ex.status, ["FAILED", "-"])
         self.assertEqual(proc_ex.return_code, "1")
+        duplicate_identifier = proc_ex.identifier
+
+        # Retry - get a little further this time
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            resume=True,
+            params={
+                "input": self.get_path("files/data.txt"), "count": "9", "flag": "xxx",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+        self.assertIn("pipeline.nf -resume --input", execution.command)
+        self.assertEqual(execution.status, "ERROR")
+        self.assertEqual(execution.return_code, "1")
+        self.assertIn("Error executing process", execution.stdout)
+        self.assertIn("Cached process > SPLIT_FILE", execution.stdout)
+        uuid = execution.session_uuid
+        self.assertEqual(len(execution.process_executions), 5)
+        split = self.get_process_execution(execution, "SPLIT_FILE")
+        self.assertEqual(split.identifier, passed_identifier)
+        self.assertIsNone(split.submitted)
+        self.assertIsNone(split.started)
+        self.assertIsNone(split.finished)
+        self.assertEqual(split.stdout, "Splitting...\n")
+        self.assertEqual(split.stderr, "")
+        self.assertTrue(split.bash.startswith("#!/usr/bin/env"))
+        self.assertEqual(split.status, "COMPLETED")
+        self.assertEqual(split.return_code, "0")
+        self.assertTrue(split.cached)
+        duplicate1 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
+        self.assertEqual(duplicate1.status, "COMPLETED")
+        self.assertEqual(duplicate1.return_code, "0")
+        self.assertFalse(duplicate1.cached)
+        self.assertNotEqual(duplicate1.identifier, duplicate_identifier)
+        duplicate1_identifier = duplicate1.identifier
+        duplicate2 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
+        self.assertEqual(duplicate2.status, "COMPLETED")
+        self.assertEqual(duplicate2.return_code, "0")
+        self.assertFalse(duplicate2.cached)
+        self.assertNotEqual(duplicate2.identifier, duplicate_identifier)
+        duplicate2_identifier = duplicate2.identifier
+        lower1 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
+        self.assertEqual(lower1.status, "FAILED")
+        self.assertEqual(lower1.return_code, "1")
+        self.assertFalse(lower1.cached)
+        lower2 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
+        self.assertEqual(lower2.status, "FAILED")
+        self.assertEqual(lower2.return_code, "1")
+        self.assertFalse(lower2.cached)
+
+        # Retry with working params
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            resume=uuid,
+            params={
+                "input": self.get_path("files/data.txt"), "count": "9",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+        self.assertIn(f"pipeline.nf -resume {uuid} --input", execution.command)
+        self.assertEqual(execution.status, "OK")
+        self.assertEqual(execution.return_code, "0")
+        self.assertIn("Cached process > SPLIT_FILE", execution.stdout)
+        self.assertIn("Cached process > PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)", execution.stdout)
+        self.assertIn("Cached process > PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)", execution.stdout)
+        self.assertEqual(len(execution.process_executions), 8)
+        split = self.get_process_execution(execution, "SPLIT_FILE")
+        self.assertEqual(split.identifier, passed_identifier)
+        duplicate1 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
+        self.assertEqual(duplicate1.status, "COMPLETED")
+        self.assertEqual(duplicate1.return_code, "0")
+        self.assertTrue(duplicate1.cached)
+        self.assertEqual(duplicate1.identifier, duplicate1_identifier)
+        duplicate2 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
+        self.assertEqual(duplicate2.status, "COMPLETED")
+        self.assertEqual(duplicate2.return_code, "0")
+        self.assertTrue(duplicate2.cached)
+        self.assertEqual(duplicate2.identifier, duplicate2_identifier)
+        lower1 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
+        self.assertEqual(lower1.status, "COMPLETED")
+        self.assertEqual(lower1.return_code, "0")
+        self.assertFalse(lower1.cached)
+        lower2 = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
+        self.assertEqual(lower2.status, "COMPLETED")
+        self.assertEqual(lower2.return_code, "0")
+        self.assertFalse(lower2.cached)
+
+    
+
 
 
 

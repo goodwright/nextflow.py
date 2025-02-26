@@ -9,6 +9,7 @@ from nextflow.log import (
     get_finished_from_log,
     get_identifier_from_log,
     get_session_uuid_from_log,
+    parse_cached_line,
     parse_submitted_line,
     parse_completed_line,
 )
@@ -19,6 +20,7 @@ def run(*args, **kwargs):
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in.
     :param str output_path: the location to store the output in.
+    :param resume: whether to resume an existing execution.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
@@ -41,6 +43,7 @@ def run_and_poll(*args, **kwargs):
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in.
     :param str output_path: the location to store the output in.
+    :param resume: whether to resume an existing execution.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
@@ -59,13 +62,13 @@ def run_and_poll(*args, **kwargs):
 
 
 def _run(
-        pipeline_path, poll=False, run_path=None, output_path=None, runner=None,
+        pipeline_path, resume=False, poll=False, run_path=None, output_path=None, runner=None,
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
     nextflow_command = make_nextflow_command(
-        run_path, output_path, pipeline_path, version, configs, params,
+        run_path, output_path, pipeline_path, resume, version, configs, params,
         profiles, timezone, report, timeline, dag, trace
     )
     if runner:
@@ -89,12 +92,13 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, output_path, pipeline_path, version, configs, params, profiles, timezone, report, timeline, dag, trace):
+def make_nextflow_command(run_path, output_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
     :param str output_path: the location to store the output in.
     :param str pipeline_path: the absolute path to the pipeline .nf file.
+    :param bool resume: whether to resume an existing execution.
     :param str version: the nextflow version to use.
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
@@ -113,10 +117,12 @@ def make_nextflow_command(run_path, output_path, pipeline_path, version, configs
     if log: log += " "
     configs = make_nextflow_command_config_string(configs)
     if configs: configs += " "
+    resume = make_nextflow_command_resume_string(resume)
+    if resume: resume = f"{resume} "
     params = make_nextflow_command_params_string(params)
     profiles = make_nextflow_command_profiles_string(profiles)
     reports = make_reports_string(output_path, report, timeline, dag, trace)
-    command = f"{env}{nf} {log}{configs}run {pipeline_path} {params} {profiles} {reports}"
+    command = f"{env}{nf} {log}{configs}run {pipeline_path} {resume}{params} {profiles} {reports}"
     if run_path: command = f"cd {run_path}; {command}"
     prefix = (str(output_path) + os.path.sep) if output_path else ""
     command = command.rstrip() + f" >{prefix}"
@@ -160,6 +166,17 @@ def make_nextflow_command_config_string(configs):
 
     if configs is None: configs = []
     return " ".join(f"-c \"{c}\"" for c in configs)
+
+
+def make_nextflow_command_resume_string(resume):
+    """Creates the resume setting portion of the nextflow run command string.
+    
+    :param resume: whether to resume an existing execution.
+    :rtype: ``str``"""
+
+    if not resume: return ""
+    if isinstance(resume, str): return f"-resume {resume}"
+    return "-resume"
 
 
 def make_nextflow_command_params_string(params):
@@ -285,8 +302,9 @@ def get_initial_process_executions(log, execution):
     process_executions = {p.identifier: p for p in execution.process_executions}
     just_updated= []
     for line in lines:
-        if "Submitted process" in line:
-            proc_ex = create_process_execution_from_line(line)
+        if "Submitted process" in line or "Cached process" in line:
+            is_cached = "Cached process" in line
+            proc_ex = create_process_execution_from_line(line, is_cached)
             if not proc_ex: continue
             proc_ex.execution = execution
             process_executions[proc_ex.identifier] = proc_ex
@@ -298,19 +316,26 @@ def get_initial_process_executions(log, execution):
     return process_executions, just_updated
 
 
-def create_process_execution_from_line(line):
+def create_process_execution_from_line(line, cached=False):
     """Creates a process execution from a line of the log file in which its
-    submission is reported.
+    submission (or previous caching) is reported.
     
     :param str line: a line from the log file.
+    :param bool cached: whether the process is cached.
     :rtype: ``nextflow.models.ProcessExecution``"""
 
-    identifier, name, process, submitted = parse_submitted_line(line)
+    if cached:
+        identifier, name, process = parse_cached_line(line)
+        submitted = None
+    else:
+        identifier, name, process, submitted = parse_submitted_line(line)
     if not identifier: return
     return ProcessExecution(
         identifier=identifier, name=name, process=process, submitted=submitted,
-        path="", stdout="", stderr="", return_code="", bash="", finished=None,
-        status="-", started=None,
+        path="", stdout="", stderr="", bash="", started=None, finished=None,
+        return_code="0" if cached else "",
+        status="COMPLETED" if cached else "-",
+        cached=cached
     )
 
 
@@ -344,7 +369,7 @@ def update_process_execution_from_path(process_execution, execution_path):
     full_path = os.path.join(execution_path, "work", process_execution.path)
     process_execution.stdout = get_file_text(os.path.join(full_path, ".command.out"))
     process_execution.stderr = get_file_text(os.path.join(full_path, ".command.err"))
-    if not process_execution.started:
+    if not process_execution.started and not process_execution.cached:
         process_execution.started = get_file_creation_time(os.path.join(full_path, ".command.begin"))
     if not process_execution.bash:
         process_execution.bash = get_file_text(os.path.join(full_path, ".command.sh"))
