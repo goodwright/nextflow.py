@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock, call
 from nextflow.command import *
 from nextflow.command import _run
+from freezegun import freeze_time
 
 class RunTests(TestCase):
 
@@ -25,9 +26,11 @@ class RunTests(TestCase):
 
     @patch("nextflow.command.make_nextflow_command")
     @patch("subprocess.Popen")
+    @patch("nextflow.command.wait_for_log_creation")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
-    def test_can_run_with_custom_values(self, mock_ex, mock_sleep, mock_run, mock_nc):
+    @freeze_time("2025-01-01")
+    def test_can_run_with_custom_values(self, mock_ex, mock_sleep, mock_wait, mock_run, mock_nc):
         mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [[None, 0], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run(
@@ -40,6 +43,7 @@ class RunTests(TestCase):
             mock_nc.return_value,
             universal_newlines=True, shell=True
         )
+        mock_wait.assert_called_with("/out", datetime(2025, 1, 1))
         mock_sleep.assert_called_with(4)
         self.assertEqual(mock_sleep.call_count, 3)
         mock_ex.assert_called_with("/out", mock_nc.return_value, mock_executions[0], 40)
@@ -279,6 +283,18 @@ class ReportsStringTests(TestCase):
             make_reports_string("/out", "report.html", "time.html", "dag.html", "trace.txt"),
             "-with-report /out/report.html -with-timeline /out/time.html -with-dag /out/dag.html -with-trace /out/trace.txt"
         )
+
+
+
+class WaitForLogCreationTests(TestCase):
+
+    @patch("nextflow.command.get_file_creation_time")
+    @patch("time.sleep")
+    def test_can_wait_for_log_creation(self, mock_sleep, mock_time):
+        mock_time.side_effect = [None, datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2025, 1, 1)]
+        wait_for_log_creation("/out", datetime(2024, 6, 1))
+        self.assertEqual(mock_sleep.call_args_list, [call(0.1), call(0.1), call(0.1)])
+        mock_time.assert_called_with(os.path.join("/out", ".nextflow.log"))
 
 
 

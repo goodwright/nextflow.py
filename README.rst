@@ -73,8 +73,10 @@ You can opt to only run unit tests or integration tests::
 
     $ python -m unittest discover tests.unit
     $ python -m unittest discover tests.integration
+  
+The `freezegun` library must be installed to run the unit tests:
 
-
+    $ pip install freezegun
 
 Overview
 --------

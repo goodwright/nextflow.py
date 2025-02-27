@@ -2,6 +2,7 @@ import os
 import re
 import time
 import subprocess
+from datetime import datetime
 from nextflow.io import get_file_text, get_process_ids_to_paths, get_file_creation_time
 from nextflow.models import Execution, ProcessExecution
 from nextflow.log import (
@@ -71,6 +72,7 @@ def _run(
         run_path, output_path, pipeline_path, resume, version, configs, params,
         profiles, timezone, report, timeline, dag, trace
     )
+    start = datetime.now()
     if runner:
         process = None
         runner(nextflow_command)
@@ -79,6 +81,7 @@ def _run(
             nextflow_command, universal_newlines=True, shell=True        
         )
     execution, log_start = None, 0
+    if resume: wait_for_log_creation(output_path or run_path, start)
     while True:
         time.sleep(sleep)
         execution, diff = get_execution(
@@ -228,6 +231,18 @@ def make_reports_string(output_path, report, timeline, dag, trace):
             words[1] = os.path.join(output_path, words[1])
             params[i] = " ".join(words)
     return " ".join(params)
+
+
+def wait_for_log_creation(output_path, start):
+    """Waits for a log file for this execution to be created.
+    
+    :param str output_path: the location to store the output in.
+    :param datetime start: the start time."""
+    
+    while True:
+        created = get_file_creation_time(os.path.join(output_path, ".nextflow.log"))
+        if created and created > start: break
+        time.sleep(0.1)
 
 
 def get_execution(execution_path, nextflow_command, execution=None, log_start=0):
