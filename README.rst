@@ -1,7 +1,7 @@
 nextflow.py
 ===========
 
-|ci| |version| |pypi| |nextfow| |license|
+|ci| |version| |pypi| |nextflow| |license|
 
 .. |ci| image:: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml/badge.svg
   :target: https://github.com/goodwright/nextflow.py/actions/workflows/main.yml
@@ -12,7 +12,7 @@ nextflow.py
 .. |pypi| image:: https://img.shields.io/pypi/pyversions/nextflowpy.svg
   :target: https://pypi.org/project/nextflowpy/
 
-.. |nextfow| image:: https://img.shields.io/badge/Nextflow-22.10%20|23.10%20|24.10%20-orange
+.. |nextflow| image:: https://img.shields.io/badge/Nextflow-22.10%20|23.10%20|24.10%20-orange
   :target: https://www.nextflow.io/
 
 .. |license| image:: https://img.shields.io/pypi/l/nextflowpy.svg?color=blue
@@ -156,7 +156,7 @@ pipeline execution at that moment in time, as a generator::
         print("Processing intermediate execution")
 
 By default, an ``Execution`` will be returned every second, but you can
-adjust this as required with the ``sleep`` paramater. This is useful if you want
+adjust this as required with the ``sleep`` parameter. This is useful if you want
 to get information about the progress of the pipeline execution as it proceeds.
 
 Executions
@@ -382,7 +382,7 @@ Release 0.3
 * Improved datetime parsing.
 * Simplified process execution parsing.
 * Fixed concatenation of process executions with no parentheses.
-* Tests now check compatability with different Nextflow versions.
+* Tests now check compatibility with different Nextflow versions.
 
 Release 0.2.2
 ~~~~~~~~~~~~~

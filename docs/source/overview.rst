@@ -76,7 +76,7 @@ pipeline execution at that moment in time, as a generator::
         print("Processing intermediate execution")
 
 By default, an :py:class:`.Execution` will be returned every second, but you can
-adjust this as required with the ``sleep`` paramater. This is useful if you want
+adjust this as required with the ``sleep`` parameter. This is useful if you want
 to get information about the progress of the pipeline execution as it proceeds.
 
 Executions

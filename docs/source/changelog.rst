@@ -144,7 +144,7 @@ Release 0.3
 * Improved datetime parsing.
 * Simplified process execution parsing.
 * Fixed concatenation of process executions with no parentheses.
-* Tests now check compatability with different Nextflow versions.
+* Tests now check compatibility with different Nextflow versions.
 
 Release 0.2.2
 ~~~~~~~~~~~~~
