@@ -19,8 +19,9 @@ def run(*args, **kwargs):
     """Runs a pipeline and returns the execution.
     
     :param str pipeline_path: the absolute path to the pipeline .nf file.
-    :param str run_path: the location to run the pipeline in.
-    :param str output_path: the location to store the output in.
+    :param str run_path: the location to run the pipeline in (if not current directory).
+    :param str output_path: the location to store the output in (if not run path).
+    :param str log_path: the location to store the log in (if not output path).
     :param resume: whether to resume an existing execution.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
@@ -42,8 +43,9 @@ def run_and_poll(*args, **kwargs):
     update.
     
     :param str pipeline_path: the absolute path to the pipeline .nf file.
-    :param str run_path: the location to run the pipeline in.
-    :param str output_path: the location to store the output in.
+    :param str run_path: the location to run the pipeline in (if not current directory).
+    :param str output_path: the location to store the output in (if not run path).
+    :param str log_path: the location to store the log in (if not output path).
     :param resume: whether to resume an existing execution.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
@@ -63,14 +65,17 @@ def run_and_poll(*args, **kwargs):
 
 
 def _run(
-        pipeline_path, resume=False, poll=False, run_path=None, output_path=None, runner=None,
+        pipeline_path, resume=False, poll=False, run_path=None, output_path=None,
+        log_path=None,runner=None,
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
     if not run_path: run_path = os.path.abspath(".")
+    if not output_path: output_path = run_path
+    if not log_path: log_path = output_path
     nextflow_command = make_nextflow_command(
-        run_path, output_path, pipeline_path, resume, version, configs, params,
-        profiles, timezone, report, timeline, dag, trace
+        run_path, output_path, log_path, pipeline_path, resume, version, configs,
+        params, profiles, timezone, report, timeline, dag, trace
     )
     start = datetime.now()
     if runner:
@@ -81,11 +86,11 @@ def _run(
             nextflow_command, universal_newlines=True, shell=True        
         )
     execution, log_start = None, 0
-    if resume: wait_for_log_creation(output_path or run_path, start)
+    if resume: wait_for_log_creation(log_path, start)
     while True:
         time.sleep(sleep)
         execution, diff = get_execution(
-            output_path or run_path, nextflow_command, execution, log_start
+            output_path, log_path, nextflow_command, execution, log_start
         )
         log_start += diff
         if execution and poll: yield execution
@@ -95,11 +100,12 @@ def _run(
             break
 
 
-def make_nextflow_command(run_path, output_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace):
+def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace):
     """Generates the `nextflow run` commmand.
     
     :param str run_path: the location to run the pipeline in.
     :param str output_path: the location to store the output in.
+    :param str log_path: the location to store the log in.
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param bool resume: whether to resume an existing execution.
     :param str version: the nextflow version to use.
@@ -113,10 +119,10 @@ def make_nextflow_command(run_path, output_path, pipeline_path, resume,version, 
     :param str trace: the filename to use for the trace report.
     :rtype: ``str``"""
 
-    env = make_nextflow_command_env_string(version, timezone, output_path)
+    env = make_nextflow_command_env_string(version, timezone, output_path, run_path)
     if env: env += " "
     nf = "nextflow -Duser.country=US"
-    log = make_nextflow_command_log_string(output_path)
+    log = make_nextflow_command_log_string(log_path, run_path)
     if log: log += " "
     configs = make_nextflow_command_config_string(configs)
     if configs: configs += " "
@@ -126,15 +132,15 @@ def make_nextflow_command(run_path, output_path, pipeline_path, resume,version, 
     profiles = make_nextflow_command_profiles_string(profiles)
     reports = make_reports_string(output_path, report, timeline, dag, trace)
     command = f"{env}{nf} {log}{configs}run {pipeline_path} {resume}{params} {profiles} {reports}"
-    if run_path: command = f"cd {run_path}; {command}"
-    prefix = (str(output_path) + os.path.sep) if output_path else ""
+    if run_path != os.path.abspath("."): command = f"cd {run_path}; {command}"
+    prefix = (str(output_path) + os.path.sep) if output_path != run_path else ""
     command = command.rstrip() + f" >{prefix}"
     command += f"stdout.txt 2>{prefix}"
     command += f"stderr.txt; echo $? >{prefix}rc.txt"
     return command
 
 
-def make_nextflow_command_env_string(version, timezone, output_path):
+def make_nextflow_command_env_string(version, timezone, output_path, run_path):
     """Creates the environment variable setting portion of the nextflow run
     command string.
     
@@ -146,18 +152,18 @@ def make_nextflow_command_env_string(version, timezone, output_path):
     env = {"NXF_ANSI_LOG": "false"}
     if version: env["NXF_VER"] = version
     if timezone: env["TZ"] = timezone
-    if output_path: env["NXF_WORK"] = os.path.join(output_path, "work")
+    if output_path != run_path: env["NXF_WORK"] = os.path.join(output_path, "work")
     return " ".join([f"{k}={v}" for k, v in env.items()])
 
 
-def make_nextflow_command_log_string(output_path):
+def make_nextflow_command_log_string(log_path, run_path):
     """Creates the log setting portion of the nextflow run command string.
     
-    :param str output_path: the location to store the output in.
+    :param str log_path: the location to store the log file in.
     :rtype: ``str``"""
 
-    if not output_path: return ""
-    return f"-log '{os.path.join(output_path, '.nextflow.log')}'"
+    if log_path == run_path: return ""
+    return f"-log '{os.path.join(log_path, '.nextflow.log')}'"
 
 
 def make_nextflow_command_config_string(configs):
@@ -245,17 +251,18 @@ def wait_for_log_creation(output_path, start):
         time.sleep(0.1)
 
 
-def get_execution(execution_path, nextflow_command, execution=None, log_start=0):
+def get_execution(execution_path, log_path, nextflow_command, execution=None, log_start=0):
     """Creates an execution object from a location. If you are polling, you can
     pass in the previous execution to update it with new information.
     
     :param str execution_path: the location of the execution.
+    :param str log_path: the location of the log.
     :param str nextflow_command: the command used to run the pipeline.
     :param nextflow.models.Execution execution: the existing execution, if any.
     :param int log_start: the number of lines already read from the log.
     :rtype: ``nextflow.models.Execution``"""
 
-    log = get_file_text(os.path.join(execution_path, ".nextflow.log"))
+    log = get_file_text(os.path.join(log_path, ".nextflow.log"))
     if not log: return None, 0
     log = log[log_start:]
     execution = make_or_update_execution(log, execution_path, nextflow_command, execution)

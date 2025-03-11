@@ -14,13 +14,13 @@ class RunTests(TestCase):
         execution = Mock()
         mock_ex.return_value = execution, 20
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), os.path.abspath("."), os.path.abspath("."), "main.nf", False, None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value, None, 0)
+        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0)
         self.assertEqual(executions, [execution])
     
 
@@ -34,19 +34,19 @@ class RunTests(TestCase):
         mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [[None, 0], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run(
-            "main.nf", run_path="/exdir", output_path="/out", resume="a_b", version="21.10", configs=["conf1"],
+            "main.nf", run_path="/exdir", output_path="/out", log_path="/log", resume="a_b", version="21.10", configs=["conf1"],
             params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
             timeline="time.html", dag="dag.html", trace="trace.html", sleep=4
         ))
-        mock_nc.assert_called_with("/exdir", "/out", "main.nf", "a_b", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
+        mock_nc.assert_called_with("/exdir", "/out", "/log", "main.nf", "a_b", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
         )
-        mock_wait.assert_called_with("/out", datetime(2025, 1, 1))
+        mock_wait.assert_called_with("/log", datetime(2025, 1, 1))
         mock_sleep.assert_called_with(4)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with("/out", mock_nc.return_value, mock_executions[0], 40)
+        mock_ex.assert_called_with("/out", "/log", mock_nc.return_value, mock_executions[0], 40)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, [mock_executions[1]])
 
@@ -59,15 +59,15 @@ class RunTests(TestCase):
         mock_run.return_value.poll.side_effect = [None, None, 1]
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
-        executions = list(_run("main.nf", poll=True))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
+        executions = list(_run("main.nf", poll=True, output_path="/out"))
+        mock_nc.assert_called_with(os.path.abspath("."), "/out", "/out", "main.nf", False, None, None, None, None, None, None, None, None, None)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(1)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value, mock_executions[0], 60)
+        mock_ex.assert_called_with("/out", "/out", mock_nc.return_value, mock_executions[0], 60)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, mock_executions)
     
@@ -80,11 +80,11 @@ class RunTests(TestCase):
         runner = MagicMock()
         mock_ex.return_value = [Mock(finished=True), 0]
         executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), None, "main.nf", False, None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), os.path.abspath("."), os.path.abspath("."), "main.nf", False, None, None, None, None, None, None, None, None, None)
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(os.path.abspath("."), mock_nc.return_value, None, 0)
+        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0)
         self.assertEqual(executions, [mock_ex.return_value[0]])
     
 
@@ -114,7 +114,8 @@ class NextflowCommandTests(TestCase):
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
     @patch("nextflow.command.make_reports_string")
-    def test_can_get_full_nextflow_command(self, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
+    @patch("os.path.abspath")
+    def test_can_get_full_nextflow_command(self, mock_abspath, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
         mock_env.return_value = "A=B C=D"
         mock_log.return_value = "-log '.nextflow.log'"
         mock_conf.return_value = "-c conf1 -c conf2"
@@ -122,8 +123,9 @@ class NextflowCommandTests(TestCase):
         mock_resume.return_value = "-resume X"
         mock_prof.return_value = "-profile docker,test"
         mock_report.return_value = "--dag.html"
-        command = make_nextflow_command("/exdir", "/out", "main.nf", True, "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
-        mock_env.assert_called_with("21.10", "UTC", "/out")
+        mock_abspath.return_value = "/"
+        command = make_nextflow_command("/exdir", "/out", "/log", "main.nf", True, "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html")
+        mock_env.assert_called_with("21.10", "UTC", "/out", "/exdir")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
@@ -138,7 +140,8 @@ class NextflowCommandTests(TestCase):
     @patch("nextflow.command.make_nextflow_command_params_string")
     @patch("nextflow.command.make_nextflow_command_profiles_string")
     @patch("nextflow.command.make_reports_string")
-    def test_can_get_minimal_nextflow_command(self, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
+    @patch("os.path.abspath")
+    def test_can_get_minimal_nextflow_command(self, mock_abspath, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
         mock_env.return_value = ""
         mock_log.return_value = ""
         mock_conf.return_value = ""
@@ -146,13 +149,14 @@ class NextflowCommandTests(TestCase):
         mock_params.return_value = ""
         mock_prof.return_value = ""
         mock_report.return_value = ""
-        command = make_nextflow_command(None, None, "main.nf", False, "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None)
-        mock_env.assert_called_with("21.10", None, None)
+        mock_abspath.return_value = "/exdir"
+        command = make_nextflow_command("/exdir", "/exdir", "/exdir", "main.nf", False, "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None)
+        mock_env.assert_called_with("21.10", None, "/exdir", "/exdir")
         mock_conf.assert_called_with(["conf1"])
         mock_resume.assert_called_with(False)
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
-        mock_report.assert_called_with(None, None, None, None, None)
+        mock_report.assert_called_with("/exdir", None, None, None, None)
         self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
 
 
@@ -160,30 +164,30 @@ class NextflowCommandTests(TestCase):
 class EnvStringTests(TestCase):
 
     def test_can_get_env_without_args(self):
-        self.assertEqual(make_nextflow_command_env_string(None, None, None), "NXF_ANSI_LOG=false")
+        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/out"), "NXF_ANSI_LOG=false")
 
 
     def test_can_get_env_with_version(self):
-        self.assertEqual(make_nextflow_command_env_string("22.1", None, None), "NXF_ANSI_LOG=false NXF_VER=22.1")
+        self.assertEqual(make_nextflow_command_env_string("22.1", None, "/out", "/out"), "NXF_ANSI_LOG=false NXF_VER=22.1")
     
 
     def test_can_get_env_with_timezone(self):
-        self.assertEqual(make_nextflow_command_env_string(None, "UTC", None), "NXF_ANSI_LOG=false TZ=UTC")
+        self.assertEqual(make_nextflow_command_env_string(None, "UTC", "/out", "/out"), "NXF_ANSI_LOG=false TZ=UTC")
     
 
     def test_can_get_env_with_work_location(self):
-        self.assertEqual(make_nextflow_command_env_string(None, None, "/out"), "NXF_ANSI_LOG=false NXF_WORK=/out/work")
+        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/run"), "NXF_ANSI_LOG=false NXF_WORK=/out/work")
 
 
 
 class LogStringTests(TestCase):
 
     def test_can_handle_no_directory(self):
-        self.assertEqual(make_nextflow_command_log_string(None), "")
+        self.assertEqual(make_nextflow_command_log_string("/out", "/out"), "")
     
 
     def test_can_handle_directory(self):
-        self.assertEqual(make_nextflow_command_log_string("/out"), "-log '/out/.nextflow.log'")
+        self.assertEqual(make_nextflow_command_log_string("/log", "/out"), "-log '/log/.nextflow.log'")
 
 
 
@@ -320,10 +324,10 @@ class GetExecutionTests(TestCase):
             "cc/dd": "/ex/cc/dd",
             "gg/hh": "/ex/gg/hh",
         }
-        execution, size = get_execution("/ex", "nf run")
+        execution, size = get_execution("/ex", "/log", "nf run")
         self.assertEqual(execution, mock_execution)
         self.assertEqual(size, 3)
-        mock_text.assert_called_with(os.path.join("/ex", ".nextflow.log"))
+        mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"))
         mock_make.assert_called_with("LOG", "/ex", "nf run", None)
         mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex")
@@ -360,10 +364,10 @@ class GetExecutionTests(TestCase):
             "cc/dd": "/ex/cc/dd",
             "gg/hh": "/ex/gg/hh",
         }
-        execution, size = get_execution("/ex", "nf run", mock_execution, 4)
+        execution, size = get_execution("/ex", "/log", "nf run", mock_execution, 4)
         self.assertEqual(execution, mock_execution)
         self.assertEqual(size, 3)
-        mock_text.assert_called_with(os.path.join("/ex", ".nextflow.log"))
+        mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"))
         mock_make.assert_called_with("LOG", "/ex", "nf run", mock_execution)
         mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex")
@@ -383,10 +387,10 @@ class GetExecutionTests(TestCase):
     @patch("nextflow.command.get_file_text")
     def test_can_handle_no_log_yet(self, mock_text):
         mock_text.return_value = ""
-        execution, size = get_execution("/ex", "nf run")
+        execution, size = get_execution("/ex", "/log", "nf run")
         self.assertIsNone(execution)
         self.assertEqual(size, 0)
-        mock_text.assert_called_with(os.path.join("/ex", ".nextflow.log"))
+        mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"))
 
 
 

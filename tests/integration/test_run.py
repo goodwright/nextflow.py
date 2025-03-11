@@ -133,9 +133,6 @@ class BasicRunningTests(RunTestCase):
         self.assertEqual(lower2.return_code, "0")
         self.assertFalse(lower2.cached)
 
-    
-
-
 
 
 class CustomRunningTests(RunTestCase):
@@ -200,6 +197,30 @@ class CustomRunningTests(RunTestCase):
         finally:
             # Remove outputs
             shutil.rmtree(outputs_path)
+    
+
+    def test_can_run_with_specific_log_location(self):
+        # Make location for outputs
+        os.chdir(self.rundirectory)
+        log_path = os.path.sep + os.path.join(*self.rundirectory.split(os.path.sep)[:-1], "log_loc")
+        os.mkdir(log_path)
+
+        try:
+            # Run basic execution
+            execution = nextflow.run(
+                pipeline_path=self.get_path("pipeline.nf"),
+                log_path=str(log_path),
+                params={
+                    "input": self.get_path("files/data.txt"), "count": "12",
+                    "suffix": self.get_path("files/suffix.txt")
+                }
+            )
+
+            # Execution is fine
+            self.check_execution(execution, log_path=str(log_path))
+        finally:
+            # Remove outputs
+            shutil.rmtree(log_path)
     
 
     def test_can_run_with_runner(self):
