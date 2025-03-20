@@ -1,6 +1,15 @@
 Changelog
 ---------
 
+Release 0.10.0
+~~~~~~~~~~~~~~
+
+`20th March, 2025`
+
+* Added support for execution resuming.
+* You can now specify separate paths for the log file and work directory.
+
+
 Release 0.9.0
 ~~~~~~~~~~~~~
 
