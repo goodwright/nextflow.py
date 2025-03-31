@@ -1,4 +1,5 @@
 import os
+import glob
 from datetime import datetime
 
 def get_file_text(path):
@@ -35,10 +36,7 @@ def get_process_ids_to_paths(process_ids, execution_path):
 
     process_ids_to_paths = {}
     path = os.path.join(execution_path, "work")
-    subdirectories = []
-    for root, dirs, _ in os.walk(path):
-        for directory in dirs:
-            subdirectories.append(os.path.join(root, directory))
+    subdirectories = glob.glob(os.path.join(path, "*", "*"))
     for subdirectory in subdirectories:
         sub = os.path.sep.join(subdirectory.split(os.path.sep)[-2:])
         for process_id in process_ids:
