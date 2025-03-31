@@ -1,4 +1,5 @@
 import os
+import pytz
 import glob
 from datetime import datetime
 
@@ -14,14 +15,19 @@ def get_file_text(path):
         return ""
 
 
-def get_file_creation_time(path):
+def get_file_creation_time(path, timezone=None):
     """Gets the creation time of a file.
     
     :param str path: the location of the file.
     :rtype: ``datetime.datetime``"""
 
     try:
-        return datetime.fromtimestamp(os.path.getctime(path))
+        dt = datetime.fromtimestamp(os.path.getctime(path))
+        if timezone:
+            tz = pytz.timezone(timezone)
+            dt = dt.astimezone(tz)
+            dt = dt.replace(tzinfo=None)
+        return dt
     except FileNotFoundError:
         return None
 
@@ -44,3 +50,28 @@ def get_process_ids_to_paths(process_ids, execution_path):
                 process_ids_to_paths[process_id] = subdirectory
                 break
     return process_ids_to_paths
+
+
+
+
+class CustomIO:
+
+    def read(path, mode="r"):
+        pass
+
+
+    def ctime(path):
+        pass
+
+
+    def listdir(path):
+        pass
+
+
+    def abspath(path):
+        pass
+
+
+    def glob(path):
+        pass
+    

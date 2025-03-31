@@ -90,7 +90,7 @@ def _run(
     while True:
         time.sleep(sleep)
         execution, diff = get_execution(
-            output_path, log_path, nextflow_command, execution, log_start
+            output_path, log_path, nextflow_command, execution, log_start, timezone
         )
         log_start += diff
         if execution and poll: yield execution
@@ -251,7 +251,7 @@ def wait_for_log_creation(output_path, start):
         time.sleep(0.1)
 
 
-def get_execution(execution_path, log_path, nextflow_command, execution=None, log_start=0):
+def get_execution(execution_path, log_path, nextflow_command, execution=None, log_start=0, timezone=None):
     """Creates an execution object from a location. If you are polling, you can
     pass in the previous execution to update it with new information.
     
@@ -274,7 +274,7 @@ def get_execution(execution_path, log_path, nextflow_command, execution=None, lo
     for process_execution in process_executions.values():
         if not process_execution.finished or not process_execution.started or \
          process_execution.identifier in changed:
-            update_process_execution_from_path(process_execution, execution_path)
+            update_process_execution_from_path(process_execution, execution_path, timezone)
     execution.process_executions = list(process_executions.values())
     return execution, len(log)
 
@@ -380,7 +380,7 @@ def update_process_execution_from_line(process_executions, line):
     return identifier
 
 
-def update_process_execution_from_path(process_execution, execution_path):
+def update_process_execution_from_path(process_execution, execution_path, timezone=None):
     """Some attributes of a process execution need to be obtained from files on
     disk. This function updates the process execution with these values.
     
@@ -392,7 +392,7 @@ def update_process_execution_from_path(process_execution, execution_path):
     process_execution.stdout = get_file_text(os.path.join(full_path, ".command.out"))
     process_execution.stderr = get_file_text(os.path.join(full_path, ".command.err"))
     if not process_execution.started and not process_execution.cached:
-        process_execution.started = get_file_creation_time(os.path.join(full_path, ".command.begin"))
+        process_execution.started = get_file_creation_time(os.path.join(full_path, ".command.begin"), timezone)
     if not process_execution.bash:
         process_execution.bash = get_file_text(os.path.join(full_path, ".command.sh"))
     if process_execution.execution.finished and not process_execution.return_code:

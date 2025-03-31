@@ -20,7 +20,7 @@ class RunTests(TestCase):
             universal_newlines=True, shell=True
         )
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0)
+        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0, None)
         self.assertEqual(executions, [execution])
     
 
@@ -46,7 +46,7 @@ class RunTests(TestCase):
         mock_wait.assert_called_with("/log", datetime(2025, 1, 1))
         mock_sleep.assert_called_with(4)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with("/out", "/log", mock_nc.return_value, mock_executions[0], 40)
+        mock_ex.assert_called_with("/out", "/log", mock_nc.return_value, mock_executions[0], 40, "UTC")
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, [mock_executions[1]])
 
@@ -67,7 +67,7 @@ class RunTests(TestCase):
         )
         mock_sleep.assert_called_with(1)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with("/out", "/out", mock_nc.return_value, mock_executions[0], 60)
+        mock_ex.assert_called_with("/out", "/out", mock_nc.return_value, mock_executions[0], 60, None)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, mock_executions)
     
@@ -84,7 +84,7 @@ class RunTests(TestCase):
         self.assertFalse(mock_run.called)
         runner.assert_called_with(mock_nc.return_value)
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0)
+        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0, None)
         self.assertEqual(executions, [mock_ex.return_value[0]])
     
 
@@ -324,7 +324,7 @@ class GetExecutionTests(TestCase):
             "cc/dd": "/ex/cc/dd",
             "gg/hh": "/ex/gg/hh",
         }
-        execution, size = get_execution("/ex", "/log", "nf run")
+        execution, size = get_execution("/ex", "/log", "nf run", timezone="UTC")
         self.assertEqual(execution, mock_execution)
         self.assertEqual(size, 3)
         mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"))
@@ -332,9 +332,9 @@ class GetExecutionTests(TestCase):
         mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex")
         self.assertEqual([c[0] for c in mock_update.call_args_list], [
-            (process_executions["aa/bb"], "/ex"),
-            (process_executions["ee/ff"], "/ex"),
-            (process_executions["gg/hh"], "/ex"),
+            (process_executions["aa/bb"], "/ex", "UTC"),
+            (process_executions["ee/ff"], "/ex", "UTC"),
+            (process_executions["gg/hh"], "/ex", "UTC"),
         ])
         self.assertEqual(execution.process_executions, [
             process_executions["aa/bb"],
@@ -364,7 +364,7 @@ class GetExecutionTests(TestCase):
             "cc/dd": "/ex/cc/dd",
             "gg/hh": "/ex/gg/hh",
         }
-        execution, size = get_execution("/ex", "/log", "nf run", mock_execution, 4)
+        execution, size = get_execution("/ex", "/log", "nf run", mock_execution, 4, "UTC")
         self.assertEqual(execution, mock_execution)
         self.assertEqual(size, 3)
         mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"))
@@ -372,9 +372,9 @@ class GetExecutionTests(TestCase):
         mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex")
         self.assertEqual([c[0] for c in mock_update.call_args_list], [
-            (process_executions["aa/bb"], "/ex"),
-            (process_executions["ee/ff"], "/ex"),
-            (process_executions["gg/hh"], "/ex"),
+            (process_executions["aa/bb"], "/ex", "UTC"),
+            (process_executions["ee/ff"], "/ex", "UTC"),
+            (process_executions["gg/hh"], "/ex", "UTC"),
         ])
         self.assertEqual(execution.process_executions, [
             process_executions["aa/bb"],
@@ -633,7 +633,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
     def test_can_update_values_with_started(self, mock_time, mock_text):
         proc_ex = Mock(stdout=".", stderr=".", bash=".", finished=None, return_code="", path="aa/bb", started=None, execution=Mock(finished=None), cached=False)
         mock_text.side_effect = ["ok", "bad"]
-        update_process_execution_from_path(proc_ex, "/ex")
+        update_process_execution_from_path(proc_ex, "/ex", timezone="UTC")
         self.assertEqual(proc_ex.stdout, "ok")
         self.assertEqual(proc_ex.stderr, "bad")
         self.assertEqual(proc_ex.bash, ".")
@@ -643,7 +643,7 @@ class UpdateProcessExecutionFromPathTests(TestCase):
             call(os.path.join("/ex", "work", "aa/bb", ".command.out"),),
             call(os.path.join("/ex", "work", "aa/bb", ".command.err"),),
         ])
-        mock_time.assert_called_with(os.path.join("/ex", "work", "aa/bb", ".command.begin"))
+        mock_time.assert_called_with(os.path.join("/ex", "work", "aa/bb", ".command.begin"), "UTC")
     
 
     @patch("nextflow.command.get_file_text")
