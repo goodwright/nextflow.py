@@ -1,7 +1,9 @@
 import os
+import glob
 import shutil
 import subprocess
 import nextflow
+from datetime import datetime
 from .base import RunTestCase
 
 class BasicRunningTests(RunTestCase):
@@ -242,6 +244,63 @@ class CustomRunningTests(RunTestCase):
 
         # Execution is fine
         self.check_execution(execution, line_count=10)
+    
+
+    def test_can_run_with_custom_io(self):
+        # Make custom io
+        class CustomIO:
+
+            def write(self_c, content):
+                with open(f"{self.rundirectory}/log.txt", "a") as f:
+                    f.write(content)
+
+            def abspath(self, path):
+                self.write(f"abspath: {path}\n")
+                return os.path.abspath(path)
+
+            def listdir(self, path):
+                self.write(f"listdir: {path}\n")
+                return os.listdir(path)
+
+            def read(self, path, mode="r"):
+                self.write(f"read: {path} {mode}\n")
+                try:
+                    with open(path, mode) as f: return f.read()
+                except FileNotFoundError:
+                    return ""
+
+            def ctime(self, path):
+                self.write(f"ctime: {path}\n")
+                return datetime.fromtimestamp(os.path.getctime(path))
+
+            def glob(self, path):
+                self.write(f"glob: {path}\n")
+                return glob.glob(path)
+
+        io = CustomIO()
+
+        # Run execution
+        execution = nextflow.run(
+            pipeline_path=self.get_path("pipeline.nf"),
+            run_path=str(self.rundirectory),
+            io=io,
+            params={
+                "input": self.get_path("files/data.txt"), "count": "12",
+                "suffix": self.get_path("files/suffix.txt")
+            }
+        )
+
+        # Execution is fine
+        self.check_execution(execution)
+
+        # The custom io functions were used
+        with open(f"{self.rundirectory}/log.txt", "r") as f:
+            text = f.read()
+            self.assertIn("abspath: ", text)
+            self.assertIn("listdir: ", text)
+            self.assertIn("read: ", text)
+            self.assertIn("ctime: ", text)
+            self.assertIn("glob: ", text)
     
 
     def test_can_run_with_specific_version(self):

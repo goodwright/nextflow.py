@@ -11,7 +11,7 @@ class ProcessExecutionTest(TestCase):
             "identifier": "12/3456", "name": "FASTQC (1)", "submitted": datetime(2021, 7, 4),
             "process": "FASTQC", "path": "12/34567890", "stdout": "good", "stderr": "bad",
             "return_code": "0", "bash": "$", "started": datetime(2021, 7, 5), "cached": False,
-            "finished": datetime(2021, 7, 6), "status": "COMPLETED",  **kwargs
+            "finished": datetime(2021, 7, 6), "status": "COMPLETED", "io": None,  **kwargs
         }
         return ProcessExecution(**kwargs)
 
@@ -24,7 +24,7 @@ class ProcessExecutionCreationTests(TestCase):
             identifier="12/3456", name="FASTQC (1)", submitted=datetime(2021, 7, 4),
             process="FASTQC", path="12/34567890", stdout="good", stderr="bad",
             return_code="0", bash="$", started=datetime(2021, 7, 5), cached=True,
-            finished=datetime(2021, 7, 6), status="COMPLETED"
+            finished=datetime(2021, 7, 6), status="COMPLETED", io=None
         )
         self.assertEqual(process_execution.identifier, "12/3456")
         self.assertEqual(process_execution.name, "FASTQC (1)")
@@ -226,3 +226,17 @@ class AllOutputDataTests(ProcessExecutionTest):
         )
         self.assertFalse(mock_input.called)
         self.assertFalse(mock_dir.called)
+    
+
+    @patch("nextflow.models.ProcessExecution.input_data")
+    @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
+    def test_can_use_custom_io(self, mock_path, mock_input):
+        mock_input.return_value = ["file2"]
+        mock_path.return_value = "/loc"
+        io = Mock()
+        io.listdir.return_value = ["file1", "file2", ".command.run", ".exitcode", "file3"]
+        self.assertEqual(
+            self.make_process_execution(io=io).all_output_data(),
+            [str(Path("/loc/file1")), str(Path("/loc/file3"))]
+        )
+        mock_input.assert_called_with(include_path=False)

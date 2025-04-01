@@ -64,6 +64,7 @@ class ProcessExecution:
     finished: datetime
     status: str
     cached: bool
+    io: any
 
     def __repr__(self):
         return f"<ProcessExecution: {self.identifier}>"
@@ -120,7 +121,8 @@ class ProcessExecution:
         outputs = []
         if not self.path: return []
         inputs = self.input_data(include_path=False)
-        for f in os.listdir(self.full_path):
+        listdir = self.io.listdir if self.io else os.listdir
+        for f in listdir(self.full_path):
             full_path = Path(f"{self.full_path}/{f}")
             if not f.startswith(".command") and f != ".exitcode":
                 if f not in inputs:
