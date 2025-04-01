@@ -61,28 +61,3 @@ def get_process_ids_to_paths(process_ids, execution_path, io=None):
                 process_ids_to_paths[process_id] = subdirectory
                 break
     return process_ids_to_paths
-
-
-
-
-class CustomIO:
-
-    def abspath(path):
-        pass
-
-
-    def listdir(path):
-        pass
-
-
-    def read(path, mode="r"):
-        pass
-
-
-    def ctime(path):
-        pass
-
-
-    def glob(path):
-        pass
-    

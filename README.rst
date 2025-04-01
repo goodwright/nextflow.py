@@ -144,6 +144,24 @@ Once the run command string has been passed to the runner, nextflow.py will
 wait for the pipeline to complete by watching the execution directory, and then
 return the ``Execution`` object as normal.
 
+Custom IO
+~~~~~~~~~
+
+By default, nextflow will try to access the local filesystem when checking the
+output pipeline files. If you need to define alternative ways of doing this, you
+can create a custom ``IO`` object and pass it in as the ``io`` parameter to the
+``run`` method:
+
+    >>> execution = pipeline.run("my-pipeline.nf", io=my_custom_io)
+
+This object must define the following methods:
+
+* ``abspath(path)`` - Return the absolute path to a file.
+* ``listdir(path)`` - List the contents of a directory.
+* ``read(path, mode="r")`` - Read the contents of a file.
+* ``glob(path)`` - Glob a path.
+* ``ctime(path)`` - Get the creation time of a file.
+
 Polling
 ~~~~~~~
 
