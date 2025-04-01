@@ -28,6 +28,6 @@ setup(
     ],
     keywords="nextflow bioinformatics pipeline",
     packages=["nextflow"],
-    python_requires="!=2.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*",
+    python_requires="!=2.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.7.*, !=3.8.*",
     install_requires=[]
 )

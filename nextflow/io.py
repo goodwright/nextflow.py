@@ -1,6 +1,6 @@
 import os
-import pytz
 import glob
+from zoneinfo import ZoneInfo
 from datetime import datetime
 
 def get_file_text(path, io=None):
@@ -31,7 +31,7 @@ def get_file_creation_time(path, timezone=None, io=None):
         else:
             dt = datetime.fromtimestamp(os.path.getctime(path))
         if timezone:
-            tz = pytz.timezone(timezone)
+            tz = ZoneInfo(timezone)
             dt = dt.astimezone(tz)
             dt = dt.replace(tzinfo=None)
         return dt
