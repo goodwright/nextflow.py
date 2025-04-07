@@ -25,6 +25,13 @@ class FileTextTests(TestCase):
         io.read.return_value = "line1\nline2"
         self.assertEqual(get_file_text("/ex/file.txt", io=io), "line1\nline2")
         io.read.assert_called_with("/ex/file.txt")
+    
+
+    def test_can_handle_custom_io_with_no_file(self):
+        io = Mock()
+        io.read.side_effect = FileNotFoundError
+        self.assertEqual(get_file_text("/ex/file.txt", io=io), "")
+        io.read.assert_called_with("/ex/file.txt")
 
 
 

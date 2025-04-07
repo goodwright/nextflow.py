@@ -10,8 +10,8 @@ def get_file_text(path, io=None):
     :param io: an optional custom io object to handle reading.
     :rtype: ``str``"""
 
-    if io: return io.read(path)
     try:
+        if io: return io.read(path)
         with open(path, "r") as f: return f.read()
     except FileNotFoundError:
         return ""
