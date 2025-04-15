@@ -251,7 +251,7 @@ def wait_for_log_creation(output_path, start, io):
     :param io: an optional custom io object to handle file operations."""
     
     while True:
-        created = get_file_creation_time(os.path.join(output_path, ".nextflow.log"), io)
+        created = get_file_creation_time(os.path.join(output_path, ".nextflow.log"), io=io)
         if created and created > start: break
         time.sleep(0.1)
 

@@ -348,7 +348,7 @@ class WaitForLogCreationTests(TestCase):
         mock_time.side_effect = [None, datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2025, 1, 1)]
         wait_for_log_creation("/out", datetime(2024, 6, 1), io)
         self.assertEqual(mock_sleep.call_args_list, [call(0.1), call(0.1), call(0.1)])
-        mock_time.assert_called_with(os.path.join("/out", ".nextflow.log"), io)
+        mock_time.assert_called_with(os.path.join("/out", ".nextflow.log"), io=io)
 
 
 
