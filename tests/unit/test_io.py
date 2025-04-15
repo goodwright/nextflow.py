@@ -1,4 +1,4 @@
-import os
+import zoneinfo
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from datetime import datetime
@@ -47,7 +47,10 @@ class FileCreationTimeTests(TestCase):
     @patch("os.path.getctime")
     def test_can_get_creation_time_with_timezone(self, mock_getctime):
         mock_getctime.return_value = 123456
-        self.assertEqual(get_file_creation_time("/ex/file.txt", timezone="America/New_York"), datetime.fromtimestamp(123456 - 6 * 60 * 60))
+        self.assertEqual(
+            get_file_creation_time("/ex/file.txt", timezone="America/New_York"),
+            datetime(1970, 1, 2, 5, 17, 36)
+        )
         mock_getctime.assert_called_with("/ex/file.txt")
     
 
