@@ -262,6 +262,15 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.11.0
+~~~~~~~~~~~~~~
+
+`24th April, 2025`
+
+* Added support for custom filesystem access.
+* Fixed bug in timezone applying.
+
+
 Release 0.10.0
 ~~~~~~~~~~~~~~
 
