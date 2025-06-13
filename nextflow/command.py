@@ -4,7 +4,7 @@ import time
 import subprocess
 from datetime import datetime
 from nextflow.io import get_file_text, get_process_ids_to_paths, get_file_creation_time
-from nextflow.models import Execution, ProcessExecution
+from nextflow.models import Execution, ProcessExecution, ExecutionSubmission
 from nextflow.log import (
     get_started_from_log,
     get_finished_from_log,
@@ -17,7 +17,7 @@ from nextflow.log import (
 
 def run(*args, **kwargs):
     """Runs a pipeline and returns the execution.
-    
+
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in (if not current directory).
     :param str output_path: the location to store the output in (if not run path).
@@ -41,7 +41,7 @@ def run(*args, **kwargs):
 def run_and_poll(*args, **kwargs):
     """Runs a pipeline and polls it for updates. Yields the execution after each
     update.
-    
+
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param str run_path: the location to run the pipeline in (if not current directory).
     :param str output_path: the location to store the output in (if not run path).
@@ -71,28 +71,30 @@ def _run(
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
-    if not run_path and not io: run_path = os.path.abspath(".")
-    if not run_path and io: run_path = io.abspath(".")
-    if not output_path: output_path = run_path
-    if not log_path: log_path = output_path
-    nextflow_command = make_nextflow_command(
-        run_path, output_path, log_path, pipeline_path, resume, version, configs,
-        params, profiles, timezone, report, timeline, dag, trace, io
+    submission = submit_execution(
+        configs,
+        dag,
+        io,
+        log_path,
+        output_path,
+        params,
+        pipeline_path,
+        profiles,
+        report,
+        resume,
+        run_path,
+        runner,
+        timeline,
+        timezone,
+        trace,
+        version
     )
-    start = datetime.now()
-    if runner:
-        process = None
-        runner(nextflow_command)
-    else:
-        process = subprocess.Popen(
-            nextflow_command, universal_newlines=True, shell=True        
-        )
+
     execution, log_start = None, 0
-    if resume: wait_for_log_creation(log_path, start, io)
     while True:
         time.sleep(sleep)
         execution, diff = get_execution(
-            output_path, log_path, nextflow_command, execution, log_start, timezone, io
+            submission.output_path, submission.log_path, submission.nextflow_command, execution, log_start, timezone, io
         )
         log_start += diff
         if execution and poll: yield execution
@@ -102,9 +104,50 @@ def _run(
             break
 
 
+def submit_execution(
+        configs,
+        dag,
+        io,
+        log_path,
+        output_path,
+        params,
+        pipeline_path,
+        profiles,
+        report,
+        resume,
+        run_path,
+        runner,
+        timeline,
+        timezone,
+        trace,
+        version
+):
+    if not run_path and not io: run_path = os.path.abspath(".")
+    if not run_path and io: run_path = io.abspath(".")
+    if not output_path: output_path = run_path
+    if not log_path: log_path = output_path
+    nextflow_command = make_nextflow_command(
+        run_path, output_path, log_path, pipeline_path, resume, version, configs,
+        params, profiles, timezone, report, timeline, dag, trace, io
+    )
+    if runner:
+        process = None
+        runner(nextflow_command)
+    else:
+        process = subprocess.Popen(
+            nextflow_command, universal_newlines=True, shell=True
+        )
+    submission = ExecutionSubmission(
+        pipeline_path, run_path, output_path, log_path, nextflow_command, timezone
+    )
+    if resume:
+        wait_for_log_creation(submission.log_path, io)
+    return process, submission
+
+
 def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace, io):
     """Generates the `nextflow run` commmand.
-    
+
     :param str run_path: the location to run the pipeline in.
     :param str output_path: the location to store the output in.
     :param str log_path: the location to store the log in.
@@ -147,7 +190,7 @@ def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume
 def make_nextflow_command_env_string(version, timezone, output_path, run_path):
     """Creates the environment variable setting portion of the nextflow run
     command string.
-    
+
     :param str version: the nextflow version to use.
     :param str timezone: the timezone to use.
     :param str output_path: the location to store the output in.
@@ -162,7 +205,7 @@ def make_nextflow_command_env_string(version, timezone, output_path, run_path):
 
 def make_nextflow_command_log_string(log_path, run_path):
     """Creates the log setting portion of the nextflow run command string.
-    
+
     :param str log_path: the location to store the log file in.
     :rtype: ``str``"""
 
@@ -173,7 +216,7 @@ def make_nextflow_command_log_string(log_path, run_path):
 def make_nextflow_command_config_string(configs):
     """Creates the config setting portion of the nextflow run command string.
     Absolute paths are recommended.
-    
+
     :param str version: the nextflow version to use.
     :rtype: ``str``"""
 
@@ -183,7 +226,7 @@ def make_nextflow_command_config_string(configs):
 
 def make_nextflow_command_resume_string(resume):
     """Creates the resume setting portion of the nextflow run command string.
-    
+
     :param resume: whether to resume an existing execution.
     :rtype: ``str``"""
 
@@ -203,7 +246,7 @@ def make_nextflow_command_params_string(params):
     for key, value in params.items():
         if not value:
             param_list.append(f"--{key}=")
-        elif value[0] in "'\"": 
+        elif value[0] in "'\"":
             param_list.append(f"--{key}={value}")
         else:
             param_list.append(f"--{key}='{value}'")
@@ -212,7 +255,7 @@ def make_nextflow_command_params_string(params):
 
 def make_nextflow_command_profiles_string(profiles):
     """Creates the profile setting portion of the nextflow run command string.
-    
+
     :param list profiles: any profiles to be applied.
     :rtype: ``str``"""
 
@@ -222,7 +265,7 @@ def make_nextflow_command_profiles_string(profiles):
 
 def make_reports_string(output_path, report, timeline, dag, trace):
     """Creates the report setting portion of the nextflow run command string.
-    
+
     :param str output_path: the location to store the output in.
     :param str report: the filename to use for the execution report.
     :param str timeline: the filename to use for the timeline report.
@@ -243,13 +286,13 @@ def make_reports_string(output_path, report, timeline, dag, trace):
     return " ".join(params)
 
 
-def wait_for_log_creation(output_path, start, io):
+def wait_for_log_creation(output_path, io):
     """Waits for a log file for this execution to be created.
-    
+
     :param str output_path: the location to store the output in.
-    :param datetime start: the start time.
     :param io: an optional custom io object to handle file operations."""
-    
+
+    start = datetime.now()
     while True:
         created = get_file_creation_time(os.path.join(output_path, ".nextflow.log"), io=io)
         if created and created > start: break
@@ -259,7 +302,7 @@ def wait_for_log_creation(output_path, start, io):
 def get_execution(execution_path, log_path, nextflow_command, execution=None, log_start=0, timezone=None, io=None):
     """Creates an execution object from a location. If you are polling, you can
     pass in the previous execution to update it with new information.
-    
+
     :param str execution_path: the location of the execution.
     :param str log_path: the location of the log.
     :param str nextflow_command: the command used to run the pipeline.
@@ -322,8 +365,8 @@ def get_initial_process_executions(log, execution, io):
     currently in the list, or uncompleted ones which can now be completed. Some
     attributes are not yet filled in.
 
-    The identifiers of the proccess executions seen are returned.
-    
+    The identifiers of the process executions seen are returned.
+
     :param str log: a section of the log file.
     :param nextflow.models.Execution execution: the containing execution.
     :param io: an optional custom io object to handle file operations.
@@ -350,7 +393,7 @@ def get_initial_process_executions(log, execution, io):
 def create_process_execution_from_line(line, cached=False, io=None):
     """Creates a process execution from a line of the log file in which its
     submission (or previous caching) is reported.
-    
+
     :param str line: a line from the log file.
     :param bool cached: whether the process is cached.
     :param io: an optional custom io object to handle file operations.
@@ -375,7 +418,7 @@ def update_process_execution_from_line(process_executions, line):
     """Updates a process execution with information from a line of the log file
     in which its completion is reported. The identifier of the process execution
     is returned.
-    
+
     :param dict process_executions: a dictionary of process executions.
     :param str line: a line from the log file.
     :rtype: ``str``"""
@@ -393,7 +436,7 @@ def update_process_execution_from_line(process_executions, line):
 def update_process_execution_from_path(process_execution, execution_path, timezone=None, io=None):
     """Some attributes of a process execution need to be obtained from files on
     disk. This function updates the process execution with these values.
-    
+
     :param nextflow.models.ProcessExecution process_execution: the process execution.
     :param str execution_path: the location of the containing execution.
     :param str timezone: the timezone to use for the log.

@@ -3,7 +3,20 @@ import os
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
+
 from nextflow.io import get_file_text
+
+
+@dataclass(frozen=True)
+class ExecutionSubmission:
+    pipeline_path: str
+    run_path: str
+    output_path: str
+    log_path: str
+    nextflow_command: str
+    timezone: str
+
 
 @dataclass
 class Execution:
@@ -23,7 +36,6 @@ class Execution:
 
     def __repr__(self):
         return f"<Execution: {self.identifier}>"
-    
 
     @property
     def duration(self):
@@ -33,18 +45,16 @@ class Execution:
 
         if self.finished is None: return None
         return self.finished - self.started
-    
 
     @property
     def status(self):
         """A string representing the status of the execution.
-        
+
         :rtype: ``str``"""
 
         if self.return_code == "0": return "OK"
         if self.return_code == "": return "-"
         return "ERROR"
-
 
 
 @dataclass
@@ -64,39 +74,36 @@ class ProcessExecution:
     finished: datetime
     status: str
     cached: bool
-    io: any
+    io: Any
 
     def __repr__(self):
         return f"<ProcessExecution: {self.identifier}>"
-    
 
     @property
     def duration(self):
         """The duration of the process execution, in seconds.
-        
+
         :rtype: ``datetime.timedelta``"""
 
         if self.finished is None: return None
         if self.started is None: return None
         return self.finished - self.started
 
-
     @property
     def full_path(self):
         """The full absolute path to the process execution.
-        
+
         :rtype: ``pathlib.Path``"""
 
         if not self.path: return None
         return Path(self.execution.path, "work", self.path)
-    
 
     def input_data(self, include_path=True):
         """A list of files passed to the process execution as inputs.
-        
+
         :param bool include_path: if ``False``, only filenames returned.
         :type: ``list``"""
-        
+
         inputs = []
         if not self.path: return []
         run = get_file_text(self.full_path / ".command.run")
@@ -109,7 +116,6 @@ class ProcessExecution:
             return inputs
         else:
             return [os.path.basename(f) for f in inputs]
-    
 
     def all_output_data(self, include_path=True):
         """A list of all output data produced by the process execution,
