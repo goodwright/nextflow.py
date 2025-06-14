@@ -71,7 +71,7 @@ def _run(
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
-    process, submission = submit_execution(
+    submission = submit_execution(
         configs,
         dag,
         io,
@@ -98,7 +98,7 @@ def _run(
         )
         log_start += diff
         if execution and poll: yield execution
-        process_finished = not process or process.poll() is not None
+        process_finished = not submission.process or submission.process.poll() is not None
         if execution and execution.return_code and process_finished:
             if not poll: yield execution
             break
@@ -139,11 +139,11 @@ def submit_execution(
             nextflow_command, universal_newlines=True, shell=True
         )
     submission = ExecutionSubmission(
-        pipeline_path, run_path, output_path, log_path, nextflow_command, timezone
+        pipeline_path, run_path, output_path, log_path, nextflow_command, timezone, process
     )
     if resume:
         wait_for_log_creation(submission.log_path, start, io)
-    return process, submission
+    return submission
 
 
 def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace, io):
