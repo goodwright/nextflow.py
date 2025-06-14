@@ -4,18 +4,19 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
-
 from nextflow.io import get_file_text
-
 
 @dataclass(frozen=True)
 class ExecutionSubmission:
+    """A class to represent the submission of a Nextflow pipeline."""
+
     pipeline_path: str
     run_path: str
     output_path: str
     log_path: str
     nextflow_command: str
     timezone: str
+
 
 
 @dataclass
@@ -37,6 +38,7 @@ class Execution:
     def __repr__(self):
         return f"<Execution: {self.identifier}>"
 
+
     @property
     def duration(self):
         """The duration of the execution, in seconds.
@@ -45,6 +47,7 @@ class Execution:
 
         if self.finished is None: return None
         return self.finished - self.started
+
 
     @property
     def status(self):
@@ -55,6 +58,7 @@ class Execution:
         if self.return_code == "0": return "OK"
         if self.return_code == "": return "-"
         return "ERROR"
+
 
 
 @dataclass
@@ -76,8 +80,10 @@ class ProcessExecution:
     cached: bool
     io: Any
 
+
     def __repr__(self):
         return f"<ProcessExecution: {self.identifier}>"
+
 
     @property
     def duration(self):
@@ -89,6 +95,7 @@ class ProcessExecution:
         if self.started is None: return None
         return self.finished - self.started
 
+
     @property
     def full_path(self):
         """The full absolute path to the process execution.
@@ -97,6 +104,7 @@ class ProcessExecution:
 
         if not self.path: return None
         return Path(self.execution.path, "work", self.path)
+
 
     def input_data(self, include_path=True):
         """A list of files passed to the process execution as inputs.
@@ -116,6 +124,7 @@ class ProcessExecution:
             return inputs
         else:
             return [os.path.basename(f) for f in inputs]
+
 
     def all_output_data(self, include_path=True):
         """A list of all output data produced by the process execution,
