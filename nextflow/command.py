@@ -72,22 +72,22 @@ def _run(
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
     submission = submit_execution(
-        configs,
-        dag,
-        io,
-        log_path,
-        output_path,
-        params,
-        pipeline_path,
-        profiles,
-        report,
-        resume,
-        run_path,
-        runner,
-        timeline,
-        timezone,
-        trace,
-        version
+        pipeline_path=pipeline_path,
+        resume=resume,
+        run_path=run_path,
+        output_path=output_path,
+        log_path=log_path,
+        runner=runner,
+        io=io,
+        version=version,
+        configs=configs,
+        dag=dag,
+        trace=trace,
+        timeline=timeline,
+        report=report,
+        profiles=profiles,
+        timezone=timezone,
+        params=params
     )
 
     execution, log_start = None, 0
@@ -105,23 +105,44 @@ def _run(
 
 
 def submit_execution(
-        configs,
-        dag,
-        io,
-        log_path,
-        output_path,
-        params,
         pipeline_path,
-        profiles,
-        report,
-        resume,
-        run_path,
-        runner,
-        timeline,
-        timezone,
-        trace,
-        version
+        resume=False,
+        run_path=None,
+        output_path=None,
+        log_path=None,
+        runner=None,
+        io=None,
+        version=None,
+        configs=None,
+        params=None,
+        profiles=None,
+        timezone=None,
+        report=None,
+        timeline=None,
+        dag=None,
+        trace=None,
 ):
+    """Submits an execution and returns information about that submission as an
+    `ExecutionSubmission` object.
+
+    :param str pipeline_path: the absolute path to the pipeline .nf file.
+    :param str run_path: the location to run the pipeline in (if not current directory).
+    :param str output_path: the location to store the output in (if not run path).
+    :param str log_path: the location to store the log in (if not output path).
+    :param resume: whether to resume an existing execution.
+    :param function runner: a function to run the pipeline command.
+    :param io: an optional custom io object to handle file operations.
+    :param str version: the nextflow version to use.
+    :param list configs: any config files to be applied.
+    :param dict params: the parameters to pass.
+    :param list profiles: any profiles to be applied.
+    :param str timezone: the timezone to use for the log.
+    :param str report: the filename to use for the execution report.
+    :param str timeline: the filename to use for the timeline report.
+    :param str dag: the filename to use for the DAG report.
+    :param str trace: the filename to use for the trace report.
+    :rtype: ``nextflow.models.ExecutionSubmission``"""
+    
     if not run_path and not io: run_path = os.path.abspath(".")
     if not run_path and io: run_path = io.abspath(".")
     if not output_path: output_path = run_path
