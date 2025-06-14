@@ -71,7 +71,7 @@ def _run(
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
-    submission = submit_execution(
+    process, submission = submit_execution(
         configs,
         dag,
         io,
