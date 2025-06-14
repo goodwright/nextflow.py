@@ -130,6 +130,7 @@ def submit_execution(
         run_path, output_path, log_path, pipeline_path, resume, version, configs,
         params, profiles, timezone, report, timeline, dag, trace, io
     )
+    start = datetime.now()
     if runner:
         process = None
         runner(nextflow_command)
@@ -141,7 +142,7 @@ def submit_execution(
         pipeline_path, run_path, output_path, log_path, nextflow_command, timezone
     )
     if resume:
-        wait_for_log_creation(submission.log_path, io)
+        wait_for_log_creation(submission.log_path, start, io)
     return process, submission
 
 
@@ -286,13 +287,13 @@ def make_reports_string(output_path, report, timeline, dag, trace):
     return " ".join(params)
 
 
-def wait_for_log_creation(output_path, io):
+def wait_for_log_creation(output_path, start, io):
     """Waits for a log file for this execution to be created.
 
     :param str output_path: the location to store the output in.
+    :param datetime start: the start time.
     :param io: an optional custom io object to handle file operations."""
 
-    start = datetime.now()
     while True:
         created = get_file_creation_time(os.path.join(output_path, ".nextflow.log"), io=io)
         if created and created > start: break
