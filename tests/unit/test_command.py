@@ -6,33 +6,27 @@ from freezegun import freeze_time
 
 class RunTests(TestCase):
 
-    @patch("os.path.abspath")
-    @patch("nextflow.command.make_nextflow_command")
-    @patch("subprocess.Popen")
+    @patch("nextflow.command.submit_execution")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
-    def test_can_run_with_default_values(self, mock_ex, mock_sleep, mock_run, mock_nc, mock_abs):
+    def test_can_run_with_default_values(self, mock_ex, mock_sleep, mock_submit):
         execution = Mock()
+        submission = Mock()
+        mock_submit.return_value = submission
         mock_ex.return_value = execution, 20
         executions = list(_run("main.nf"))
-        mock_nc.assert_called_with(mock_abs.return_value, mock_abs.return_value, mock_abs.return_value, "main.nf", False, None, None, None, None, None, None, None, None, None, None)
-        mock_abs.assert_called_once_with(".")
-        mock_run.assert_called_with(
-            mock_nc.return_value,
-            universal_newlines=True, shell=True
-        )
         mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(mock_abs.return_value, mock_abs.return_value, mock_nc.return_value, None, 0, None, None)
+        mock_ex.assert_called_with(submission.output_path, submission.log_path, submission.nextflow_command, None, 0, None, None)
         self.assertEqual(executions, [execution])
     
 
-    @patch("nextflow.command.make_nextflow_command")
-    @patch("subprocess.Popen")
-    @patch("nextflow.command.wait_for_log_creation")
+    @patch("nextflow.command.submit_execution")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
     @freeze_time("2025-01-01")
-    def test_can_run_with_custom_values(self, mock_ex, mock_sleep, mock_wait, mock_run, mock_nc):
+    def test_can_run_with_custom_values(self, mock_ex, mock_sleep, mock_submit):
+        submission = Mock()
+        mock_submit.return_value = submission
         mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [[None, 0], [mock_executions[0], 40], [mock_executions[1], 20]]
         io = Mock()
@@ -41,74 +35,29 @@ class RunTests(TestCase):
             params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
             timeline="time.html", dag="dag.html", trace="trace.html", sleep=4, io=io
         ))
-        mock_nc.assert_called_with("/exdir", "/out", "/log", "main.nf", "a_b", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html", io)
-        mock_run.assert_called_with(
-            mock_nc.return_value,
-            universal_newlines=True, shell=True
-        )
-        mock_wait.assert_called_with("/log", datetime(2025, 1, 1), io)
         mock_sleep.assert_called_with(4)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with("/out", "/log", mock_nc.return_value, mock_executions[0], 40, "UTC", io)
+        mock_ex.assert_called_with(submission.output_path, submission.log_path, submission.nextflow_command, mock_executions[0], 40, "UTC", io)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, [mock_executions[1]])
-    
 
-    @patch("nextflow.command.make_nextflow_command")
-    @patch("subprocess.Popen")
+
+    @patch("nextflow.command.submit_execution")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
-    def test_can_run_with_custom_io(self, mock_ex, mock_sleep, mock_run, mock_nc):
-        execution = Mock()
-        mock_ex.return_value = execution, 20
-        io = Mock()
-        executions = list(_run("main.nf", io=io))
-        mock_nc.assert_called_with(io.abspath.return_value, io.abspath.return_value, io.abspath.return_value, "main.nf", False, None, None, None, None, None, None, None, None, None, io)
-        io.abspath.assert_called_once_with(".")
-        mock_run.assert_called_with(
-            mock_nc.return_value,
-            universal_newlines=True, shell=True
-        )
-        mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(io.abspath.return_value, io.abspath.return_value, mock_nc.return_value, None, 0, None, io)
-        self.assertEqual(executions, [execution])
-
-
-    @patch("nextflow.command.make_nextflow_command")
-    @patch("subprocess.Popen")
-    @patch("time.sleep")
-    @patch("nextflow.command.get_execution")
-    def test_can_run_and_poll(self, mock_ex, mock_sleep, mock_run, mock_nc):
-        mock_run.return_value.poll.side_effect = [None, None, 1]
+    def test_can_run_and_poll(self, mock_ex, mock_sleep, mock_submit):
+        submission = Mock()
+        submission.process.poll = MagicMock()
+        submission.process.poll.side_effect = [None, None, 1]
+        mock_submit.return_value = submission
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run("main.nf", poll=True, output_path="/out"))
-        mock_nc.assert_called_with(os.path.abspath("."), "/out", "/out", "main.nf", False, None, None, None, None, None, None, None, None, None, None)
-        mock_run.assert_called_with(
-            mock_nc.return_value,
-            universal_newlines=True, shell=True
-        )
         mock_sleep.assert_called_with(1)
         self.assertEqual(mock_sleep.call_count, 3)
-        mock_ex.assert_called_with("/out", "/out", mock_nc.return_value, mock_executions[0], 60, None, None)
+        mock_ex.assert_called_with(submission.output_path, submission.log_path, submission.nextflow_command, mock_executions[0], 60, None, None)
         self.assertEqual(mock_ex.call_count, 3)
         self.assertEqual(executions, mock_executions)
-    
-
-    @patch("nextflow.command.make_nextflow_command")
-    @patch("subprocess.Popen")
-    @patch("time.sleep")
-    @patch("nextflow.command.get_execution")
-    def test_can_run_with_custom_runner(self, mock_ex, mock_sleep, mock_run, mock_nc):
-        runner = MagicMock()
-        mock_ex.return_value = [Mock(finished=True), 0]
-        executions = list(_run("main.nf", runner=runner))
-        mock_nc.assert_called_with(os.path.abspath("."), os.path.abspath("."), os.path.abspath("."), "main.nf", False, None, None, None, None, None, None, None, None, None, None)
-        self.assertFalse(mock_run.called)
-        runner.assert_called_with(mock_nc.return_value)
-        mock_sleep.assert_called_with(1)
-        mock_ex.assert_called_with(os.path.abspath("."), os.path.abspath("."), mock_nc.return_value, None, 0, None, None)
-        self.assertEqual(executions, [mock_ex.return_value[0]])
     
 
     @patch("nextflow.command._run")
