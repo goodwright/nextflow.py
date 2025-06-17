@@ -47,8 +47,6 @@ class RunTests(TestCase):
     @patch("nextflow.command.get_execution")
     def test_can_run_and_poll(self, mock_ex, mock_sleep, mock_submit):
         submission = Mock()
-        submission.process.poll = MagicMock()
-        submission.process.poll.side_effect = [None, None, 1]
         mock_submit.return_value = submission
         mock_executions = [Mock(finished=False), Mock(finished=True)]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
@@ -98,7 +96,6 @@ class SubmitTests(TestCase):
         self.assertEqual(submission.log_path, "/run")
         self.assertEqual(submission.nextflow_command, mock_nc.return_value)
         self.assertEqual(submission.timezone, None)
-        self.assertEqual(submission.process, mock_run.return_value)
     
 
     @patch("nextflow.command.make_nextflow_command")
@@ -124,7 +121,6 @@ class SubmitTests(TestCase):
         self.assertEqual(submission.log_path, "/log")
         self.assertEqual(submission.nextflow_command, mock_nc.return_value)
         self.assertEqual(submission.timezone, "UTC")
-        self.assertEqual(submission.process, mock_run.return_value)
     
 
     @patch("nextflow.command.make_nextflow_command")
@@ -144,7 +140,6 @@ class SubmitTests(TestCase):
         self.assertEqual(submission.log_path, io.abspath.return_value)
         self.assertEqual(submission.nextflow_command, mock_nc.return_value)
         self.assertEqual(submission.timezone, None)
-        self.assertEqual(submission.process, mock_run.return_value)
     
 
     @patch("nextflow.command.make_nextflow_command")
@@ -159,7 +154,6 @@ class SubmitTests(TestCase):
         self.assertEqual(submission.log_path, os.path.abspath("."))
         self.assertEqual(submission.nextflow_command, mock_nc.return_value)
         self.assertEqual(submission.timezone, None)
-        self.assertEqual(submission.process, None)
 
 
 

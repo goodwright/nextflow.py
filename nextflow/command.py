@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import weakref
 import subprocess
 from datetime import datetime
 from nextflow.io import get_file_text, get_process_ids_to_paths, get_file_creation_time
@@ -98,8 +99,7 @@ def _run(
         )
         log_start += diff
         if execution and poll: yield execution
-        process_finished = not submission.process or submission.process.poll() is not None
-        if execution and execution.return_code and process_finished:
+        if execution and execution.return_code and execution.finished:
             if not poll: yield execution
             break
 
@@ -142,7 +142,7 @@ def submit_execution(
     :param str dag: the filename to use for the DAG report.
     :param str trace: the filename to use for the trace report.
     :rtype: ``nextflow.models.ExecutionSubmission``"""
-    
+
     if not run_path and not io: run_path = os.path.abspath(".")
     if not run_path and io: run_path = io.abspath(".")
     if not output_path: output_path = run_path
@@ -153,14 +153,15 @@ def submit_execution(
     )
     start = datetime.now()
     if runner:
-        process = None
         runner(nextflow_command)
     else:
         process = subprocess.Popen(
             nextflow_command, universal_newlines=True, shell=True
         )
+        process._child_created = False  # disables warning machinery
+        weakref.finalize(process, lambda: None)
     submission = ExecutionSubmission(
-        pipeline_path, run_path, output_path, log_path, nextflow_command, timezone, process
+        pipeline_path, run_path, output_path, log_path, nextflow_command, timezone
     )
     if resume:
         wait_for_log_creation(submission.log_path, start, io)

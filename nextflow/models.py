@@ -16,7 +16,6 @@ class ExecutionSubmission:
     log_path: str
     nextflow_command: str
     timezone: str
-    process: Any
 
 
 

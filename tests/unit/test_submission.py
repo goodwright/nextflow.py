@@ -5,7 +5,6 @@ from nextflow.models import ExecutionSubmission
 class SubmissionreationTests(TestCase):
 
     def test_can_create_execution_submission(self):
-        process = Mock()
         submission = ExecutionSubmission(
             pipeline_path="/main.nf",
             run_path="/executions/123",
@@ -13,7 +12,6 @@ class SubmissionreationTests(TestCase):
             log_path="/executions/123/out/nextflow.log",
             nextflow_command="nextflow run /main.nf",
             timezone="UTC",
-            process=process
         )
         self.assertEqual(submission.pipeline_path, "/main.nf")
         self.assertEqual(submission.run_path, "/executions/123")
@@ -21,4 +19,3 @@ class SubmissionreationTests(TestCase):
         self.assertEqual(submission.log_path, "/executions/123/out/nextflow.log")
         self.assertEqual(submission.nextflow_command, "nextflow run /main.nf")
         self.assertEqual(submission.timezone, "UTC")
-        self.assertEqual(submission.process, process)
