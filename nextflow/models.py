@@ -27,8 +27,8 @@ class Execution:
     stdout: str
     stderr: str
     return_code: str
-    started: datetime
-    finished: datetime
+    started: datetime | None
+    finished: datetime | None
     command: str
     log: str
     path: str
@@ -74,8 +74,8 @@ class ProcessExecution:
     return_code: str
     bash: str
     submitted: datetime
-    started: datetime
-    finished: datetime
+    started: datetime | None
+    finished: datetime | None
     status: str
     cached: bool
     io: Any
