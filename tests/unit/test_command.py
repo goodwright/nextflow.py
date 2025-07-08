@@ -31,7 +31,8 @@ class RunTests(TestCase):
         mock_ex.side_effect = [[None, 0], [mock_executions[0], 40], [mock_executions[1], 20]]
         io = Mock()
         executions = list(_run(
-            "main.nf", run_path="/exdir", output_path="/out", log_path="/log", resume="a_b", version="21.10", configs=["conf1"],
+            "main.nf", run_path="/exdir", output_path="/out", log_path="/log", resume="a_b",
+            version="21.10", java_home="/java", configs=["conf1"],
             params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
             timeline="time.html", dag="dag.html", trace="trace.html", sleep=4, io=io
         ))
@@ -77,14 +78,13 @@ class RunTests(TestCase):
 
 class SubmitTests(TestCase):
 
-
     @patch("os.path.abspath")
     @patch("nextflow.command.make_nextflow_command")
     @patch("subprocess.Popen")
     def test_can_submit_with_default_values(self, mock_run, mock_nc, mock_abs):
         mock_abs.side_effect = ["/run", "/out", "/log"]
         submission = submit_execution("main.nf")
-        mock_nc.assert_called_with("/run", "/run", "/run", "main.nf", False, None, None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with("/run", "/run", "/run", "main.nf", False, None, None, None, None, None, None, None, None, None, None, None)
         mock_abs.assert_called_once_with(".")
         mock_run.assert_called_with(
             mock_nc.return_value,
@@ -106,10 +106,10 @@ class SubmitTests(TestCase):
         io = Mock()
         submission = submit_execution(
             "main.nf", run_path="/exdir", output_path="/out", log_path="/log", resume="a_b", version="21.10", configs=["conf1"],
-            params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html",
+            params={"param": "2"}, profiles=["docker"], timezone="UTC", report="report.html", java_home="/java",
             timeline="time.html", dag="dag.html", trace="trace.html", io=io
         )
-        mock_nc.assert_called_with("/exdir", "/out", "/log", "main.nf", "a_b", "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html", io)
+        mock_nc.assert_called_with("/exdir", "/out", "/log", "main.nf", "a_b", "21.10", "/java", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html", io)
         mock_run.assert_called_with(
             mock_nc.return_value,
             universal_newlines=True, shell=True
@@ -128,7 +128,7 @@ class SubmitTests(TestCase):
     def test_can_submit_with_custom_io(self, mock_run, mock_nc):
         io = Mock()
         submission = submit_execution("main.nf", io=io)
-        mock_nc.assert_called_with(io.abspath.return_value, io.abspath.return_value, io.abspath.return_value, "main.nf", False, None, None, None, None, None, None, None, None, None, io)
+        mock_nc.assert_called_with(io.abspath.return_value, io.abspath.return_value, io.abspath.return_value, "main.nf", False, None, None, None, None, None, None, None, None, None, None, io)
         io.abspath.assert_called_once_with(".")
         mock_run.assert_called_with(
             mock_nc.return_value,
@@ -146,7 +146,7 @@ class SubmitTests(TestCase):
     def test_can_run_with_custom_runner(self, mock_nc):
         runner = MagicMock()
         submission = submit_execution("main.nf", runner=runner)
-        mock_nc.assert_called_with(os.path.abspath("."), os.path.abspath("."), os.path.abspath("."), "main.nf", False, None, None, None, None, None, None, None, None, None, None)
+        mock_nc.assert_called_with(os.path.abspath("."), os.path.abspath("."), os.path.abspath("."), "main.nf", False, None, None, None, None, None, None, None, None, None, None, None)
         runner.assert_called_with(mock_nc.return_value)
         self.assertEqual(submission.pipeline_path, "main.nf")
         self.assertEqual(submission.run_path, os.path.abspath("."))
@@ -175,8 +175,8 @@ class NextflowCommandTests(TestCase):
         mock_prof.return_value = "-profile docker,test"
         mock_report.return_value = "--dag.html"
         io = Mock()
-        command = make_nextflow_command("/exdir", "/out", "/log", "main.nf", True, "21.10", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html", io)
-        mock_env.assert_called_with("21.10", "UTC", "/out", "/exdir")
+        command = make_nextflow_command("/exdir", "/out", "/log", "main.nf", True, "21.10", "/java", ["conf1"], {"param": "2"}, ["docker"], "UTC", "report.html", "time.html", "dag.html", "trace.html", io)
+        mock_env.assert_called_with("21.10", "UTC", "/out", "/exdir", "/java")
         mock_conf.assert_called_with(["conf1"])
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
@@ -201,8 +201,8 @@ class NextflowCommandTests(TestCase):
         mock_prof.return_value = ""
         mock_report.return_value = ""
         mock_abspath.return_value = "/exdir"
-        command = make_nextflow_command("/exdir", "/exdir", "/exdir", "main.nf", False, "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None, None)
-        mock_env.assert_called_with("21.10", None, "/exdir", "/exdir")
+        command = make_nextflow_command("/exdir", "/exdir", "/exdir", "main.nf", False, "21.10", "/java", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None, None)
+        mock_env.assert_called_with("21.10", None, "/exdir", "/exdir", "/java")
         mock_conf.assert_called_with(["conf1"])
         mock_resume.assert_called_with(False)
         mock_params.assert_called_with({"param": "2"})
@@ -228,8 +228,8 @@ class NextflowCommandTests(TestCase):
         mock_report.return_value = ""
         io = Mock()
         io.abspath.return_value = "/exdir"
-        command = make_nextflow_command("/exdir", "/exdir", "/exdir", "main.nf", False, "21.10", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None, io)
-        mock_env.assert_called_with("21.10", None, "/exdir", "/exdir")
+        command = make_nextflow_command("/exdir", "/exdir", "/exdir", "main.nf", False, "21.10", "/java", ["conf1"], {"param": "2"}, ["docker"], None, None, None, None, None, io)
+        mock_env.assert_called_with("21.10", None, "/exdir", "/exdir", "/java")
         mock_conf.assert_called_with(["conf1"])
         mock_resume.assert_called_with(False)
         mock_params.assert_called_with({"param": "2"})
@@ -242,19 +242,23 @@ class NextflowCommandTests(TestCase):
 class EnvStringTests(TestCase):
 
     def test_can_get_env_without_args(self):
-        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/out"), "NXF_ANSI_LOG=false")
+        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/out", None), "NXF_ANSI_LOG=false")
 
 
     def test_can_get_env_with_version(self):
-        self.assertEqual(make_nextflow_command_env_string("22.1", None, "/out", "/out"), "NXF_ANSI_LOG=false NXF_VER=22.1")
+        self.assertEqual(make_nextflow_command_env_string("22.1", None, "/out", "/out", None), "NXF_ANSI_LOG=false NXF_VER=22.1")
     
 
     def test_can_get_env_with_timezone(self):
-        self.assertEqual(make_nextflow_command_env_string(None, "UTC", "/out", "/out"), "NXF_ANSI_LOG=false TZ=UTC")
+        self.assertEqual(make_nextflow_command_env_string(None, "UTC", "/out", "/out", None), "NXF_ANSI_LOG=false TZ=UTC")
     
 
     def test_can_get_env_with_work_location(self):
-        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/run"), "NXF_ANSI_LOG=false NXF_WORK=/out/work")
+        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/run", None), "NXF_ANSI_LOG=false NXF_WORK=/out/work")
+    
+
+    def test_can_get_env_with_java_home(self):
+        self.assertEqual(make_nextflow_command_env_string(None, None, "/out", "/out", "/java"), "NXF_ANSI_LOG=false JAVA_HOME=/java")
 
 
 

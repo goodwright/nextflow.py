@@ -26,6 +26,7 @@ def run(*args, **kwargs):
     :param resume: whether to resume an existing execution.
     :param function runner: a function to run the pipeline command.
     :param str version: the nextflow version to use.
+    :param str java_home: the path to the Java installation to use.
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
@@ -51,6 +52,7 @@ def run_and_poll(*args, **kwargs):
     :param function runner: a function to run the pipeline command.
     :param io: an optional custom io object to handle file operations.
     :param str version: the nextflow version to use.
+    :param str java_home: the path to the Java installation to use.
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
@@ -68,7 +70,7 @@ def run_and_poll(*args, **kwargs):
 
 def _run(
         pipeline_path, resume=False, poll=False, run_path=None, output_path=None,
-        log_path=None, runner=None, io=None,
+        log_path=None, runner=None, io=None, java_home=None,
         version=None, configs=None, params=None, profiles=None, timezone=None,
         report=None, timeline=None, dag=None, trace=None, sleep=1
 ):
@@ -81,6 +83,7 @@ def _run(
         runner=runner,
         io=io,
         version=version,
+        java_home=java_home,
         configs=configs,
         dag=dag,
         trace=trace,
@@ -113,6 +116,7 @@ def submit_execution(
         runner=None,
         io=None,
         version=None,
+        java_home=None,
         configs=None,
         params=None,
         profiles=None,
@@ -133,6 +137,7 @@ def submit_execution(
     :param function runner: a function to run the pipeline command.
     :param io: an optional custom io object to handle file operations.
     :param str version: the nextflow version to use.
+    :param str java_home: the path to the Java installation to use.
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
@@ -148,8 +153,8 @@ def submit_execution(
     if not output_path: output_path = run_path
     if not log_path: log_path = output_path
     nextflow_command = make_nextflow_command(
-        run_path, output_path, log_path, pipeline_path, resume, version, configs,
-        params, profiles, timezone, report, timeline, dag, trace, io
+        run_path, output_path, log_path, pipeline_path, resume, version, java_home,
+        configs, params, profiles, timezone, report, timeline, dag, trace, io
     )
     start = datetime.now()
     if runner:
@@ -168,7 +173,7 @@ def submit_execution(
     return submission
 
 
-def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume,version, configs, params, profiles, timezone, report, timeline, dag, trace, io):
+def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume, version, java_home, configs, params, profiles, timezone, report, timeline, dag, trace, io):
     """Generates the `nextflow run` commmand.
 
     :param str run_path: the location to run the pipeline in.
@@ -177,6 +182,7 @@ def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume
     :param str pipeline_path: the absolute path to the pipeline .nf file.
     :param bool resume: whether to resume an existing execution.
     :param str version: the nextflow version to use.
+    :param str java_home: the path to the Java installation to use.
     :param list configs: any config files to be applied.
     :param dict params: the parameters to pass.
     :param list profiles: any profiles to be applied.
@@ -188,7 +194,7 @@ def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume
     :param io: an optional custom io object to handle file operations.
     :rtype: ``str``"""
 
-    env = make_nextflow_command_env_string(version, timezone, output_path, run_path)
+    env = make_nextflow_command_env_string(version, timezone, output_path, run_path, java_home)
     if env: env += " "
     nf = "nextflow -Duser.country=US"
     log = make_nextflow_command_log_string(log_path, run_path)
@@ -210,19 +216,22 @@ def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume
     return command
 
 
-def make_nextflow_command_env_string(version, timezone, output_path, run_path):
+def make_nextflow_command_env_string(version, timezone, output_path, run_path, java_home):
     """Creates the environment variable setting portion of the nextflow run
     command string.
 
     :param str version: the nextflow version to use.
     :param str timezone: the timezone to use.
     :param str output_path: the location to store the output in.
+    :param str run_path: the location to run the pipeline in.
+    :param str java_home: the path to the Java installation to use.
     :rtype: ``str``"""
 
     env = {"NXF_ANSI_LOG": "false"}
     if version: env["NXF_VER"] = version
     if timezone: env["TZ"] = timezone
     if output_path != run_path: env["NXF_WORK"] = os.path.join(output_path, "work")
+    if java_home: env["JAVA_HOME"] = java_home
     return " ".join([f"{k}={v}" for k, v in env.items()])
 
 
