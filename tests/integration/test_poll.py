@@ -202,12 +202,13 @@ class CustomRunningTests(RunTestCase):
     
 
     def test_can_run_with_specific_version(self):
-        # Run basic execution
+        nf_version = subprocess.check_output(["nextflow", "-v"]).decode("utf-8").strip().split()[-1]
+        specific_version = "25.04.0" if nf_version.startswith("25") else "22.10.8"
         executions = []
         os.chdir(self.rundirectory)
         for execution in nextflow.run_and_poll(
             pipeline_path=self.get_path("pipeline.nf"),
-            version="25.04.0",
+            version=specific_version,
             params={
                 "input": self.get_path("files/data.txt"), "count": "12",
                 "suffix": self.get_path("files/suffix.txt")
@@ -216,7 +217,7 @@ class CustomRunningTests(RunTestCase):
             executions.append(copy.deepcopy(execution))
 
         # Execution is fine
-        self.check_execution(execution, version="25.04.0", check_stderr=False)
+        self.check_execution(execution, version=specific_version, check_stderr=False)
 
         # Check that we have at least 2 executions
         self.assertGreater(len(executions), 1)
