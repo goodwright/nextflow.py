@@ -53,7 +53,7 @@ class LogIsFinishedTests(TestCase):
     
 
     def test_can_handle_nextflow_finished_text(self):
-        self.assertTrue(log_is_finished("line1\nline2\ - > Execution complete -- Goodbye\n"))
+        self.assertTrue(log_is_finished("line1\nline2\n - > Execution complete -- Goodbye\n"))
     
 
     def test_can_handle_java_error_with_spaces(self):
