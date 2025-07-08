@@ -262,6 +262,15 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.12.0
+~~~~~~~~~~~~~~
+
+`8th July, 2025`
+
+* Add separate `ExecutionSubmission` model for submission without watching.
+* You can now specify a Java home for the Nextflow process.
+
+
 Release 0.11.0
 ~~~~~~~~~~~~~~
 
