@@ -230,7 +230,6 @@ def make_nextflow_command_env_string(version, timezone, output_path, run_path, j
     env = {"NXF_ANSI_LOG": "false"}
     if version: env["NXF_VER"] = version
     if timezone: env["TZ"] = timezone
-    if output_path != run_path: env["NXF_WORK"] = os.path.join(output_path, "work")
     if java_home: env["JAVA_HOME"] = java_home
     return " ".join([f"{k}={v}" for k, v in env.items()])
 
