@@ -99,7 +99,7 @@ customise the execution with various options:
 
 * ``output_path`` - The location to store the execution outputs (``work`` etc.), which by default is the ``run_path``.
 
-* ``params`` - A dictionary of parameters to pass to the pipeline as command. In the above example, this would run the pipeline with ``--param1=123``.
+* ``params`` - A dictionary of parameters to pass to the pipeline as command-line arguments. In the above example, this would run the pipeline with ``--param1=123``.
 
 * ``profiles`` - A list of Nextflow profiles to use when running the pipeline. These are defined in the ``nextflow.config`` file, and can be used to configure things like the executor to use, or the container engine to use. In the above example, this would run the pipeline with ``-profile docker,test``.
 
