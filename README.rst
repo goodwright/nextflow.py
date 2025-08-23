@@ -115,7 +115,7 @@ customise the execution with various options:
 
 * ``dag`` - A filename for a DAG file to generate. This will be an HTML file containing a DAG diagram of the pipeline execution.
 
-* ``trace`` - A filename for a trace file to generate. This will be an TSV file containing runtime information about the pipeline execution.
+* ``trace`` - A filename for a trace file to generate. This will be a TSV file containing runtime information about the pipeline execution.
 
 * ``resume`` - Whether to resume an existing execution. Can be ``True`` or the UUID of an existing execution to resume from.
 
