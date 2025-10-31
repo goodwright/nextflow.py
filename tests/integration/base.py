@@ -33,7 +33,7 @@ class RunTestCase(TestCase):
         return execution.stdout
     
 
-    def check_execution(self, execution, line_count=24, output_path=None, log_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, trace=None, check_stderr=True):
+    def check_execution(self, execution, line_count=24, output_path=None, log_path=None, version=None, timezone=None, report=None, timeline=None, dag=None, trace=None, check_stderr=True, io=None):
         # Files created
         if not output_path: self.assertIn(".nextflow", os.listdir(self.get_path("rundirectory")))
         if log_path:
@@ -105,10 +105,10 @@ class RunTestCase(TestCase):
         self.assertEqual(proc_ex.input_data(), [self.get_path("files/data.txt")])
         self.assertEqual(proc_ex.input_data(include_path=False), ["data.txt"])
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)),
+            set(proc_ex.all_output_data(include_path=False, io=io)),
             {"abc.dat", "xyz.dat", "log.txt"}
         )
-        self.assertIn(proc_ex.identifier, proc_ex.all_output_data()[0])
+        self.assertIn(proc_ex.identifier, proc_ex.all_output_data(io=io)[0])
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (abc.dat)")
         self.check_process_execution(proc_ex, execution, False, check_time=not timezone)
@@ -121,9 +121,9 @@ class RunTestCase(TestCase):
             proc_ex.input_data()[0]
         )
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"duplicated_abc.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"duplicated_abc.dat"}
         )
-        with open(proc_ex.all_output_data(include_path=True)[0]) as f:
+        with open(proc_ex.all_output_data(include_path=True, io=io)[0]) as f:
             self.assertEqual(len(f.read().splitlines()), line_count)
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:DUPLICATE (xyz.dat)")
@@ -137,7 +137,7 @@ class RunTestCase(TestCase):
             proc_ex.input_data()[0]
         )
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"duplicated_xyz.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"duplicated_xyz.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_abc.dat)")
@@ -151,7 +151,7 @@ class RunTestCase(TestCase):
             proc_ex.input_data()[0]
         )
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"lowered_duplicated_abc.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"lowered_duplicated_abc.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:DUPLICATE_AND_LOWER:LOWER (duplicated_xyz.dat)")
@@ -165,7 +165,7 @@ class RunTestCase(TestCase):
             proc_ex.input_data()[0]
         )
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"lowered_duplicated_xyz.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"lowered_duplicated_xyz.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_abc.dat)")
@@ -175,7 +175,7 @@ class RunTestCase(TestCase):
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
         self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_abc.dat", "suffix.txt"})
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"suffix_lowered_duplicated_abc.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"suffix_lowered_duplicated_abc.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "PROCESS_DATA:APPEND (lowered_duplicated_xyz.dat)")
@@ -185,7 +185,7 @@ class RunTestCase(TestCase):
         self.assertEqual(proc_ex.process, "PROCESS_DATA:APPEND")
         self.assertEqual(set(proc_ex.input_data(include_path=False)), {"lowered_duplicated_xyz.dat", "suffix.txt"})
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"suffix_lowered_duplicated_xyz.dat"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"suffix_lowered_duplicated_xyz.dat"}
         )
 
         proc_ex = self.get_process_execution(execution, "JOIN:COMBINE_FILES")
@@ -198,7 +198,7 @@ class RunTestCase(TestCase):
             {"suffix_lowered_duplicated_abc.dat", "suffix_lowered_duplicated_xyz.dat"}
         )
         self.assertEqual(
-            set(proc_ex.all_output_data(include_path=False)), {"combined.txt"}
+            set(proc_ex.all_output_data(include_path=False, io=io)), {"combined.txt"}
         )
 
 

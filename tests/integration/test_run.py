@@ -291,7 +291,7 @@ class CustomRunningTests(RunTestCase):
         )
 
         # Execution is fine
-        self.check_execution(execution)
+        self.check_execution(execution, io=io)
 
         # The custom io functions were used
         with open(f"{self.rundirectory}/log.txt", "r") as f:
