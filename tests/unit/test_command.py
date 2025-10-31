@@ -413,7 +413,7 @@ class GetExecutionTests(TestCase):
         self.assertEqual(size, 3)
         mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"), io)
         mock_make.assert_called_with("LOG", "/ex", "nf run", None, io)
-        mock_init.assert_called_with("LOG", mock_execution, io)
+        mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex", io)
         self.assertEqual([c[0] for c in mock_update.call_args_list], [
             (process_executions["aa/bb"], "/ex", "UTC", io),
@@ -454,7 +454,7 @@ class GetExecutionTests(TestCase):
         self.assertEqual(size, 3)
         mock_text.assert_called_with(os.path.join("/log", ".nextflow.log"), io)
         mock_make.assert_called_with("LOG", "/ex", "nf run", mock_execution, io)
-        mock_init.assert_called_with("LOG", mock_execution, io)
+        mock_init.assert_called_with("LOG", mock_execution)
         mock_paths.assert_called_with(["cc/dd","gg/hh"], "/ex", io)
         self.assertEqual([c[0] for c in mock_update.call_args_list], [
             (process_executions["aa/bb"], "/ex", "UTC", io),
@@ -555,14 +555,13 @@ class InitialProcessExecutionTests(TestCase):
         mock_create.side_effect = [p1, p2, None]
         mock_update.return_value = "cc/dd"
         log = "line1\nSubmitted process a/bb\n..[ab/123456]\n[cd/789012] Submitted process\nTask completed\nSubmitted process"
-        io = Mock()
-        process_executions, updated = get_initial_process_executions(log, execution, io)
+        process_executions, updated = get_initial_process_executions(log, execution)
         self.assertEqual(process_executions, {"aa/bb": p1, "xx/yy": p2})
         self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
         self.assertEqual([c[0] for c in mock_create.call_args_list], [
-            ("Submitted process a/bb", False, io),
-            ("[cd/789012] Submitted process", False, io),
-            ("Submitted process", False, io),
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Submitted process", False),
+            ("Submitted process", False),
         ])
         mock_update.assert_called_with({"aa/bb": p1, "xx/yy": p2}, "Task completed")
     
@@ -575,14 +574,13 @@ class InitialProcessExecutionTests(TestCase):
         mock_create.side_effect = [p1, p2, None]
         mock_update.return_value = "cc/dd"
         log = "line1\nSubmitted process a/bb\n..[ab/123456]\n[cd/789012] Cached process\nTask completed\nSubmitted process"
-        io = Mock()
-        process_executions, updated = get_initial_process_executions(log, execution, io)
+        process_executions, updated = get_initial_process_executions(log, execution)
         self.assertEqual(process_executions, {"aa/bb": p1, "xx/yy": p2})
         self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
         self.assertEqual([c[0] for c in mock_create.call_args_list], [
-            ("Submitted process a/bb", False, io),
-            ("[cd/789012] Cached process", True, io),
-            ("Submitted process", False, io),
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Cached process", True),
+            ("Submitted process", False),
         ])
         mock_update.assert_called_with({"aa/bb": p1, "xx/yy": p2}, "Task completed")
     
@@ -596,14 +594,13 @@ class InitialProcessExecutionTests(TestCase):
         mock_create.side_effect = [p1, p2, None]
         mock_update.return_value = "cc/dd"
         log = "line1\nSubmitted process a/bb\n..[ab/123456]\n[cd/789012] Submitted process\nTask completed\nSubmitted process"
-        io = Mock()
-        process_executions, updated = get_initial_process_executions(log, execution, io)
+        process_executions, updated = get_initial_process_executions(log, execution)
         self.assertEqual(process_executions, {"aa/bb": p1, "cc/dd": p3, "xx/yy": p2})
         self.assertEqual(updated, ["aa/bb", "xx/yy", "cc/dd"])
         self.assertEqual([c[0] for c in mock_create.call_args_list], [
-            ("Submitted process a/bb", False, io),
-            ("[cd/789012] Submitted process", False, io),
-            ("Submitted process", False, io),
+            ("Submitted process a/bb", False),
+            ("[cd/789012] Submitted process", False),
+            ("Submitted process", False),
         ])
         mock_update.assert_called_with({"aa/bb": p1, "cc/dd": p3, "xx/yy": p2}, "Task completed")
 
@@ -614,8 +611,7 @@ class CreateProcessExecutionFromLineTests(TestCase):
     @patch("nextflow.command.parse_submitted_line")
     def test_can_create_process_execution(self, mock_parse):
         mock_parse.return_value = ("aa/bb", "PROC (123)", "PROC", "NOW")
-        io = Mock() 
-        proc_ex = create_process_execution_from_line("line1", io=io)
+        proc_ex = create_process_execution_from_line("line1")
         self.assertEqual(proc_ex.identifier, "aa/bb")
         self.assertEqual(proc_ex.name, "PROC (123)")
         self.assertEqual(proc_ex.process, "PROC")
@@ -629,14 +625,12 @@ class CreateProcessExecutionFromLineTests(TestCase):
         self.assertEqual(proc_ex.status, "-")
         self.assertEqual(proc_ex.path, "")
         self.assertFalse(proc_ex.cached)
-        self.assertIs(proc_ex.io, io)
-    
+
 
     @patch("nextflow.command.parse_cached_line")
     def test_can_create_cached_process_execution(self, mock_parse):
         mock_parse.return_value = ("aa/bb", "PROC (123)", "PROC")
-        io = Mock()
-        proc_ex = create_process_execution_from_line("line1", cached=True, io=io)
+        proc_ex = create_process_execution_from_line("line1", cached=True)
         self.assertEqual(proc_ex.identifier, "aa/bb")
         self.assertEqual(proc_ex.name, "PROC (123)")
         self.assertEqual(proc_ex.process, "PROC")
@@ -650,7 +644,6 @@ class CreateProcessExecutionFromLineTests(TestCase):
         self.assertEqual(proc_ex.status, "COMPLETED")
         self.assertEqual(proc_ex.path, "")
         self.assertTrue(proc_ex.cached)
-        self.assertIs(proc_ex.io, io)
 
 
     @patch("nextflow.command.parse_submitted_line")

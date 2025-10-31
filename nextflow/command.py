@@ -348,7 +348,7 @@ def get_execution(execution_path, log_path, nextflow_command, execution=None, lo
     if not log: return None, 0
     log = log[log_start:]
     execution = make_or_update_execution(log, execution_path, nextflow_command, execution, io)
-    process_executions, changed = get_initial_process_executions(log, execution, io)
+    process_executions, changed = get_initial_process_executions(log, execution)
     no_path = [k for k, v in process_executions.items() if not v.path]
     process_ids_to_paths = get_process_ids_to_paths(no_path, execution_path, io)
     for process_id, path in process_ids_to_paths.items():
@@ -392,7 +392,7 @@ def make_or_update_execution(log, execution_path, nextflow_command, execution, i
     return execution
 
 
-def get_initial_process_executions(log, execution, io):
+def get_initial_process_executions(log, execution):
     """Parses a section of a log file and looks for new process executions not
     currently in the list, or uncompleted ones which can now be completed. Some
     attributes are not yet filled in.
@@ -401,7 +401,6 @@ def get_initial_process_executions(log, execution, io):
 
     :param str log: a section of the log file.
     :param nextflow.models.Execution execution: the containing execution.
-    :param io: an optional custom io object to handle file operations.
     :rtype: ``tuple``"""
 
     lines = log.splitlines()
@@ -410,7 +409,7 @@ def get_initial_process_executions(log, execution, io):
     for line in lines:
         if "Submitted process" in line or "Cached process" in line:
             is_cached = "Cached process" in line
-            proc_ex = create_process_execution_from_line(line, is_cached, io)
+            proc_ex = create_process_execution_from_line(line, is_cached)
             if not proc_ex: continue
             proc_ex.execution = execution
             process_executions[proc_ex.identifier] = proc_ex
@@ -422,13 +421,12 @@ def get_initial_process_executions(log, execution, io):
     return process_executions, just_updated
 
 
-def create_process_execution_from_line(line, cached=False, io=None):
+def create_process_execution_from_line(line, cached=False):
     """Creates a process execution from a line of the log file in which its
     submission (or previous caching) is reported.
 
     :param str line: a line from the log file.
     :param bool cached: whether the process is cached.
-    :param io: an optional custom io object to handle file operations.
     :rtype: ``nextflow.models.ProcessExecution``"""
 
     if cached:
@@ -442,7 +440,7 @@ def create_process_execution_from_line(line, cached=False, io=None):
         path="", stdout="", stderr="", bash="", started=None, finished=None,
         return_code="0" if cached else "",
         status="COMPLETED" if cached else "-",
-        cached=cached, io=io
+        cached=cached
     )
 
 

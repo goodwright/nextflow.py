@@ -78,7 +78,6 @@ class ProcessExecution:
     finished: datetime | None
     status: str
     cached: bool
-    io: Any
 
 
     def __repr__(self):
@@ -126,17 +125,18 @@ class ProcessExecution:
             return [os.path.basename(f) for f in inputs]
 
 
-    def all_output_data(self, include_path=True):
+    def all_output_data(self, include_path=True, io=None):
         """A list of all output data produced by the process execution,
         including unpublished staging files.
 
         :param bool include_path: if ``False``, only filenames returned.
+        :param io: an optional custom io object to handle file operations.
         :type: ``list``"""
 
         outputs = []
         if not self.path: return []
         inputs = self.input_data(include_path=False)
-        listdir = self.io.listdir if self.io else os.listdir
+        listdir = io.listdir if io else os.listdir
         for f in listdir(self.full_path):
             full_path = Path(f"{self.full_path}/{f}")
             if not f.startswith(".command") and f != ".exitcode":
