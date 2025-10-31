@@ -262,6 +262,14 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.12.1
+~~~~~~~~~~~~~~
+
+`31st October, 2025`
+
+* Removed `io` attribute from process executions.
+
+
 Release 0.12.0
 ~~~~~~~~~~~~~~
 
