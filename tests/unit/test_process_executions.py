@@ -107,8 +107,8 @@ class InputDataTests(ProcessExecutionTest):
             self.process_execution.input_data(),
             ["/work/25/7eaa7786ca/file1.dat", "/work/fe/3b80569ba5/file2.dat"]
         )
-        mock_text.assert_called_with(Path("/loc/.command.run"))
-    
+        mock_text.assert_called_with(Path("/loc/.command.run"), io=None)
+
 
     @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
     @patch("nextflow.models.get_file_text")
@@ -119,8 +119,8 @@ class InputDataTests(ProcessExecutionTest):
             self.process_execution.input_data(include_path=False),
             ["file1.dat", "file2.dat"]
         )
-        mock_text.assert_called_with(Path("/loc/.command.run"))
-    
+        mock_text.assert_called_with(Path("/loc/.command.run"), io=None)
+
 
     @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
     @patch("nextflow.models.get_file_text")
@@ -130,8 +130,8 @@ class InputDataTests(ProcessExecutionTest):
         self.assertEqual(
             self.process_execution.input_data(include_path=False), []
         )
-        mock_text.assert_called_with(Path("/loc/.command.run"))
-    
+        mock_text.assert_called_with(Path("/loc/.command.run"), io=None)
+
 
     @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
     @patch("nextflow.models.get_file_text")
@@ -141,7 +141,7 @@ class InputDataTests(ProcessExecutionTest):
         self.assertEqual(
             self.process_execution.input_data(include_path=False), []
         )
-        mock_text.assert_called_with(Path("/loc/.command.run"))
+        mock_text.assert_called_with(Path("/loc/.command.run"), io=None)
     
 
     @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
@@ -178,7 +178,19 @@ class InputDataTests(ProcessExecutionTest):
             self.process_execution.input_data(),
             ["/work/25/7eaa7786ca/file1.dat", "/work/fe/3b80569ba5/file2.dat"]
         )
-        mock_text.assert_called_with(Path("/loc/.command.run"))
+        mock_text.assert_called_with(Path("/loc/.command.run"), io=None)
+
+
+    @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
+    def test_can_get_input_data_with_custom_io(self, mock_path):
+        mock_path.return_value = Path("/loc")
+        io = Mock()
+        io.read.return_value = self.text
+        self.assertEqual(
+            self.process_execution.input_data(io=io),
+            ["/work/25/7eaa7786ca/file1.dat", "/work/fe/3b80569ba5/file2.dat"]
+        )
+        io.read.assert_called_with(Path("/loc/.command.run"))
 
 
 
@@ -195,9 +207,9 @@ class AllOutputDataTests(ProcessExecutionTest):
             self.make_process_execution().all_output_data(),
             [str(Path("/loc/file1")), str(Path("/loc/file3"))]
         )
-        mock_input.assert_called_with(include_path=False)
+        mock_input.assert_called_with(include_path=False, io=None)
         mock_dir.assert_called_with(mock_path.return_value)
-    
+
 
     @patch("nextflow.models.ProcessExecution.input_data")
     @patch("nextflow.models.ProcessExecution.full_path", new_callable=PropertyMock)
@@ -210,7 +222,7 @@ class AllOutputDataTests(ProcessExecutionTest):
             self.make_process_execution().all_output_data(include_path=False),
             ["file1", "file3"]
         )
-        mock_input.assert_called_with(include_path=False)
+        mock_input.assert_called_with(include_path=False, io=None)
         mock_dir.assert_called_with(mock_path.return_value)
 
 
@@ -239,4 +251,4 @@ class AllOutputDataTests(ProcessExecutionTest):
             self.make_process_execution().all_output_data(io=io),
             [str(Path("/loc/file1")), str(Path("/loc/file3"))]
         )
-        mock_input.assert_called_with(include_path=False)
+        mock_input.assert_called_with(include_path=False, io=io)
