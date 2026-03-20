@@ -262,6 +262,14 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.13.0
+~~~~~~~~~~~~~~
+
+`20th March, 2026`
+
+* Add `io` parameter to `ProcessExecution.input_data` method.
+
+
 Release 0.12.1
 ~~~~~~~~~~~~~~
 
