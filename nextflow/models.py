@@ -105,15 +105,15 @@ class ProcessExecution:
         return Path(self.execution.path, "work", self.path)
 
 
-    def input_data(self, include_path=True):
+    def input_data(self, include_path=True, io=None):
         """A list of files passed to the process execution as inputs.
 
         :param bool include_path: if ``False``, only filenames returned.
+        :param io: an optional custom io object to handle file operations.
         :type: ``list``"""
 
-        inputs = []
         if not self.path: return []
-        run = get_file_text(self.full_path / ".command.run")
+        run = get_file_text(self.full_path / ".command.run", io=io)
         stage = re.search(r"nxf_stage\(\)((.|\n|\r)+?)}", run)
         if not stage: return []
         contents = stage[1]
@@ -135,7 +135,7 @@ class ProcessExecution:
 
         outputs = []
         if not self.path: return []
-        inputs = self.input_data(include_path=False)
+        inputs = self.input_data(include_path=False, io=io)
         listdir = io.listdir if io else os.listdir
         for f in listdir(self.full_path):
             full_path = Path(f"{self.full_path}/{f}")
