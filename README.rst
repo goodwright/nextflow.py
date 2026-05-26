@@ -262,6 +262,14 @@ during their execution too. These can be obtained as follows:
 Changelog
 ---------
 
+Release 0.13.1
+~~~~~~~~~~~~~~
+
+`26th May, 2026`
+
+* Fix run loop hanging when Nextflow exits with a config parse error (#14).
+
+
 Release 0.13.0
 ~~~~~~~~~~~~~~
 

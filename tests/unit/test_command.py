@@ -46,10 +46,23 @@ class RunTests(TestCase):
     @patch("nextflow.command.submit_execution")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
+    def test_loop_terminates_when_return_code_set_without_finished(self, mock_ex, mock_sleep, mock_submit):
+        submission = Mock()
+        mock_submit.return_value = submission
+        execution = Mock(return_code="1", finished=None)
+        mock_ex.side_effect = [(execution, 100)]
+        executions = list(_run("main.nf"))
+        self.assertEqual(executions, [execution])
+        self.assertEqual(mock_ex.call_count, 1)
+
+
+    @patch("nextflow.command.submit_execution")
+    @patch("time.sleep")
+    @patch("nextflow.command.get_execution")
     def test_can_run_and_poll(self, mock_ex, mock_sleep, mock_submit):
         submission = Mock()
         mock_submit.return_value = submission
-        mock_executions = [Mock(finished=False), Mock(finished=True)]
+        mock_executions = [Mock(return_code=""), Mock(return_code="0")]
         mock_ex.side_effect = [[None, 20], [mock_executions[0], 40], [mock_executions[1], 20]]
         executions = list(_run("main.nf", poll=True, output_path="/out"))
         mock_sleep.assert_called_with(1)
