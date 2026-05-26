@@ -102,7 +102,7 @@ def _run(
         )
         log_start += diff
         if execution and poll: yield execution
-        if execution and execution.return_code and execution.finished:
+        if execution and execution.return_code:
             if not poll: yield execution
             break
 
