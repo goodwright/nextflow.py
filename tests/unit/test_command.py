@@ -194,7 +194,7 @@ class NextflowCommandTests(TestCase):
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
         mock_report.assert_called_with("/out", "report.html", "time.html", "dag.html", "trace.html")
-        self.assertEqual(command, "cd /exdir; A=B C=D nextflow -Duser.country=US -log '.nextflow.log' -c conf1 -c conf2 run main.nf -resume X --p1=10 --p2=20 -profile docker,test --dag.html >/out/stdout.txt 2>/out/stderr.txt; echo $? >/out/rc.txt")
+        self.assertEqual(command, "cd /exdir; :>/out/rc.txt; A=B C=D nextflow -Duser.country=US -log '.nextflow.log' -c conf1 -c conf2 run main.nf -resume X --p1=10 --p2=20 -profile docker,test --dag.html >/out/stdout.txt 2>/out/stderr.txt; echo $? >/out/rc.txt")
     
 
     @patch("nextflow.command.make_nextflow_command_env_string")
@@ -221,7 +221,7 @@ class NextflowCommandTests(TestCase):
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
         mock_report.assert_called_with("/exdir", None, None, None, None)
-        self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
+        self.assertEqual(command, ":>rc.txt; nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
     
 
     @patch("nextflow.command.make_nextflow_command_env_string")
@@ -248,7 +248,29 @@ class NextflowCommandTests(TestCase):
         mock_params.assert_called_with({"param": "2"})
         mock_prof.assert_called_with(["docker"])
         mock_report.assert_called_with("/exdir", None, None, None, None)
-        self.assertEqual(command, "nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
+        self.assertEqual(command, ":>rc.txt; nextflow -Duser.country=US run main.nf >stdout.txt 2>stderr.txt; echo $? >rc.txt")
+
+
+    @patch("nextflow.command.make_nextflow_command_env_string")
+    @patch("nextflow.command.make_nextflow_command_log_string")
+    @patch("nextflow.command.make_nextflow_command_config_string")
+    @patch("nextflow.command.make_nextflow_command_resume_string")
+    @patch("nextflow.command.make_nextflow_command_params_string")
+    @patch("nextflow.command.make_nextflow_command_profiles_string")
+    @patch("nextflow.command.make_reports_string")
+    def test_command_truncates_stale_rc_before_running(self, mock_report, mock_prof, mock_params, mock_resume, mock_conf, mock_log, mock_env):
+        mock_env.return_value = ""
+        mock_log.return_value = ""
+        mock_conf.return_value = ""
+        mock_resume.return_value = ""
+        mock_params.return_value = ""
+        mock_prof.return_value = ""
+        mock_report.return_value = ""
+        io = Mock()
+        io.abspath.return_value = "/exdir"
+        command = make_nextflow_command("/exdir", "/out", "/log", "main.nf", False, None, None, None, None, None, None, None, None, None, None, io)
+        self.assertIn(":>/out/rc.txt;", command)
+        self.assertLess(command.index(":>/out/rc.txt;"), command.index("nextflow"))
 
 
 

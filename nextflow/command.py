@@ -207,9 +207,10 @@ def make_nextflow_command(run_path, output_path, log_path, pipeline_path, resume
     profiles = make_nextflow_command_profiles_string(profiles)
     reports = make_reports_string(output_path, report, timeline, dag, trace)
     command = f"{env}{nf} {log}{configs}run {pipeline_path} {resume}{params} {profiles} {reports}"
+    prefix = (str(output_path) + os.path.sep) if output_path != run_path else ""
+    command = f":>{prefix}rc.txt; {command}"
     abspath = io.abspath if io else os.path.abspath
     if run_path != abspath("."): command = f"cd {run_path}; {command}"
-    prefix = (str(output_path) + os.path.sep) if output_path != run_path else ""
     command = command.rstrip() + f" >{prefix}"
     command += f"stdout.txt 2>{prefix}"
     command += f"stderr.txt; echo $? >{prefix}rc.txt"
