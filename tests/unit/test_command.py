@@ -46,14 +46,14 @@ class RunTests(TestCase):
     @patch("nextflow.command.submit_execution")
     @patch("time.sleep")
     @patch("nextflow.command.get_execution")
-    def test_loop_terminates_when_return_code_set_without_finished(self, mock_ex, mock_sleep, mock_submit):
+    def test_loop_terminates_when_return_code_set_but_finished_never_arrives(self, mock_ex, mock_sleep, mock_submit):
         submission = Mock()
         mock_submit.return_value = submission
         execution = Mock(return_code="1", finished=None)
-        mock_ex.side_effect = [(execution, 100)]
+        mock_ex.side_effect = [(execution, 100), (execution, 0)]
         executions = list(_run("main.nf"))
         self.assertEqual(executions, [execution])
-        self.assertEqual(mock_ex.call_count, 1)
+        self.assertEqual(mock_ex.call_count, 2)
 
 
     @patch("nextflow.command.submit_execution")

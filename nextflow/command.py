@@ -94,7 +94,7 @@ def _run(
         params=params
     )
 
-    execution, log_start = None, 0
+    execution, log_start, rc_seen = None, 0, False
     while True:
         time.sleep(sleep)
         execution, diff = get_execution(
@@ -102,9 +102,11 @@ def _run(
         )
         log_start += diff
         if execution and poll: yield execution
-        if execution and execution.return_code:
+        if execution and execution.return_code and (execution.finished or rc_seen):
             if not poll: yield execution
             break
+        if execution and execution.return_code:
+            rc_seen = True
 
 
 def submit_execution(
