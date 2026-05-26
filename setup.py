@@ -10,8 +10,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="https://github.com/goodwright/nextflow.py",
-    author="Sam Ireland",
-    author_email="sam@goodwright.com",
+    author="Goodwright Ltd",
+    author_email="engineering@flow.bio",
     license="GPLv3+",
     classifiers=[
         "Development Status :: 4 - Beta",
